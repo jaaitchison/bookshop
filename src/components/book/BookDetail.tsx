@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useCart } from '../../context/CartContext';
 import type { Book } from '../../types/book';
 
 interface BookDetailProps {
@@ -8,6 +11,8 @@ interface BookDetailProps {
 }
 
 export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) => {
+  const { addItem } = useCart();
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -64,7 +69,10 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
             </div>
 
             <div className="flex flex-wrap gap-4">
-              <button className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">
+              <button
+                onClick={() => addItem(book)}
+                className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+              >
                 Add to cart
               </button>
               <button className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">

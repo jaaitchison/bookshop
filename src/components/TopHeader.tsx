@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
 import type { ThemeMode } from './ThemeProvider';
+import { useCart } from '../context/CartContext';
 
 const Heartbeat: React.FC<{ zone: 'admin' | 'studio' | 'public' }> = ({ zone }) => {
   const color = zone === 'admin' ? 'bg-red-500' : zone === 'studio' ? 'bg-amber-400' : 'bg-green-500';
@@ -101,6 +102,7 @@ const MobileNav: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
 export const TopHeader: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname() || '/';
+  const { count, openCart } = useCart();
   const zone: 'admin' | 'studio' | 'public' = pathname.startsWith('/admin')
     ? 'admin'
     : pathname.startsWith('/studio') || pathname.startsWith('/writer')
@@ -145,6 +147,13 @@ export const TopHeader: React.FC = () => {
                 <Link href="/library" className="text-sm">Library</Link>
                 <Link href="/studio" className="text-sm">Writer Studio</Link>
                 <Link href="/admin" className="text-sm">Admin</Link>
+                <button
+                  onClick={openCart}
+                  className="ml-2 inline-flex items-center rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Cart
+                  {count > 0 ? <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{count}</span> : null}
+                </button>
               </div>
             </div>
           </div>
