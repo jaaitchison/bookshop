@@ -1,10 +1,9 @@
-import React from 'react';
 import Link from 'next/link';
 import { BookCard } from './BookCard';
-import { getFeaturedBooks } from '../../data/books';
+import { getFeaturedBooks } from '@/src/lib/catalog-data';
 
-export const FeaturedBooks: React.FC = () => {
-  const books = getFeaturedBooks();
+export const FeaturedBooks = async () => {
+  const books = await getFeaturedBooks();
 
   return (
     <section className="py-16">

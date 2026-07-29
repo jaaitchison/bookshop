@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import { useCart } from '../../context/CartContext';
 import type { Book } from '../../types/book';
 
@@ -12,6 +13,40 @@ interface BookDetailProps {
 
 export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) => {
   const { addItem } = useCart();
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+
+  useEffect(() => {
+    const loadWishlistState = async () => {
+      try {
+        const response = await fetch('/api/wishlist');
+        const data = (await response.json()) as { items?: string[] };
+        setIsWishlisted((data.items ?? []).includes(book.id));
+      } catch {
+        setIsWishlisted(false);
+      }
+    };
+
+    void loadWishlistState();
+  }, [book.id]);
+
+  const handleWishlistToggle = async () => {
+    const nextValue = !isWishlisted;
+    setIsWishlisted(nextValue);
+    setIsUpdatingWishlist(true);
+
+    try {
+      await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId: book.id, action: nextValue ? 'add' : 'remove' }),
+      });
+    } catch {
+      setIsWishlisted(!nextValue);
+    } finally {
+      setIsUpdatingWishlist(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -75,8 +110,16 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               >
                 Add to cart
               </button>
-              <button className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">
-                Add to wishlist
+              <button
+                onClick={handleWishlistToggle}
+                disabled={isUpdatingWishlist}
+                className={`rounded-lg border px-6 py-3 font-semibold transition ${
+                  isWishlisted
+                    ? 'border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-950/40 dark:text-amber-200'
+                    : 'border-gray-300 text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                {isUpdatingWishlist ? 'Updating...' : isWishlisted ? 'Saved to wishlist' : 'Add to wishlist'}
               </button>
             </div>
 

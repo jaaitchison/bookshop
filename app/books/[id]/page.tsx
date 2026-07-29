@@ -1,15 +1,15 @@
-'use client';
-
 import dynamic from 'next/dynamic';
-import { useParams } from 'next/navigation';
-import { getBookById, mockBooks } from '@/src/data/books';
+import { getBookById, getCatalogBooks } from '@/src/lib/catalog-data';
 
 const BookDetail = dynamic(() => import('@/src/components/book/BookDetail').then((mod) => mod.BookDetail));
 
-export default function BookPage() {
-  const params = useParams<{ id: string }>();
-  const id = params?.id;
-  const book = id ? getBookById(id) : undefined;
+interface BookPageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function BookPage({ params }: BookPageProps) {
+  const { id } = await params;
+  const book = await getBookById(id);
 
   if (!book) {
     return (
@@ -19,7 +19,8 @@ export default function BookPage() {
     );
   }
 
-  const relatedBooks = mockBooks.filter((relatedBook) => relatedBook.id !== book.id).slice(0, 3);
+  const books = await getCatalogBooks();
+  const relatedBooks = books.filter((relatedBook) => relatedBook.id !== book.id).slice(0, 3);
 
   return <BookDetail book={book} relatedBooks={relatedBooks} />;
 }
