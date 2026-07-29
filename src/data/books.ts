@@ -117,6 +117,10 @@ export const getNewBooks = (): Book[] => {
   return mockBooks.filter(book => book.new);
 };
 
+export const getBookById = (id: string): Book | undefined => {
+  return mockBooks.find(book => book.id === id);
+};
+
 export interface FilterOptions {
   search?: string;
   genre?: string;
