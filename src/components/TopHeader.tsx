@@ -7,6 +7,8 @@ import { usePathname } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
 import type { ThemeMode } from './ThemeProvider';
 import { useCart } from '../context/CartContext';
+import { useAccount } from '../context/AccountContext';
+import type { AccountRole } from '../types/account';
 
 const Heartbeat: React.FC<{ zone: 'admin' | 'studio' | 'public' }> = ({ zone }) => {
   const color = zone === 'admin' ? 'bg-red-500' : zone === 'studio' ? 'bg-amber-400' : 'bg-green-500';
@@ -39,8 +41,76 @@ const ThemeSwitcher: React.FC = () => {
   );
 };
 
+const AuthActions: React.FC = () => {
+  const { isAuthenticated, profile, signOut } = useAccount();
+
+  if (!isAuthenticated) {
+    return (
+      <Link
+        href="/auth"
+        className="rounded-full border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+      >
+        Sign in
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Link
+        href="/account"
+        className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/70 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:bg-gray-800"
+      >
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-xs font-semibold text-white">
+          {profile.avatar}
+        </span>
+        <span className="hidden md:inline">{profile.username}</span>
+      </Link>
+      <button
+        type="button"
+        onClick={signOut}
+        className="rounded-full border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+      >
+        Sign out
+      </button>
+    </div>
+  );
+};
+
+const RoleSwitcher: React.FC = () => {
+  const { profile, setActiveRole, hasRole } = useAccount();
+  const roles: Array<{ id: AccountRole; label: string; enabled: boolean }> = [
+    { id: 'reader', label: 'Reader', enabled: true },
+    { id: 'writer', label: 'Writer', enabled: hasRole('writer') },
+    { id: 'admin', label: 'Admin', enabled: hasRole('admin') },
+  ];
+
+  return (
+    <div className="hidden lg:flex items-center gap-2 rounded-full border border-gray-200 bg-white/70 p-1 dark:border-gray-800 dark:bg-gray-900/70">
+      {roles.filter((role) => role.enabled).map((role) => {
+        const active = profile.activeRole === role.id;
+        return (
+          <button
+            key={role.id}
+            type="button"
+            onClick={() => setActiveRole(role.id)}
+            className={`rounded-full px-3 py-1 text-sm font-medium transition ${
+              active
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+            }`}
+          >
+            {role.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
 const MobileNav: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const { hasRole } = useAccount();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -80,19 +150,37 @@ const MobileNav: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
             My Library
           </Link>
           <Link
-            href="/studio"
+            href="/account"
             className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
             onClick={onClose}
           >
-            Writer Studio
+            Account Hub
           </Link>
           <Link
-            href="/admin"
+            href="/auth"
             className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
             onClick={onClose}
           >
-            Admin
+            Sign in
           </Link>
+          {hasRole('writer') ? (
+            <Link
+              href="/studio"
+              className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
+              onClick={onClose}
+            >
+              Writer Studio
+            </Link>
+          ) : null}
+          {hasRole('admin') ? (
+            <Link
+              href="/admin"
+              className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
+              onClick={onClose}
+            >
+              Admin
+            </Link>
+          ) : null}
         </div>
       </nav>
     </div>
@@ -103,6 +191,7 @@ export const TopHeader: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname() || '/';
   const { count, openCart } = useCart();
+  const { hasRole } = useAccount();
   const zone: 'admin' | 'studio' | 'public' = pathname.startsWith('/admin')
     ? 'admin'
     : pathname.startsWith('/studio') || pathname.startsWith('/writer')
@@ -137,16 +226,23 @@ export const TopHeader: React.FC = () => {
               </Link>
             </div>
 
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:flex items-center space-x-4">
                 <Heartbeat zone={zone} />
+                <RoleSwitcher />
                 <ThemeSwitcher />
+                <AuthActions />
               </div>
               <div className="hidden sm:flex items-center space-x-2">
                 <Link href="/books" className="text-sm">Books</Link>
                 <Link href="/library" className="text-sm">Library</Link>
-                <Link href="/studio" className="text-sm">Writer Studio</Link>
-                <Link href="/admin" className="text-sm">Admin</Link>
+                <Link href="/account" className="text-sm">Account</Link>
+                {hasRole('writer') ? (
+                  <Link href="/studio" className="text-sm">Studio</Link>
+                ) : null}
+                {hasRole('admin') ? (
+                  <Link href="/admin" className="text-sm">Admin</Link>
+                ) : null}
                 <button
                   onClick={openCart}
                   className="ml-2 inline-flex items-center rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
