@@ -47,35 +47,82 @@ export default function CheckoutPage() {
     setIsPlacingOrder(true);
     setError(null);
 
-    const orderPlaced = await placeOrder({
-      items: items.map((item) => ({
-        id: item.book.id,
-        title: item.book.title,
-        author: item.book.author,
-        price: item.book.price,
-        quantity: item.quantity,
-      })),
-      total,
-      shipping: {
-        name: formValues.fullName,
-        email: formValues.email || profile.email,
-        address: formValues.address,
-        city: formValues.city,
-        zip: formValues.zip,
-      },
-    });
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            id: item.book.id,
+            title: item.book.title,
+            author: item.book.author,
+            price: item.book.price,
+            quantity: item.quantity,
+          })),
+          shipping: {
+            name: formValues.fullName,
+            email: formValues.email || profile.email,
+            address: formValues.address,
+            city: formValues.city,
+            zip: formValues.zip,
+          },
+          profileId: profile.id,
+        }),
+      });
 
-    if (!orderPlaced) {
-      setError('We could not place your order right now.');
+      const payload = await response.json() as {
+        checkoutUrl?: string;
+        sessionId?: string;
+        demo?: boolean;
+        fallbackUrl?: string;
+        message?: string;
+      };
+
+      if (!response.ok && !payload.demo) {
+        throw new Error(payload.message ?? 'We could not start the secure checkout flow.');
+      }
+
+      if (payload.checkoutUrl) {
+        window.location.assign(payload.checkoutUrl);
+        return;
+      }
+
+      if (payload.demo && payload.fallbackUrl) {
+        const orderPlaced = await placeOrder({
+          items: items.map((item) => ({
+            id: item.book.id,
+            title: item.book.title,
+            author: item.book.author,
+            price: item.book.price,
+            quantity: item.quantity,
+          })),
+          total,
+          shipping: {
+            name: formValues.fullName,
+            email: formValues.email || profile.email,
+            address: formValues.address,
+            city: formValues.city,
+            zip: formValues.zip,
+          },
+        });
+
+        if (!orderPlaced) {
+          throw new Error('We could not place your order right now.');
+        }
+
+        setLastPurchasedBookId(items[0]?.book.id ?? null);
+        clearCart();
+        setSubmittedOrderId(`ORD-${Date.now().toString().slice(-6)}`);
+        setFormValues(initialFormValues);
+        router.push(payload.fallbackUrl);
+        return;
+      }
+
+      throw new Error(payload.message ?? 'We could not start the secure checkout flow.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'We could not start the secure checkout flow.');
       setIsPlacingOrder(false);
-      return;
     }
-
-    setLastPurchasedBookId(items[0]?.book.id ?? null);
-    clearCart();
-    setSubmittedOrderId(`ORD-${Date.now().toString().slice(-6)}`);
-    setFormValues(initialFormValues);
-    setIsPlacingOrder(false);
   };
 
   if (submittedOrderId) {
@@ -203,7 +250,7 @@ export default function CheckoutPage() {
                 disabled={isPlacingOrder}
                 className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {isPlacingOrder ? 'Placing order...' : 'Place order'}
+                {isPlacingOrder ? 'Preparing checkout...' : 'Continue to secure checkout'}
               </button>
               <Link href="/books" className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">
                 Continue shopping
