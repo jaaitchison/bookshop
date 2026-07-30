@@ -25,24 +25,20 @@ const CartContext = createContext<CartContextValue | undefined>(undefined);
 const STORAGE_KEY = 'bp_cart_items';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
+  const [items, setItems] = useState<CartItem[]>(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as CartItem[];
-        if (Array.isArray(parsed)) {
-          setItems(parsed);
-        }
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {
       // ignore malformed storage data
     }
-  }, []);
+    return [];
+  });
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

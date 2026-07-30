@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { AccountGoal, AccountProfile, AccountOrder, AccountOrderItem, AccountRole } from '@/src/types/account';
 
 interface StoredAccountUser {
@@ -105,39 +105,67 @@ const writeStoredUsers = (users: StoredAccountUser[]) => {
 };
 
 export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profile, setProfile] = useState<AccountProfile>(() => normalizeProfile());
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [profile, setProfile] = useState<AccountProfile>(() => {
+    if (typeof window === 'undefined') return normalizeProfile();
+
+    try {
+      const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (storedSession) {
+        const parsed = JSON.parse(storedSession) as { profile?: Partial<AccountProfile> };
+        if (parsed.profile) return normalizeProfile(parsed.profile);
+      }
+    } catch {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+    }
+
+    try {
+      const storedProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+      if (storedProfile) {
+        const parsed = JSON.parse(storedProfile) as Partial<AccountProfile>;
+        return normalizeProfile(parsed);
+      }
+    } catch {
+      window.localStorage.removeItem(PROFILE_STORAGE_KEY);
+    }
+
+    return normalizeProfile();
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (storedSession) {
+        const parsed = JSON.parse(storedSession) as { profile?: Partial<AccountProfile> };
+        return !!parsed.profile;
+      }
+    } catch {}
+    return false;
+  });
+
   const [authError, setAuthError] = useState<string | null>(null);
-  const [orders, setOrders] = useState<AccountOrder[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
+
+  const [orders, setOrders] = useState<AccountOrder[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
+      if (storedSession) {
+        const parsed = JSON.parse(storedSession) as { profile?: Partial<AccountProfile> };
+        if (parsed.profile?.id) {
+          const storedOrders = window.localStorage.getItem(getOrdersStorageKey(parsed.profile.id));
+          if (storedOrders) {
+            const parsedOrders = JSON.parse(storedOrders) as AccountOrder[];
+            if (Array.isArray(parsedOrders)) return parsedOrders;
+          }
+        }
+      }
+    } catch {}
+    return [];
+  });
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
-    }
-
-    const storedProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-    const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
-
-    if (storedProfile) {
-      try {
-        const parsed = JSON.parse(storedProfile) as Partial<AccountProfile>;
-        setProfile(normalizeProfile(parsed));
-      } catch {
-        window.localStorage.removeItem(PROFILE_STORAGE_KEY);
-      }
-    }
-
-    if (storedSession) {
-      try {
-        const parsed = JSON.parse(storedSession) as { profile?: Partial<AccountProfile> };
-        if (parsed.profile) {
-          setProfile(normalizeProfile(parsed.profile));
-          setIsAuthenticated(true);
-        }
-      } catch {
-        window.localStorage.removeItem(SESSION_STORAGE_KEY);
-      }
     }
 
     if (!readStoredUsers().length) {
@@ -161,12 +189,10 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       writeStoredUsers([{ id: demoProfile.id, email: demoProfile.email, password: 'bookshop', profile: demoProfile }]);
     }
-
-    setHasLoaded(true);
   }, []);
 
   useEffect(() => {
-    if (!hasLoaded || typeof window === 'undefined') {
+    if (typeof window === 'undefined') {
       return;
     }
 
@@ -186,7 +212,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } else {
       window.localStorage.removeItem(SESSION_STORAGE_KEY);
     }
-  }, [hasLoaded, isAuthenticated, profile]);
+  }, [isAuthenticated, profile]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -199,28 +225,6 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     window.localStorage.setItem(getOrdersStorageKey(profile.id), JSON.stringify(orders));
   }, [orders, profile.id]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (!profile.id) {
-      return;
-    }
-
-    const storedOrders = window.localStorage.getItem(getOrdersStorageKey(profile.id));
-    if (storedOrders) {
-      try {
-        const parsed = JSON.parse(storedOrders) as AccountOrder[];
-        if (Array.isArray(parsed)) {
-          setOrders(parsed);
-        }
-      } catch {
-        window.localStorage.removeItem(getOrdersStorageKey(profile.id));
-      }
-    }
-  }, [profile.id]);
 
   const updateProfile = (updates: Partial<AccountProfile>) => {
     setProfile((current) => normalizeProfile({
@@ -317,7 +321,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
   };
 
-  const hasRole = (role: AccountRole) => {
+  const hasRole = useCallback((role: AccountRole) => {
     if (role === 'reader') {
       return profile.roles.reader;
     }
@@ -327,7 +331,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     return profile.roles.admin;
-  };
+  }, [profile.roles]);
 
   const clearAuthError = () => {
     setAuthError(null);
@@ -346,6 +350,16 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setAuthError('We could not find an account with that email and password.');
       return false;
     }
+
+    try {
+      const storedOrders = window.localStorage.getItem(getOrdersStorageKey(existingUser.profile.id));
+      if (storedOrders) {
+        const parsedOrders = JSON.parse(storedOrders) as AccountOrder[];
+        if (Array.isArray(parsedOrders)) {
+          setOrders(parsedOrders);
+        }
+      }
+    } catch {}
 
     setAuthError(null);
     setProfile(normalizeProfile(existingUser.profile));
@@ -406,6 +420,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     writeStoredUsers(nextUsers);
     setAuthError(null);
+    setOrders([]);
     setProfile(nextProfile);
     setIsAuthenticated(true);
     return true;
@@ -413,11 +428,12 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const signOut = () => {
     setAuthError(null);
+    setOrders([]);
     setProfile(normalizeProfile());
     setIsAuthenticated(false);
   };
 
-  const placeOrder = (input: {
+  const placeOrder = useCallback((input: {
     items: AccountOrderItem[];
     total: number;
     shipping: {
@@ -447,7 +463,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     setOrders((current) => [order, ...current]);
     return true;
-  };
+  }, [isAuthenticated]);
 
   const value = useMemo(
     () => ({
@@ -469,7 +485,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       orders,
       placeOrder,
     }),
-    [authError, isAuthenticated, orders, profile]
+    [authError, hasRole, isAuthenticated, orders, placeOrder, profile]
   );
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;

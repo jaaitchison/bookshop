@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useMemo } from 'react';
 import { useAccount } from '@/src/context/AccountContext';
-import { accountActivity, accountLibrary, accountPublishedBooks, getPersonalizedNotifications } from '@/src/data/account';
+import { accountActivity, accountLibrary, getPersonalizedNotifications } from '@/src/data/account';
 import { mockBooks } from '@/src/data/books';
 
 type GoalOption = {
