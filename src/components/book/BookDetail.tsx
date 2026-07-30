@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useCart } from '../../context/CartContext';
-import type { Book, BookReview } from '../../types/book';
+import { useAccount } from '../../context/AccountContext';
+import type { Book, BookChapter, BookReview } from '../../types/book';
 
 interface BookDetailProps {
   book: Book;
@@ -13,11 +14,82 @@ interface BookDetailProps {
 
 export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) => {
   const { addItem } = useCart();
+  const { isAuthenticated, orders, hasRole } = useAccount();
+  const readingStorageKey = `bookshop-reading-progress-${book.id}`;
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
   const [reviews, setReviews] = useState<BookReview[]>([]);
   const [reviewForm, setReviewForm] = useState({ user: '', rating: 5, comment: '' });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [activeChapterId, setActiveChapterId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') {
+      return null;
+    }
+
+    try {
+      const savedProgress = window.localStorage.getItem(readingStorageKey);
+      if (!savedProgress) {
+        return null;
+      }
+      const parsed = JSON.parse(savedProgress) as { chapterId?: string };
+      return typeof parsed.chapterId === 'string' ? parsed.chapterId : null;
+    } catch {
+      window.localStorage.removeItem(readingStorageKey);
+      return null;
+    }
+  });
+  const [scrollProgress, setScrollProgress] = useState<number>(() => {
+    if (typeof window === 'undefined') {
+      return 0;
+    }
+
+    try {
+      const savedProgress = window.localStorage.getItem(readingStorageKey);
+      if (!savedProgress) {
+        return 0;
+      }
+      const parsed = JSON.parse(savedProgress) as { progress?: number };
+      return typeof parsed.progress === 'number' && parsed.progress >= 0 && parsed.progress <= 100 ? parsed.progress : 0;
+    } catch {
+      return 0;
+    }
+  });
+
+  const chapters = useMemo<BookChapter[]>(() => {
+    if (book.manuscriptChapters && book.manuscriptChapters.length > 0) {
+      return book.manuscriptChapters;
+    }
+
+    return [
+      {
+        id: `${book.id}-preview`,
+        title: 'Sample Chapter',
+        content: `This is a free preview of "${book.title}".\n\nThe morning arrived quiet and bright, and everything felt possible. The first pages of this story invite you into the world, introduce the voice, and set the stakes for what is to come.`,
+        isPreview: true,
+      },
+      {
+        id: `${book.id}-chapter-2`,
+        title: 'Chapter 2',
+        content: `Full manuscript content for "${book.title}" unlocks instantly after purchase.\n\nChapter 2 deepens the conflict, reveals character motivations, and expands the world with details unavailable in the public preview.`,
+        isPreview: false,
+      },
+      {
+        id: `${book.id}-chapter-3`,
+        title: 'Chapter 3',
+        content: `Readers with access can continue seamlessly across chapters with progress sync.\n\nThis chapter advances the narrative arc and sets up pivotal decisions.`,
+        isPreview: false,
+      },
+    ];
+  }, [book.id, book.manuscriptChapters, book.title]);
+
+  const purchasedBookIds = useMemo(
+    () => new Set(orders.flatMap((order) => order.items.map((item) => item.id))),
+    [orders],
+  );
+  const canAccessFullManuscript = hasRole('writer') || hasRole('admin') || purchasedBookIds.has(book.id);
+  const readableChapters = canAccessFullManuscript ? chapters : chapters.filter((chapter) => chapter.isPreview);
+  const activeChapter = readableChapters.find((chapter) => chapter.id === activeChapterId) ?? readableChapters[0];
 
   useEffect(() => {
     const loadWishlistState = async () => {
@@ -44,6 +116,20 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
     void loadReviews();
   }, [book.id]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isAuthenticated || !activeChapter) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      readingStorageKey,
+      JSON.stringify({
+        chapterId: activeChapter.id,
+        progress: scrollProgress,
+      }),
+    );
+  }, [activeChapter, isAuthenticated, readingStorageKey, scrollProgress]);
+
   const handleWishlistToggle = async () => {
     const nextValue = !isWishlisted;
     setIsWishlisted(nextValue);
@@ -64,6 +150,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
 
   const handleSubmitReview = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setReviewError(null);
     if (!reviewForm.user.trim() || !reviewForm.comment.trim()) {
       return;
     }
@@ -82,6 +169,10 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          setReviewError('Only purchasers can post reviews for this book.');
+          return;
+        }
         throw new Error('Failed to submit review');
       }
 
@@ -89,7 +180,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
       setReviews(nextReviews);
       setReviewForm({ user: '', rating: 5, comment: '' });
     } catch {
-      // Keep the form intact on failure.
+      setReviewError('Unable to post review right now.');
     } finally {
       setIsSubmittingReview(false);
     }
@@ -172,6 +263,14 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               >
                 {isUpdatingWishlist ? 'Updating...' : isWishlisted ? 'Saved to wishlist' : 'Add to wishlist'}
               </button>
+              {!canAccessFullManuscript ? (
+                <Link
+                  href={`/checkout?bookId=${encodeURIComponent(book.id)}`}
+                  className="rounded-lg border border-blue-600 px-6 py-3 font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950/40"
+                >
+                  Unlock full manuscript
+                </Link>
+              ) : null}
             </div>
 
             <div className="grid gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800/60 md:grid-cols-3">
@@ -186,6 +285,72 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Shipping</p>
                 <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">Free over $25</p>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400">Reader View</p>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                      {canAccessFullManuscript ? 'Full manuscript unlocked' : 'Preview chapter access'}
+                    </h2>
+                  </div>
+                  {!canAccessFullManuscript ? (
+                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-200">
+                      Preview only
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-200">
+                      Full access
+                    </span>
+                  )}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {readableChapters.map((chapter) => (
+                    <button
+                      key={chapter.id}
+                      type="button"
+                      onClick={() => setActiveChapterId(chapter.id)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                        chapter.id === activeChapter?.id
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {chapter.title}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/60">
+                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{activeChapter?.title}</h3>
+                  <p className="mt-3 whitespace-pre-line text-sm leading-7 text-gray-700 dark:text-gray-300">
+                    {activeChapter?.content}
+                  </p>
+                </div>
+
+                {canAccessFullManuscript ? (
+                  <div className="mt-5">
+                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                      <span>Reading progress</span>
+                      <span>{scrollProgress}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={scrollProgress}
+                      onChange={(event) => setScrollProgress(Number(event.target.value))}
+                      className="mt-2 w-full"
+                      aria-label="Reading progress"
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-5 rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+                    Purchase this book to unlock all chapters, synced progress, and full reader access in your library.
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -250,6 +415,12 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
                   ))}
                 </select>
               </label>
+
+              {reviewError ? (
+                <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+                  {reviewError}
+                </p>
+              ) : null}
 
               <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Comment

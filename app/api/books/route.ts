@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import type { FilterOptions } from '@/src/data/books';
 import { createCatalogBook, filterCatalogBooks, getCatalogBooks } from '@/src/lib/catalog-data';
+import { getAuthSessionFromCookieHeader, hasSessionRole } from '@/src/lib/auth-session';
 import type { Book } from '@/src/types/book';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
 
   if (searchParams.get('includeDrafts') === 'true') {
+    if (!hasSessionRole(session, 'writer')) {
+      return NextResponse.json({ error: 'Writer or admin access required.' }, { status: 403 });
+    }
     const books = await getCatalogBooks();
     return NextResponse.json(books);
   }
@@ -25,6 +30,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
+  if (!hasSessionRole(session, 'writer')) {
+    return NextResponse.json({ error: 'Writer or admin access required.' }, { status: 403 });
+  }
+
   try {
     const body = (await request.json()) as Partial<Book>;
 

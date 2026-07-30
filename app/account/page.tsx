@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from '@/src/context/AccountContext';
 import { accountActivity, accountLibrary, getPersonalizedNotifications } from '@/src/data/account';
 import { mockBooks } from '@/src/data/books';
+import type { SocialProvider } from '@/src/types/account';
 
 type GoalOption = {
   id: 'reading' | 'writing' | 'both';
@@ -31,6 +32,8 @@ const goalOptions: GoalOption[] = [
   },
 ];
 
+const socialProviders: SocialProvider[] = ['Google', 'Microsoft', 'Apple'];
+
 export default function AccountPage() {
   const {
     profile,
@@ -42,6 +45,7 @@ export default function AccountPage() {
     hasRole,
     isAuthenticated,
     orders,
+    updateProfile,
   } = useAccount();
   const [wishlistCount, setWishlistCount] = useState(0);
 
@@ -51,6 +55,22 @@ export default function AccountPage() {
       : [...profile.goals, goal];
 
     setGoals(nextGoals);
+  };
+
+  const toggleSocialProvider = (provider: SocialProvider) => {
+    const nextProviders = profile.connectedSocials.includes(provider)
+      ? profile.connectedSocials.filter((item) => item !== provider)
+      : [...profile.connectedSocials, provider];
+
+    updateProfile({ connectedSocials: nextProviders });
+  };
+
+  const toggleMfa = () => {
+    const nextEnabled = !profile.mfaEnabled;
+    updateProfile({
+      mfaEnabled: nextEnabled,
+      mfaMethod: nextEnabled ? 'Authenticator app' : 'Not enabled',
+    });
   };
 
   useEffect(() => {
@@ -269,6 +289,62 @@ export default function AccountPage() {
                 >
                   Enable creator mode
                 </button>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
+                    Security & sign-in
+                  </p>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Social login and MFA readiness</h2>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-sm font-medium ${profile.mfaEnabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200'}`}>
+                  {profile.mfaEnabled ? 'MFA enabled' : 'MFA pending'}
+                </span>
+              </div>
+              <div className="mt-6 space-y-4">
+                <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Connected social providers</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    {socialProviders.map((provider) => {
+                      const connected = profile.connectedSocials.includes(provider);
+                      return (
+                        <button
+                          key={provider}
+                          type="button"
+                          onClick={() => toggleSocialProvider(provider)}
+                          className={`rounded-2xl border px-3 py-3 text-left text-sm font-medium transition ${connected ? 'border-blue-500 bg-blue-50 text-blue-700 dark:border-blue-400 dark:bg-blue-950/40 dark:text-blue-200' : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-gray-700'}`}
+                        >
+                          <p>{provider}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">{connected ? 'Connected' : 'Available soon'}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                    Bookshop is preparing a full OAuth rollout for Google, Microsoft, and Apple sign-ins with a seamless handoff back to your account profile.
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">Multi-factor authentication</p>
+                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Current method: {profile.mfaMethod}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleMfa}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${profile.mfaEnabled ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-900 text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200'}`}
+                    >
+                      {profile.mfaEnabled ? 'Disable MFA' : 'Enable MFA'}
+                    </button>
+                  </div>
+                  <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                    The next iteration will add authenticator-app verification, passkey support, and recovery codes without disturbing your existing reader and writer workflows.
+                  </p>
+                </div>
               </div>
             </div>
 

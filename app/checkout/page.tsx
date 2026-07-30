@@ -23,6 +23,7 @@ export default function CheckoutPage() {
   const { isAuthenticated, profile, placeOrder } = useAccount();
   const [formValues, setFormValues] = useState(initialFormValues);
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
+  const [lastPurchasedBookId, setLastPurchasedBookId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
@@ -70,6 +71,7 @@ export default function CheckoutPage() {
       return;
     }
 
+    setLastPurchasedBookId(items[0]?.book.id ?? null);
     clearCart();
     setSubmittedOrderId(`ORD-${Date.now().toString().slice(-6)}`);
     setFormValues(initialFormValues);
@@ -86,6 +88,11 @@ export default function CheckoutPage() {
             Your order <span className="font-semibold text-gray-900 dark:text-white">{submittedOrderId}</span> is now in our processing queue and will appear in your account history.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
+            {lastPurchasedBookId ? (
+              <Link href={`/books/${lastPurchasedBookId}`} className="rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                Start reading now
+              </Link>
+            ) : null}
             <Link href="/account" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
               View account history
             </Link>

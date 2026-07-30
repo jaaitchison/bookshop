@@ -1,5 +1,6 @@
 export type AccountRole = 'reader' | 'writer' | 'admin';
 export type AccountGoal = 'reading' | 'writing' | 'both';
+export type SocialProvider = 'Google' | 'Microsoft' | 'Apple';
 
 export interface AccountProfile {
   id: string;
@@ -18,6 +19,9 @@ export interface AccountProfile {
   };
   activeRole: AccountRole;
   onboardingComplete: boolean;
+  connectedSocials: SocialProvider[];
+  mfaEnabled: boolean;
+  mfaMethod: 'Authenticator app' | 'SMS' | 'Passkey' | 'Not enabled';
 }
 
 export interface AccountBookSummary {

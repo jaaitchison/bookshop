@@ -5,9 +5,23 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAccount } from '@/src/context/AccountContext';
 
+const socialProviders = [
+  { name: 'Google', description: 'Coming soon' },
+  { name: 'Microsoft', description: 'Coming soon' },
+  { name: 'Apple', description: 'Coming soon' },
+];
+
 export default function AuthPage() {
   const router = useRouter();
   const { isAuthenticated, authError, clearAuthError, signIn, signUp } = useAccount();
+  const [redirectTarget] = useState(() => {
+    if (typeof window === 'undefined') {
+      return '/account';
+    }
+
+    const requestedRedirect = new URLSearchParams(window.location.search).get('redirect');
+    return requestedRedirect && requestedRedirect.startsWith('/') ? requestedRedirect : '/account';
+  });
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [formValues, setFormValues] = useState({
     name: '',
@@ -19,9 +33,9 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/account');
+      router.replace(redirectTarget);
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, redirectTarget, router]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,7 +59,7 @@ export default function AuthPage() {
       return;
     }
 
-    router.push('/account');
+    router.push(redirectTarget);
   };
 
   return (
@@ -94,6 +108,26 @@ export default function AuthPage() {
             >
               Create account
             </button>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Prefer a social sign-in?</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {socialProviders.map((provider) => (
+                <button
+                  key={provider.name}
+                  type="button"
+                  disabled
+                  className="rounded-2xl border border-gray-200 bg-white px-3 py-3 text-left text-sm font-medium text-gray-700 transition hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                >
+                  <p>{provider.name}</p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">{provider.description}</p>
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+              OAuth providers will connect to your Bookshop profile once the next authentication pass is live.
+            </p>
           </div>
 
           <form className="mt-6 space-y-4" onSubmit={handleSubmit}>

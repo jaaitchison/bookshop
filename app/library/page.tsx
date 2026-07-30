@@ -10,6 +10,29 @@ import { mockBooks } from '@/src/data/books';
 export default function LibraryPage() {
   const { isAuthenticated, orders } = useAccount();
   const [wishlistItems, setWishlistItems] = useState<string[]>([]);
+  const [readingProgressByBook] = useState<Record<string, number>>(() => {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+
+    return Object.keys(window.localStorage)
+      .filter((key) => key.startsWith('bookshop-reading-progress-'))
+      .reduce<Record<string, number>>((acc, key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) {
+            return acc;
+          }
+          const parsed = JSON.parse(raw) as { progress?: number };
+          const progress = typeof parsed.progress === 'number' ? parsed.progress : 0;
+          const bookId = key.replace('bookshop-reading-progress-', '');
+          acc[bookId] = progress;
+          return acc;
+        } catch {
+          return acc;
+        }
+      }, {});
+  });
 
   useEffect(() => {
     const loadWishlist = async () => {
@@ -112,6 +135,17 @@ export default function LibraryPage() {
                 {book.progress ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">{book.progress}</p>
                 ) : null}
+                {readingProgressByBook[book.id] !== undefined ? (
+                  <p className="text-sm text-blue-600 dark:text-blue-400">Reading progress: {readingProgressByBook[book.id]}%</p>
+                ) : null}
+                <div className="pt-2">
+                  <Link
+                    href={`/books/${book.id}`}
+                    className="inline-flex rounded-full border border-blue-600 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                  >
+                    {readingProgressByBook[book.id] !== undefined ? 'Continue reading' : 'Start reading'}
+                  </Link>
+                </div>
               </div>
             </div>
           ))}

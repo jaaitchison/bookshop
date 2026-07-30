@@ -1,3 +1,10 @@
+export interface BookChapter {
+  id: string;
+  title: string;
+  content: string;
+  isPreview: boolean;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -11,6 +18,7 @@ export interface Book {
   featured?: boolean;
   new?: boolean;
   status?: 'draft' | 'published' | 'archived';
+  manuscriptChapters?: BookChapter[];
 }
 
 export interface BookReview {

@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { deleteCatalogBook, updateCatalogBook } from '@/src/lib/catalog-data';
+import { getAuthSessionFromCookieHeader, hasSessionRole } from '@/src/lib/auth-session';
 import type { Book } from '@/src/types/book';
 
 export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
+  if (!hasSessionRole(session, 'writer')) {
+    return NextResponse.json({ error: 'Writer or admin access required.' }, { status: 403 });
+  }
+
   try {
     const { id } = await context.params;
     const body = (await request.json()) as Partial<Book>;
@@ -24,6 +30,11 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 }
 
 export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const session = getAuthSessionFromCookieHeader(_request.headers.get('cookie'));
+  if (!hasSessionRole(session, 'admin')) {
+    return NextResponse.json({ error: 'Admin access required.' }, { status: 403 });
+  }
+
   try {
     const { id } = await context.params;
     const deleted = await deleteCatalogBook(id);

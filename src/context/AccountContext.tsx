@@ -59,6 +59,9 @@ const createBaseProfile = (): AccountProfile => ({
   },
   activeRole: 'reader',
   onboardingComplete: false,
+  connectedSocials: [],
+  mfaEnabled: false,
+  mfaMethod: 'Not enabled',
 });
 
 const normalizeProfile = (value?: Partial<AccountProfile>): AccountProfile => {
@@ -75,6 +78,9 @@ const normalizeProfile = (value?: Partial<AccountProfile>): AccountProfile => {
       ...(source.roles ?? {}),
     },
     goals: source.goals ?? base.goals,
+    connectedSocials: source.connectedSocials ?? base.connectedSocials,
+    mfaEnabled: source.mfaEnabled ?? base.mfaEnabled,
+    mfaMethod: source.mfaMethod ?? base.mfaMethod,
   };
 };
 
@@ -389,6 +395,15 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setProfile(normalizeProfile(payload.profile));
           setIsAuthenticated(true);
           setAuthError(null);
+          try {
+            await fetch(ACCOUNT_API_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ type: 'sync-session', profile: payload.profile }),
+            });
+          } catch {
+            // Ignore sync errors while syncing the session.
+          }
           return true;
         }
       }
