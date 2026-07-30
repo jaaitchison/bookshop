@@ -10,23 +10,6 @@ export default function BooksPage() {
   const [filteredBooks, setFilteredBooks] = React.useState<Book[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    const loadBooks = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch('/api/books');
-        const nextBooks = (await response.json()) as Book[];
-        setFilteredBooks(nextBooks);
-      } catch {
-        setFilteredBooks([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void loadBooks();
-  }, []);
-
   const handleFiltersChange = async (filters: FilterOptions) => {
     setIsLoading(true);
 
