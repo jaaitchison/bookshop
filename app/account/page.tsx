@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
-import { useAccount } from '@/src/context/AccountContext';
+import { getOrdersStorageKey, useAccount } from '@/src/context/AccountContext';
 import { accountActivity, accountLibrary, getPersonalizedNotifications } from '@/src/data/account';
 import { mockBooks } from '@/src/data/books';
-import type { SocialProvider } from '@/src/types/account';
+import type { AccountOrder, SocialProvider } from '@/src/types/account';
 
 type GoalOption = {
   id: 'reading' | 'writing' | 'both';
@@ -87,9 +87,31 @@ export default function AccountPage() {
     void loadWishlist();
   }, []);
 
-  const notifications = useMemo(() => getPersonalizedNotifications(profile, orders), [orders, profile]);
+  const resolvedOrders = useMemo(() => {
+    if (orders.length > 0) {
+      return orders;
+    }
+
+    if (typeof window === 'undefined' || !profile.id) {
+      return [] as AccountOrder[];
+    }
+
+    try {
+      const storedValue = window.localStorage.getItem(getOrdersStorageKey(profile.id));
+      if (!storedValue) {
+        return [] as AccountOrder[];
+      }
+
+      const parsed = JSON.parse(storedValue) as AccountOrder[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [] as AccountOrder[];
+    }
+  }, [orders, profile.id]);
+
+  const notifications = useMemo(() => getPersonalizedNotifications(profile, resolvedOrders), [profile, resolvedOrders]);
   const libraryItems = useMemo(() => {
-    const purchased = orders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {
+    const purchased = resolvedOrders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {
       if (!acc[item.id]) {
         const bookDetails = mockBooks.find((book) => book.id === item.id);
         acc[item.id] = {
@@ -106,7 +128,7 @@ export default function AccountPage() {
 
     const orderedBooks = Object.values(purchased);
     return orderedBooks.length > 0 ? orderedBooks : accountLibrary;
-  }, [orders]);
+  }, [resolvedOrders]);
   const readinessHighlights = useMemo(() => {
     const items: string[] = [];
 
@@ -122,8 +144,8 @@ export default function AccountPage() {
       items.push('Admin shortcuts are enabled for moderation and platform oversight.');
     }
 
-    if (orders.length > 0) {
-      items.push(`Your account now carries ${orders.length} saved order${orders.length === 1 ? '' : 's'} for quick reference.`);
+    if (resolvedOrders.length > 0) {
+      items.push(`Your account now carries ${resolvedOrders.length} saved order${resolvedOrders.length === 1 ? '' : 's'} for quick reference.`);
     }
 
     if (items.length === 0) {
@@ -131,7 +153,7 @@ export default function AccountPage() {
     }
 
     return items;
-  }, [orders, profile.onboardingComplete, profile.roles.admin, profile.roles.writer]);
+  }, [profile.onboardingComplete, profile.roles.admin, profile.roles.writer, resolvedOrders.length]);
 
   if (!isAuthenticated) {
     return (
@@ -507,12 +529,12 @@ export default function AccountPage() {
               <span className="text-sm text-gray-500 dark:text-gray-400">Signed-in purchases</span>
             </div>
             <div className="mt-6 space-y-4">
-              {orders.length === 0 ? (
+              {resolvedOrders.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-gray-200 p-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
                   No orders yet. Complete a purchase from the checkout page to see it here.
                 </div>
               ) : (
-                orders.map((order) => (
+                resolvedOrders.map((order) => (
                   <div key={order.id} className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
                     <div className="flex items-start justify-between gap-3">
                       <div>

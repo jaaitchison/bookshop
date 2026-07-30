@@ -19,9 +19,1359 @@
         "admin": false
       },
       "activeRole": "reader",
-      "onboardingComplete": false
+      "onboardingComplete": false,
+      "connectedSocials": [],
+      "mfaEnabled": false,
+      "mfaMethod": "Not enabled"
     }
   },
-  "ordersByProfile": {},
-  "sessions": {}
+  "ordersByProfile": {
+    "demo-user": [
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      },
+      {
+        "id": "order-1785437276869",
+        "orderedAt": "2026-07-30T18:47:56.869Z",
+        "total": 14.99,
+        "status": "Processing",
+        "items": [
+          {
+            "id": "the-midnight-library",
+            "title": "The Midnight Library",
+            "author": "Matt Haig",
+            "price": 14.99,
+            "quantity": 1
+          }
+        ],
+        "shippingName": "Test Buyer",
+        "shippingEmail": "test@example.com",
+        "shippingAddress": "123 Test Street",
+        "shippingCity": "London",
+        "shippingZip": "W1A 1AA"
+      }
+    ]
+  },
+  "sessions": {
+    "maya@example.com": {
+      "id": "demo-user",
+      "name": "Maya Chen",
+      "username": "maya-reads",
+      "email": "maya@example.com",
+      "bio": "Reader, writer, and curator of thoughtful stories.",
+      "avatar": "MC",
+      "location": "Seattle, USA",
+      "joined": "June 2024",
+      "goals": [
+        "reading"
+      ],
+      "roles": {
+        "reader": true,
+        "writer": false,
+        "admin": false
+      },
+      "activeRole": "reader",
+      "onboardingComplete": false,
+      "connectedSocials": [],
+      "mfaEnabled": false,
+      "mfaMethod": "Not enabled"
+    }
+  }
 }

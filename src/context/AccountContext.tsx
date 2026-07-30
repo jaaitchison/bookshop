@@ -84,10 +84,10 @@ const normalizeProfile = (value?: Partial<AccountProfile>): AccountProfile => {
   };
 };
 
-const PROFILE_STORAGE_KEY = 'bookshop-account-profile';
-const SESSION_STORAGE_KEY = 'bookshop-auth-session';
+export const PROFILE_STORAGE_KEY = 'bookshop-account-profile';
+export const SESSION_STORAGE_KEY = 'bookshop-auth-session';
 const USERS_STORAGE_KEY = 'bookshop-auth-users';
-const getOrdersStorageKey = (profileId: string) => `bookshop-account-orders-${profileId}`;
+export const getOrdersStorageKey = (profileId: string) => `bookshop-account-orders-${profileId}`;
 
 const AccountContext = createContext<AccountContextValue | undefined>(undefined);
 
@@ -253,6 +253,9 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       try {
         const response = await fetch(`${ACCOUNT_API_URL}?profileId=${profile.id}`);
+        if (!response.ok) {
+          return;
+        }
         const payload = await response.json() as { orders?: AccountOrder[] } | AccountOrder[];
         const nextOrders = Array.isArray(payload) ? payload : payload.orders;
         if (Array.isArray(nextOrders)) {
@@ -263,7 +266,27 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     };
 
+    const handleAccountUpdated = () => {
+      const storedOrders = window.localStorage.getItem(getOrdersStorageKey(profile.id));
+      if (!storedOrders) {
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(storedOrders) as AccountOrder[];
+        if (Array.isArray(parsed)) {
+          setOrders(parsed);
+        }
+      } catch {
+        window.localStorage.removeItem(getOrdersStorageKey(profile.id));
+      }
+    };
+
     void loadOrders();
+    window.addEventListener('bookshop-account-updated', handleAccountUpdated);
+    return () => {
+      window.removeEventListener('bookshop-account-updated', handleAccountUpdated);
+    };
   }, [profile.id]);
 
   const updateProfile = (updates: Partial<AccountProfile>) => {

@@ -3,14 +3,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useAccount } from '@/src/context/AccountContext';
+import { getOrdersStorageKey, useAccount } from '@/src/context/AccountContext';
 import { accountLibrary } from '@/src/data/account';
 import { mockBooks } from '@/src/data/books';
+import type { AccountOrder } from '@/src/types/account';
 
 export default function LibraryPage() {
-  const { isAuthenticated, orders } = useAccount();
-  const [wishlistItems, setWishlistItems] = useState<string[]>([]);
-  const [readingProgressByBook] = useState<Record<string, number>>(() => {
+  const { isAuthenticated, orders, profile   } = useAccount();
+  const [wishlistItems, setWishlistItems] = useState<string[]>([]);  const [readingProgressByBook] = useState<Record<string, number>>(() => {
     if (typeof window === 'undefined') {
       return {};
     }
@@ -48,8 +48,30 @@ export default function LibraryPage() {
     void loadWishlist();
   }, []);
 
+  const resolvedOrders = useMemo(() => {
+    if (orders.length > 0) {
+      return orders;
+    }
+
+    if (typeof window === 'undefined' || !profile.id) {
+      return [] as AccountOrder[];
+    }
+
+    try {
+      const storedValue = window.localStorage.getItem(getOrdersStorageKey(profile.id));
+      if (!storedValue) {
+        return [] as AccountOrder[];
+      }
+
+      const parsed = JSON.parse(storedValue) as AccountOrder[];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [] as AccountOrder[];
+    }
+  }, [orders, profile.id]);
+
   const libraryItems = useMemo(() => {
-    const purchased = orders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {
+    const purchased = resolvedOrders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {
       if (!acc[item.id]) {
         const bookDetails = mockBooks.find((book) => book.id === item.id);
         acc[item.id] = {
@@ -78,7 +100,7 @@ export default function LibraryPage() {
 
     const purchasedBooks = Object.values(purchased);
     return purchasedBooks.length > 0 ? purchasedBooks : accountLibrary.concat(wishlistBooks);
-  }, [orders, wishlistItems]);
+  }, [resolvedOrders, wishlistItems]);
 
   if (!isAuthenticated) {
     return (

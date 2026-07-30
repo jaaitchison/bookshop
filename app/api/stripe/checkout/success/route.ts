@@ -41,7 +41,7 @@ export async function GET(request: Request) {
   await saveAccountSession(profile);
 
   const purchasedBookIds = Array.from(new Set(orders.flatMap((order) => order.items.map((item) => item.id))));
-  const response = NextResponse.json({ ok: true, orderId: orderPayload.id, purchasedBookIds });
+  const response = NextResponse.json({ ok: true, orderId: orderPayload.id, order: orderPayload, purchasedBookIds });
   response.cookies.set(AUTH_SESSION_COOKIE, encodeAuthSession(buildAuthSession(profile, purchasedBookIds)), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

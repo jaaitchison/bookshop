@@ -3,9 +3,13 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAccount } from '@/src/context/AccountContext';
+import { getOrdersStorageKey, PROFILE_STORAGE_KEY, SESSION_STORAGE_KEY } from '@/src/context/AccountContext';
+import type { AccountOrder } from '@/src/types/account';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
+  const { profile, orders } = useAccount();
   const sessionId = searchParams.get('session_id');
   const isDemo = searchParams.get('demo') === '1';
   const initialState = isDemo
@@ -24,12 +28,21 @@ function CheckoutSuccessContent() {
     const completeCheckout = async () => {
       try {
         const response = await fetch(`/api/stripe/checkout/success?session_id=${encodeURIComponent(sessionId)}`);
-        const payload = await response.json() as { ok?: boolean; error?: string; orderId?: string };
+        const payload = await response.json() as { ok?: boolean; error?: string; orderId?: string; order?: AccountOrder };
 
         if (!response.ok || !payload.ok) {
           setStatus('error');
           setMessage(payload.error ?? 'We could not verify the payment.');
           return;
+        }
+
+        if (payload.order) {
+          const nextOrders = [payload.order, ...orders.filter((existing) => existing.id !== payload.order?.id)];
+          const storageKey = getOrdersStorageKey(profile.id);
+          window.localStorage.setItem(storageKey, JSON.stringify(nextOrders));
+          window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+          window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ profile }));
+          window.dispatchEvent(new Event('bookshop-account-updated'));
         }
 
         setStatus('success');
@@ -41,7 +54,7 @@ function CheckoutSuccessContent() {
     };
 
     void completeCheckout();
-  }, [isDemo, sessionId]);
+  }, [isDemo, orders, profile, sessionId]);
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-24 dark:bg-gray-950">
