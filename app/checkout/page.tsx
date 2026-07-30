@@ -24,11 +24,12 @@ export default function CheckoutPage() {
   const [formValues, setFormValues] = useState(initialFormValues);
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const shippingTotal = useMemo(() => (subtotal > 0 ? 0 : 0), [subtotal]);
   const total = subtotal + shippingTotal;
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!isAuthenticated) {
@@ -42,7 +43,10 @@ export default function CheckoutPage() {
       return;
     }
 
-    const orderPlaced = placeOrder({
+    setIsPlacingOrder(true);
+    setError(null);
+
+    const orderPlaced = await placeOrder({
       items: items.map((item) => ({
         id: item.book.id,
         title: item.book.title,
@@ -62,13 +66,14 @@ export default function CheckoutPage() {
 
     if (!orderPlaced) {
       setError('We could not place your order right now.');
+      setIsPlacingOrder(false);
       return;
     }
 
     clearCart();
     setSubmittedOrderId(`ORD-${Date.now().toString().slice(-6)}`);
     setFormValues(initialFormValues);
-    setError(null);
+    setIsPlacingOrder(false);
   };
 
   if (submittedOrderId) {
@@ -186,8 +191,12 @@ export default function CheckoutPage() {
             ) : null}
 
             <div className="flex flex-wrap gap-3">
-              <button type="submit" className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">
-                Place order
+              <button
+                type="submit"
+                disabled={isPlacingOrder}
+                className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isPlacingOrder ? 'Placing order...' : 'Place order'}
               </button>
               <Link href="/books" className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">
                 Continue shopping

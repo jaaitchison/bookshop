@@ -10,4 +10,13 @@ export interface Book {
   genre: string;
   featured?: boolean;
   new?: boolean;
+  status?: 'draft' | 'published' | 'archived';
+}
+
+export interface BookReview {
+  id: string;
+  user: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
 }

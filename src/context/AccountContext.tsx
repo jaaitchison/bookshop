@@ -1,7 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { AccountGoal, AccountProfile, AccountOrder, AccountOrderItem, AccountRole } from '@/src/types/account';
+
+const ACCOUNT_API_URL = '/api/account';
 
 interface StoredAccountUser {
   id: string;
@@ -23,9 +25,9 @@ interface AccountContextValue {
   isAuthenticated: boolean;
   authError: string | null;
   clearAuthError: () => void;
-  signIn: (email: string, password: string) => boolean;
-  signUp: (input: { name: string; email: string; password: string; username: string }) => boolean;
-  signOut: () => void;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (input: { name: string; email: string; password: string; username: string }) => Promise<boolean>;
+  signOut: () => Promise<void>;
   orders: AccountOrder[];
   placeOrder: (input: {
     items: AccountOrderItem[];
@@ -37,7 +39,7 @@ interface AccountContextValue {
       city: string;
       zip: string;
     };
-  }) => boolean;
+  }) => Promise<boolean>;
 }
 
 const createBaseProfile = (): AccountProfile => ({
@@ -116,53 +118,67 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
 
-    const storedProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-    const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    const hydrateFromStorage = async () => {
+      const storedProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
+      const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
 
-    if (storedProfile) {
-      try {
-        const parsed = JSON.parse(storedProfile) as Partial<AccountProfile>;
-        setProfile(normalizeProfile(parsed));
-      } catch {
-        window.localStorage.removeItem(PROFILE_STORAGE_KEY);
-      }
-    }
-
-    if (storedSession) {
-      try {
-        const parsed = JSON.parse(storedSession) as { profile?: Partial<AccountProfile> };
-        if (parsed.profile) {
-          setProfile(normalizeProfile(parsed.profile));
-          setIsAuthenticated(true);
+      if (storedProfile) {
+        try {
+          const parsed = JSON.parse(storedProfile) as Partial<AccountProfile>;
+          setProfile(normalizeProfile(parsed));
+        } catch {
+          window.localStorage.removeItem(PROFILE_STORAGE_KEY);
         }
-      } catch {
-        window.localStorage.removeItem(SESSION_STORAGE_KEY);
       }
-    }
 
-    if (!readStoredUsers().length) {
-      const demoProfile = normalizeProfile({
-        id: 'demo-user',
-        name: 'Maya Chen',
-        username: 'maya-reads',
-        email: 'maya@example.com',
-        avatar: 'MC',
-        location: 'Seattle, USA',
-        joined: 'June 2024',
-        goals: ['reading'],
-        roles: {
-          reader: true,
-          writer: false,
-          admin: false,
-        },
-        activeRole: 'reader',
-        onboardingComplete: false,
-      });
+      if (storedSession) {
+        try {
+          const parsed = JSON.parse(storedSession) as { profile?: Partial<AccountProfile> };
+          if (parsed.profile) {
+            setProfile(normalizeProfile(parsed.profile));
+            setIsAuthenticated(true);
+          }
+        } catch {
+          window.localStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      }
 
-      writeStoredUsers([{ id: demoProfile.id, email: demoProfile.email, password: 'bookshop', profile: demoProfile }]);
-    }
+      if (!readStoredUsers().length) {
+        const demoProfile = normalizeProfile({
+          id: 'demo-user',
+          name: 'Maya Chen',
+          username: 'maya-reads',
+          email: 'maya@example.com',
+          avatar: 'MC',
+          location: 'Seattle, USA',
+          joined: 'June 2024',
+          goals: ['reading'],
+          roles: {
+            reader: true,
+            writer: false,
+            admin: false,
+          },
+          activeRole: 'reader',
+          onboardingComplete: false,
+        });
 
-    setHasLoaded(true);
+        const fallbackUsers = [{ id: demoProfile.id, email: demoProfile.email, password: 'bookshop', profile: demoProfile }];
+        writeStoredUsers(fallbackUsers);
+        try {
+          await fetch(ACCOUNT_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ users: fallbackUsers }),
+          });
+        } catch {
+          // Ignore API sync errors and keep local fallback intact.
+        }
+      }
+
+      setHasLoaded(true);
+    };
+
+    void hydrateFromStorage();
   }, []);
 
   useEffect(() => {
@@ -183,6 +199,12 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       });
       writeStoredUsers(updatedUsers);
       window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ profile }));
+
+      void fetch(ACCOUNT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: updatedUsers, type: 'sync-profile' as const, profile }),
+      }).catch(() => undefined);
     } else {
       window.localStorage.removeItem(SESSION_STORAGE_KEY);
     }
@@ -209,17 +231,33 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return;
     }
 
-    const storedOrders = window.localStorage.getItem(getOrdersStorageKey(profile.id));
-    if (storedOrders) {
+    const loadOrders = async () => {
+      const storedOrders = window.localStorage.getItem(getOrdersStorageKey(profile.id));
+      if (storedOrders) {
+        try {
+          const parsed = JSON.parse(storedOrders) as AccountOrder[];
+          if (Array.isArray(parsed)) {
+            setOrders(parsed);
+            return;
+          }
+        } catch {
+          window.localStorage.removeItem(getOrdersStorageKey(profile.id));
+        }
+      }
+
       try {
-        const parsed = JSON.parse(storedOrders) as AccountOrder[];
-        if (Array.isArray(parsed)) {
-          setOrders(parsed);
+        const response = await fetch(`${ACCOUNT_API_URL}?profileId=${profile.id}`);
+        const payload = await response.json() as { orders?: AccountOrder[] } | AccountOrder[];
+        const nextOrders = Array.isArray(payload) ? payload : payload.orders;
+        if (Array.isArray(nextOrders)) {
+          setOrders(nextOrders);
         }
       } catch {
-        window.localStorage.removeItem(getOrdersStorageKey(profile.id));
+        setOrders([]);
       }
-    }
+    };
+
+    void loadOrders();
   }, [profile.id]);
 
   const updateProfile = (updates: Partial<AccountProfile>) => {
@@ -333,13 +371,31 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setAuthError(null);
   };
 
-  const signIn = (email: string, password: string) => {
+  const signIn = async (email: string, password: string) => {
     if (typeof window === 'undefined') {
       return false;
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const users = readStoredUsers();
+    let users = readStoredUsers();
+
+    try {
+      const response = await fetch(`${ACCOUNT_API_URL}?email=${encodeURIComponent(normalizedEmail)}`);
+      if (response.ok) {
+        const payload = await response.json() as { email?: string; password?: string; profile?: AccountProfile };
+        if (payload.profile && payload.password === password) {
+          users = [...users.filter((entry) => entry.email.toLowerCase() !== normalizedEmail), { id: payload.profile.id, email: payload.profile.email, password: payload.password, profile: payload.profile }];
+          writeStoredUsers(users);
+          setProfile(normalizeProfile(payload.profile));
+          setIsAuthenticated(true);
+          setAuthError(null);
+          return true;
+        }
+      }
+    } catch {
+      // Fall back to local lookup below.
+    }
+
     const existingUser = users.find((entry) => entry.email.toLowerCase() === normalizedEmail && entry.password === password);
 
     if (!existingUser) {
@@ -350,10 +406,23 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setAuthError(null);
     setProfile(normalizeProfile(existingUser.profile));
     setIsAuthenticated(true);
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch(ACCOUNT_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'sync-session', profile: existingUser.profile }),
+        });
+      } catch {
+        // Ignore sync errors while syncing the session.
+      }
+    }
+
     return true;
   };
 
-  const signUp = (input: { name: string; email: string; password: string; username: string }) => {
+  const signUp = async (input: { name: string; email: string; password: string; username: string }) => {
     if (typeof window === 'undefined') {
       return false;
     }
@@ -405,19 +474,56 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }];
 
     writeStoredUsers(nextUsers);
+    try {
+      await fetch(ACCOUNT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ users: nextUsers }),
+      });
+    } catch {
+      // Ignore API sync errors and keep the local fallback intact.
+    }
+
     setAuthError(null);
     setProfile(nextProfile);
     setIsAuthenticated(true);
+
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch(ACCOUNT_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'sync-session', profile: nextProfile }),
+        });
+      } catch {
+        // Ignore sync errors while syncing the session.
+      }
+    }
+
     return true;
   };
 
-  const signOut = () => {
+  const signOut = async () => {
     setAuthError(null);
+    setOrders([]);
     setProfile(normalizeProfile());
     setIsAuthenticated(false);
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      try {
+        await fetch(ACCOUNT_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'signout', email: profile.email }),
+        });
+      } catch {
+        // Ignore sync errors during sign-out.
+      }
+    }
   };
 
-  const placeOrder = (input: {
+  const placeOrder = async (input: {
     items: AccountOrderItem[];
     total: number;
     shipping: {
@@ -445,32 +551,41 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       shippingZip: input.shipping.zip,
     };
 
-    setOrders((current) => [order, ...current]);
+    const nextOrders = [order, ...orders];
+    setOrders(nextOrders);
+
+    try {
+      await fetch(ACCOUNT_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'place-order', profileId: profile.id, order }),
+      });
+    } catch {
+      // Ignore sync errors for order persistence; local state remains intact.
+    }
+
     return true;
   };
 
-  const value = useMemo(
-    () => ({
-      profile,
-      setProfile,
-      updateProfile,
-      setGoals,
-      completeOnboarding,
-      toggleWriter,
-      toggleAdmin,
-      setActiveRole,
-      hasRole,
-      isAuthenticated,
-      authError,
-      clearAuthError,
-      signIn,
-      signUp,
-      signOut,
-      orders,
-      placeOrder,
-    }),
-    [authError, isAuthenticated, orders, profile]
-  );
+  const value = {
+    profile,
+    setProfile,
+    updateProfile,
+    setGoals,
+    completeOnboarding,
+    toggleWriter,
+    toggleAdmin,
+    setActiveRole,
+    hasRole,
+    isAuthenticated,
+    authError,
+    clearAuthError,
+    signIn,
+    signUp,
+    signOut,
+    orders,
+    placeOrder,
+  };
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 };

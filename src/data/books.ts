@@ -13,6 +13,7 @@ export const mockBooks: Book[] = [
     genre: 'Fiction',
     featured: true,
     new: false,
+    status: 'published',
   },
   {
     id: 'project-hail-mary',
@@ -26,6 +27,7 @@ export const mockBooks: Book[] = [
     genre: 'Science Fiction',
     featured: true,
     new: false,
+    status: 'published',
   },
   {
     id: 'lessons-in-chemistry',
@@ -39,6 +41,7 @@ export const mockBooks: Book[] = [
     genre: 'Fiction',
     featured: true,
     new: false,
+    status: 'published',
   },
   {
     id: 'atomic-habits',
@@ -52,6 +55,7 @@ export const mockBooks: Book[] = [
     genre: 'Self-Help',
     featured: false,
     new: false,
+    status: 'published',
   },
   {
     id: 'the-seven-husbands',
@@ -65,6 +69,7 @@ export const mockBooks: Book[] = [
     genre: 'Fiction',
     featured: false,
     new: true,
+    status: 'published',
   },
   {
     id: 'dune',
@@ -78,6 +83,7 @@ export const mockBooks: Book[] = [
     genre: 'Science Fiction',
     featured: true,
     new: false,
+    status: 'published',
   },
   {
     id: 'the-silent-patient',
@@ -91,6 +97,7 @@ export const mockBooks: Book[] = [
     genre: 'Thriller',
     featured: false,
     new: false,
+    status: 'published',
   },
   {
     id: 'circe',
@@ -104,6 +111,7 @@ export const mockBooks: Book[] = [
     genre: 'Fantasy',
     featured: true,
     new: false,
+    status: 'published',
   },
 ];
 

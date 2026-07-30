@@ -1,0 +1,27 @@
+{
+  "users": [],
+  "profiles": {
+    "demo-user": {
+      "id": "demo-user",
+      "name": "Maya Chen",
+      "username": "maya-reads",
+      "email": "maya@example.com",
+      "bio": "Reader, writer, and curator of thoughtful stories.",
+      "avatar": "MC",
+      "location": "Seattle, USA",
+      "joined": "June 2024",
+      "goals": [
+        "reading"
+      ],
+      "roles": {
+        "reader": true,
+        "writer": false,
+        "admin": false
+      },
+      "activeRole": "reader",
+      "onboardingComplete": false
+    }
+  },
+  "ordersByProfile": {},
+  "sessions": {}
+}

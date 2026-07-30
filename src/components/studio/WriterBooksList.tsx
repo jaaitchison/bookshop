@@ -5,9 +5,11 @@ import type { WriterBook } from '@/src/types/studio';
 
 interface WriterBooksListProps {
   books: WriterBook[];
+  onStatusChange?: (bookId: string, status: WriterBook['status']) => void | Promise<void>;
+  onDelete?: (bookId: string) => void | Promise<void>;
 }
 
-export default function WriterBooksList({ books }: WriterBooksListProps) {
+export default function WriterBooksList({ books, onStatusChange, onDelete }: WriterBooksListProps) {
   const getStatusBadge = (status: WriterBook['status']) => {
     const statusConfig = {
       published: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
@@ -96,12 +98,32 @@ export default function WriterBooksList({ books }: WriterBooksListProps) {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline mr-4">
-                    Edit
-                  </button>
-                  <button className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
-                    View Stats
-                  </button>
+                  <div className="flex flex-wrap justify-end gap-2 text-sm">
+                    <button
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                      onClick={() => onStatusChange?.(book.id, 'published')}
+                    >
+                      Publish
+                    </button>
+                    <button
+                      className="text-amber-600 dark:text-amber-400 hover:underline"
+                      onClick={() => onStatusChange?.(book.id, 'draft')}
+                    >
+                      Draft
+                    </button>
+                    <button
+                      className="text-gray-600 dark:text-gray-400 hover:underline"
+                      onClick={() => onStatusChange?.(book.id, 'archived')}
+                    >
+                      Archive
+                    </button>
+                    <button
+                      className="text-red-600 dark:text-red-400 hover:underline"
+                      onClick={() => onDelete?.(book.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

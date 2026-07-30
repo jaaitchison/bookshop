@@ -15,6 +15,7 @@ export default function AuthPage() {
     email: 'maya@example.com',
     password: 'bookshop',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -22,26 +23,26 @@ export default function AuthPage() {
     }
   }, [isAuthenticated, router]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     clearAuthError();
+    setIsSubmitting(true);
 
-    if (mode === 'signin') {
-      const signedIn = signIn(formValues.email, formValues.password);
-      if (!signedIn) {
-        return;
-      }
-    } else {
-      const signedUp = signUp({
-        name: formValues.name,
-        email: formValues.email,
-        password: formValues.password,
-        username: formValues.username,
-      });
+    const credentials = {
+      name: formValues.name,
+      email: formValues.email,
+      password: formValues.password,
+      username: formValues.username,
+    };
 
-      if (!signedUp) {
-        return;
-      }
+    const success = mode === 'signin'
+      ? await signIn(credentials.email, credentials.password)
+      : await signUp(credentials);
+
+    setIsSubmitting(false);
+
+    if (!success) {
+      return;
     }
 
     router.push('/account');
@@ -152,9 +153,10 @@ export default function AuthPage() {
 
             <button
               type="submit"
-              className="w-full rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+              disabled={isSubmitting}
+              className="w-full rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {mode === 'signin' ? 'Continue to account' : 'Create free account'}
+              {isSubmitting ? (mode === 'signin' ? 'Signing in…' : 'Creating account…') : mode === 'signin' ? 'Continue to account' : 'Create free account'}
             </button>
           </form>
 

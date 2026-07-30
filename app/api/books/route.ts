@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { FilterOptions } from '@/src/data/books';
-import { filterCatalogBooks } from '@/src/lib/catalog-data';
+import { createCatalogBook, filterCatalogBooks, getCatalogBooks } from '@/src/lib/catalog-data';
+import type { Book } from '@/src/types/book';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+
+  if (searchParams.get('includeDrafts') === 'true') {
+    const books = await getCatalogBooks();
+    return NextResponse.json(books);
+  }
 
   const filters: FilterOptions = {
     search: searchParams.get('search') ?? undefined,
@@ -16,4 +22,28 @@ export async function GET(request: Request) {
 
   const books = await filterCatalogBooks(filters);
   return NextResponse.json(books);
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = (await request.json()) as Partial<Book>;
+
+    const book = await createCatalogBook({
+      title: body.title,
+      author: body.author,
+      cover: body.cover,
+      price: body.price,
+      rating: body.rating,
+      reviews: body.reviews,
+      description: body.description,
+      genre: body.genre,
+      featured: body.featured,
+      new: body.new,
+      status: body.status,
+    });
+
+    return NextResponse.json(book, { status: 201 });
+  } catch {
+    return NextResponse.json({ error: 'Failed to create book' }, { status: 400 });
+  }
 }

@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from '@/src/context/AccountContext';
-import { accountActivity, accountLibrary, accountPublishedBooks, getPersonalizedNotifications } from '@/src/data/account';
+import { accountActivity, accountLibrary, getPersonalizedNotifications } from '@/src/data/account';
 import { mockBooks } from '@/src/data/books';
 
 type GoalOption = {
@@ -43,6 +43,7 @@ export default function AccountPage() {
     isAuthenticated,
     orders,
   } = useAccount();
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   const toggleGoal = (goal: 'reading' | 'writing' | 'both') => {
     const nextGoals = profile.goals.includes(goal)
@@ -52,7 +53,40 @@ export default function AccountPage() {
     setGoals(nextGoals);
   };
 
+  useEffect(() => {
+    const loadWishlist = async () => {
+      try {
+        const response = await fetch('/api/wishlist');
+        const data = await response.json() as { items?: string[] };
+        setWishlistCount((data.items ?? []).length);
+      } catch {
+        setWishlistCount(0);
+      }
+    };
+
+    void loadWishlist();
+  }, []);
+
   const notifications = useMemo(() => getPersonalizedNotifications(profile, orders), [orders, profile]);
+  const libraryItems = useMemo(() => {
+    const purchased = orders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {
+      if (!acc[item.id]) {
+        const bookDetails = mockBooks.find((book) => book.id === item.id);
+        acc[item.id] = {
+          id: item.id,
+          title: item.title,
+          author: item.author,
+          cover: bookDetails?.cover ?? '/logo.jpg',
+          status: 'Purchased',
+          progress: `${item.quantity} copy${item.quantity === 1 ? '' : 'ies'} purchased`,
+        };
+      }
+      return acc;
+    }, {});
+
+    const orderedBooks = Object.values(purchased);
+    return orderedBooks.length > 0 ? orderedBooks : accountLibrary;
+  }, [orders]);
   const readinessHighlights = useMemo(() => {
     const items: string[] = [];
 
@@ -331,11 +365,15 @@ export default function AccountPage() {
               <div className="mt-6 space-y-3">
                 <Link href="/library" className="flex items-center justify-between rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
                   <span className="font-medium text-gray-900 dark:text-white">My library</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{accountLibrary.length} saved items</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{libraryItems.length} saved items</span>
                 </Link>
                 <Link href="/books" className="flex items-center justify-between rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
                   <span className="font-medium text-gray-900 dark:text-white">Explore books</span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">Search & filter</span>
+                </Link>
+                <Link href="/books" className="flex items-center justify-between rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
+                  <span className="font-medium text-gray-900 dark:text-white">Saved wishlist</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{wishlistCount} book{wishlistCount === 1 ? '' : 's'}</span>
                 </Link>
                 {hasRole('writer') ? (
                   <Link href="/studio" className="flex items-center justify-between rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
@@ -373,15 +411,15 @@ export default function AccountPage() {
               <span className="text-sm text-gray-500 dark:text-gray-400">Reader view</span>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {accountLibrary.map((book) => (
+              {libraryItems.map((book) => (
                 <div key={book.id} className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
                   <div className="relative mb-3 h-32 overflow-hidden rounded-xl">
-                    <Image src={mockBooks.find((item) => item.id === book.id)?.cover ?? '/logo.jpg'} alt={book.title} fill className="object-cover" />
+                    <Image src={book.cover} alt={book.title} fill className="object-cover" />
                   </div>
                   <p className="font-semibold text-gray-900 dark:text-white">{book.title}</p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">{book.author}</p>
                   <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">{book.status}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{book.progress}</p>
+                  {book.progress ? <p className="text-sm text-gray-500 dark:text-gray-400">{book.progress}</p> : null}
                 </div>
               ))}
             </div>

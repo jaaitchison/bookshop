@@ -2,12 +2,60 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from '@/src/context/AccountContext';
 import { accountLibrary } from '@/src/data/account';
 import { mockBooks } from '@/src/data/books';
 
 export default function LibraryPage() {
-  const { isAuthenticated } = useAccount();
+  const { isAuthenticated, orders } = useAccount();
+  const [wishlistItems, setWishlistItems] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadWishlist = async () => {
+      try {
+        const response = await fetch('/api/wishlist');
+        const data = await response.json() as { items?: string[] };
+        setWishlistItems(data.items ?? []);
+      } catch {
+        setWishlistItems([]);
+      }
+    };
+
+    void loadWishlist();
+  }, []);
+
+  const libraryItems = useMemo(() => {
+    const purchased = orders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {
+      if (!acc[item.id]) {
+        const bookDetails = mockBooks.find((book) => book.id === item.id);
+        acc[item.id] = {
+          id: item.id,
+          title: item.title,
+          author: item.author,
+          cover: bookDetails?.cover ?? '/logo.jpg',
+          status: 'Purchased',
+          progress: `${item.quantity} copy${item.quantity === 1 ? '' : 'ies'} purchased`,
+        };
+      }
+      return acc;
+    }, {});
+
+    const wishlistBooks = wishlistItems
+      .map((bookId) => mockBooks.find((book) => book.id === bookId))
+      .filter((book): book is (typeof mockBooks)[number] => !!book)
+      .map((book) => ({
+        id: book.id,
+        title: book.title,
+        author: book.author,
+        cover: book.cover,
+        status: 'Wishlist',
+        progress: 'Saved for later',
+      }));
+
+    const purchasedBooks = Object.values(purchased);
+    return purchasedBooks.length > 0 ? purchasedBooks : accountLibrary.concat(wishlistBooks);
+  }, [orders, wishlistItems]);
 
   if (!isAuthenticated) {
     return (
@@ -41,7 +89,7 @@ export default function LibraryPage() {
             </p>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My library</h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">
-              A reader-first view of your saved, active, and downloaded books.
+              A reader-first view of your acquired and saved books. Your purchases and wishlist appear here when available.
             </p>
           </div>
           <Link href="/account" className="text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400">
@@ -50,24 +98,23 @@ export default function LibraryPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {accountLibrary.map((book) => {
-            const bookDetails = mockBooks.find((item) => item.id === book.id);
-            return (
-              <div key={book.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <div className="relative mb-5 h-48 overflow-hidden rounded-2xl">
-                  <Image src={bookDetails?.cover ?? ''} alt={book.title} fill className="object-cover" />
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
-                    {book.status}
-                  </p>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{book.title}</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{book.author}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{book.progress}</p>
-                </div>
+          {libraryItems.map((book) => (
+            <div key={book.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="relative mb-5 h-48 overflow-hidden rounded-2xl">
+                <Image src={book.cover} alt={book.title} fill className="object-cover" />
               </div>
-            );
-          })}
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
+                  {book.status}
+                </p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{book.title}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{book.author}</p>
+                {book.progress ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{book.progress}</p>
+                ) : null}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </main>
