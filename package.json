@@ -15,7 +15,11 @@
     "db:studio": "prisma studio",
     "db:import-catalog": "tsx prisma/import-catalog.ts",
     "db:verify-catalog": "tsx prisma/verify-catalog-import.ts",
-    "db:test-catalog-runtime": "tsx prisma/test-catalog-runtime.ts"
+    "db:test-catalog-runtime": "tsx prisma/test-catalog-runtime.ts",
+    "db:test-catalog-mutations": "tsx prisma/test-catalog-mutations.ts",
+    "db:verify-foundation": "tsx prisma/verify-database-foundation.ts",
+    "db:status": "prisma migrate status",
+    "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
