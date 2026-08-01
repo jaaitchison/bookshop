@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { AccountGoal, AccountProfile, AccountOrder, AccountOrderItem, AccountRole } from '@/src/types/account';
@@ -314,10 +314,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return normalizeProfile({
         ...current,
         goals,
-        roles: {
-          ...current.roles,
-          writer: writerEnabled,
-        },
+        roles: current.roles,
         activeRole: nextActiveRole,
       });
     });
@@ -327,44 +324,19 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setProfile((current) => normalizeProfile({
       ...current,
       onboardingComplete: true,
-      roles: {
-        ...current.roles,
-        writer: current.goals.includes('writing') || current.goals.includes('both'),
-      },
+      roles: current.roles,
       activeRole: current.goals.includes('writing') || current.goals.includes('both')
         ? 'writer'
         : 'reader',
     }));
   };
 
-  const toggleWriter = (enabled?: boolean) => {
-    setProfile((current) => {
-      const writerEnabled = enabled ?? !current.roles.writer;
-      const nextActiveRole = writerEnabled ? 'writer' : 'reader';
-      return normalizeProfile({
-        ...current,
-        roles: {
-          ...current.roles,
-          writer: writerEnabled,
-        },
-        activeRole: current.roles.admin ? 'admin' : nextActiveRole,
-      });
-    });
+  const toggleWriter = () => {
+    console.warn("Writer role changes are now server-controlled.");
   };
 
-  const toggleAdmin = (enabled?: boolean) => {
-    setProfile((current) => {
-      const adminEnabled = enabled ?? !current.roles.admin;
-      const nextActiveRole = adminEnabled ? 'admin' : current.roles.writer ? 'writer' : 'reader';
-      return normalizeProfile({
-        ...current,
-        roles: {
-          ...current.roles,
-          admin: adminEnabled,
-        },
-        activeRole: nextActiveRole,
-      });
-    });
+  const toggleAdmin = () => {
+    console.warn("Administrator role changes are now server-controlled.");
   };
 
   const setActiveRole = (role: AccountRole) => {
@@ -635,3 +607,4 @@ export const useAccount = () => {
   }
   return context;
 };
+
