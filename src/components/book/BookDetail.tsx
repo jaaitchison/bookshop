@@ -194,7 +194,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
     <div className="min-h-screen bg-[var(--bookshop-bg)]">
       <div className="mx-auto w-11/12 py-8 sm:w-10/12 lg:w-4/5">
         <Link href="/books" className="mb-8 inline-flex items-center text-sm font-medium text-violet-700 hover:text-violet-800">
-          Ã¢â€ Â Back to books
+          ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€šÃ‚Â Back to books
         </Link>
 
         <div className="grid gap-6 lg:grid-cols-[300px,1fr]">
@@ -205,21 +205,21 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
           </div>
 
           <div className="space-y-6">
-          <div className="space-y-4 rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
+          <div className="space-y-4 rounded-3xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-medium text-violet-800">{book.genre}</span>
                 {book.new ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">New release</span> : null}
               </div>
 
               <div>
-                <h1 className="text-3xl font-black tracking-tight text-slate-900">{book.title}</h1>
+                <h2 className="text-3xl font-black tracking-tight text-slate-900">{book.title}</h2>
                 <p className="mt-2 text-lg text-slate-600">by {book.author}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
                 <div className="text-3xl font-bold text-slate-900">${book.price.toFixed(2)}</div>
                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="text-amber-500">Ã¢Ëœâ€¦</span>
+                  <span className="text-amber-500">ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</span>
                   <span className="font-semibold text-slate-900">{book.rating}</span>
                   <span>({book.reviews.toLocaleString()} reviews)</span>
                 </div>
@@ -242,7 +242,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               ) : null}
             </div>
 
-            <div className="grid gap-4 rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-5 shadow-sm md:grid-cols-3">
+            <div className="grid gap-4 rounded-3xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-5 shadow-sm md:grid-cols-3">
               <div>
                 <p className="text-sm font-medium text-slate-500">Format</p>
                 <p className="mt-1 font-semibold text-slate-900">Paperback</p>
@@ -257,7 +257,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-5 shadow-sm">
+            <div className="rounded-3xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-5 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">Reader view</p>
@@ -300,14 +300,14 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
           </div>
         </div>
 
-        <div className="mt-14 rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
+        <div className="mt-14 rounded-3xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-700">Reader voices</p>
               <h2 className="mt-2 text-2xl font-bold text-slate-900">Reviews from your community</h2>
             </div>
             <div className="rounded-full bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700">
-              {reviews.length} review{reviews.length === 1 ? '' : 's'} Ã¢â‚¬Â¢ {averageReviewScore}/5 avg
+              {reviews.length} review{reviews.length === 1 ? '' : 's'} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ {averageReviewScore}/5 avg
             </div>
           </div>
 
@@ -322,7 +322,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
                   <div key={review.id} className="rounded-[1.5rem] border border-[var(--bookshop-border)] bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-slate-900">{review.user}</p>
-                      <div className="text-sm font-semibold text-amber-600">{'Ã¢Ëœâ€¦'.repeat(review.rating)}</div>
+                      <div className="text-sm font-semibold text-amber-600">{'ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦'.repeat(review.rating)}</div>
                     </div>
                     <p className="mt-3 text-sm leading-7 text-slate-700">{review.comment}</p>
                     <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">{new Date(review.createdAt).toLocaleDateString()}</p>

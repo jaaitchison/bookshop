@@ -166,19 +166,19 @@ export default function WriterStudioPage() {
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">ðŸ“</div>
+              <div className="mb-2 text-2xl">Ã°Å¸â€œÂ</div>
               <p className="font-medium text-[var(--bookshop-text)]">Write book</p>
             </button>
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">ðŸ“Š</div>
+              <div className="mb-2 text-2xl">Ã°Å¸â€œÅ </div>
               <p className="font-medium text-[var(--bookshop-text)]">View analytics</p>
             </button>
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">ðŸ’¬</div>
+              <div className="mb-2 text-2xl">Ã°Å¸â€™Â¬</div>
               <p className="font-medium text-[var(--bookshop-text)]">Reader reviews</p>
             </button>
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">âš™ï¸</div>
+              <div className="mb-2 text-2xl">Ã¢Å¡â„¢Ã¯Â¸Â</div>
               <p className="font-medium text-[var(--bookshop-text)]">Settings</p>
             </button>
           </div>

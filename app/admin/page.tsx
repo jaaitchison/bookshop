@@ -296,7 +296,7 @@ export default function AdminPage() {
                             {book.status ?? 'published'}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-[var(--bookshop-muted)]">{book.author} â€¢ {book.genre}</p>
+                        <p className="mt-1 text-sm text-[var(--bookshop-muted)]">{book.author} Ã¢â‚¬Â¢ {book.genre}</p>
                         <p className="mt-2 text-sm text-[var(--bookshop-muted)]">{book.description}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">

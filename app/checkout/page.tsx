@@ -127,10 +127,10 @@ export default function CheckoutPage() {
 
   if (submittedOrderId) {
     return (
-      <div className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-24">
-        <div className="bookshop-card mx-auto max-w-3xl p-10">
+      <div className="min-h-screen bg-[var(--bookshop-bg)] py-8">
+        <div className="mx-auto w-11/12 rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm sm:w-10/12 sm:px-10 lg:w-4/5 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-300">Order confirmed</p>
-          <h1 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Thanks for your purchase, {profile.name.split(' ')[0]}.</h1>
+          <h2 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Thanks for your purchase, {profile.name.split(' ')[0]}.</h2>
           <p className="mt-4 text-[var(--bookshop-muted)]">
             Your order <span className="font-semibold text-[var(--bookshop-text)]">{submittedOrderId}</span> is now in our processing queue and will appear in your account history.
           </p>
@@ -153,15 +153,15 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-24">
+    <div className="min-h-screen bg-[var(--bookshop-bg)] py-8">
       <div className="bookshop-shell grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
-        <form onSubmit={handleSubmit} className="bookshop-card rounded-[2rem] p-8">
+        <form onSubmit={handleSubmit} className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm sm:px-10 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-700 dark:text-violet-300">
             Checkout
           </p>
-          <h1 className="mt-4 text-3xl font-bold text-[var(--bookshop-text)]">
+          <h2 className="mt-4 text-3xl font-bold text-[var(--bookshop-text)]">
             Secure your order
-          </h1>
+          </h2>
           <p className="mt-3 text-lg text-[var(--bookshop-muted)]">
             Enter your shipping details and payment information to complete your purchase.
           </p>
@@ -259,7 +259,7 @@ export default function CheckoutPage() {
           </div>
         </form>
 
-        <aside className="bookshop-card rounded-[2rem] p-8">
+        <aside className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm sm:px-10 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <h2 className="text-lg font-semibold text-[var(--bookshop-text)]">Order summary</h2>
           <div className="mt-6 space-y-4">
             {items.length === 0 ? (
@@ -268,7 +268,7 @@ export default function CheckoutPage() {
               items.map((item) => (
                 <div key={item.book.id} className="bookshop-subcard flex items-center justify-between p-4 text-sm text-[var(--bookshop-text)]">
                   <span>
-                    {item.book.title} Ãƒâ€” {item.quantity}
+                    {item.book.title} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {item.quantity}
                   </span>
                   <span>${(item.book.price * item.quantity).toFixed(2)}</span>
                 </div>

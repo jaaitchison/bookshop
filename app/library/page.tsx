@@ -105,10 +105,10 @@ export default function LibraryPage() {
 
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-10 text-center shadow-sm">
+      <main className="min-h-screen bg-[var(--bookshop-bg)] py-8">
+        <div className="mx-auto w-11/12 rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 text-center shadow-sm sm:w-10/12 sm:px-10 lg:w-4/5 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-violet-700">Reader access</p>
-          <h1 className="mt-4 text-3xl font-semibold text-slate-900">Sign in to see your library</h1>
+          <h2 className="mt-4 text-3xl font-semibold text-slate-900">Sign in to see your library</h2>
           <p className="mt-4 text-slate-600">
             Once authenticated, this view will show your saved books, current reading progress, and personalized recommendations.
           </p>
@@ -128,22 +128,15 @@ export default function LibraryPage() {
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)]">
       <div className="mx-auto w-11/12 py-8 sm:w-10/12 lg:w-4/5">
-        <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">Unified account</p>
-            <h1 className="text-3xl font-bold text-[var(--bookshop-text)]">My library</h1>
-            <p className="mt-2 text-[var(--bookshop-muted)]">
-              A reader-first view of your acquired and saved books. Your purchases and wishlist appear here when available.
-            </p>
-          </div>
-          <Link href="/account" className="text-sm font-semibold text-violet-700 hover:text-violet-800">
+        <div className="mb-6 flex justify-end">
+          <Link href="/account" className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300">
             Back to account dashboard
           </Link>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {libraryItems.map((book) => (
-            <div key={book.id} className="rounded-[1.75rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
+            <div key={book.id} className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="relative mb-5 h-48 overflow-hidden rounded-[1.25rem]">
                 <Image src={book.cover} alt={book.title} fill className="object-cover" />
               </div>

@@ -168,10 +168,10 @@ export default function AccountPage() {
 
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-10">
+      <main className="min-h-screen bg-[var(--bookshop-bg)] py-8">
         <div className="mx-auto w-11/12 rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-8 text-center shadow-sm sm:w-10/12 lg:w-4/5 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-accent)]">Secure access</p>
-          <h1 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Sign in to unlock your account hub</h1>
+          <h2 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Sign in to unlock your account hub</h2>
           <p className="mt-4 text-[var(--bookshop-muted)]">
             Your unified dashboard, library, and creator tools are available after authentication so your activity stays connected to one profile.
           </p>
@@ -189,7 +189,7 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-10">
+    <main className="min-h-screen bg-[var(--bookshop-bg)] py-8">
       <div className="mx-auto flex w-11/12 flex-col gap-8 sm:w-10/12 lg:w-4/5">
         <section className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-8 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
@@ -204,10 +204,8 @@ export default function AccountPage() {
                   </p>
                   <span className="bookshop-badge bookshop-badge-accent">Current view {profile.activeRole}</span>
                 </div>
-                <h1 className="text-3xl font-bold text-[var(--bookshop-text)]">{profile.name}</h1>
-                <p className="mt-1 text-sm text-[var(--bookshop-muted)]">
-                  @{profile.username} Ã¢â‚¬Â¢ {profile.location} Ã¢â‚¬Â¢ Joined {profile.joined}
-                </p>
+                <h2 className="text-3xl font-bold text-[var(--bookshop-text)]">{profile.name}</h2>
+                <p className="mt-1 text-sm text-[var(--bookshop-muted)]">@{profile.username} | {profile.location} | Joined {profile.joined}</p>
               </div>
             </div>
             <div className="bookshop-subcard min-w-[12rem] px-4 py-4">
@@ -465,7 +463,7 @@ export default function AccountPage() {
                       ) : null}
                     </div>
                     <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">
-                      {notification.category} Ã¢â‚¬Â¢ {notification.timestamp}
+                      {notification.category} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ {notification.timestamp}
                     </p>
                   </div>
                 ))}
@@ -567,7 +565,7 @@ export default function AccountPage() {
                     <div className="mt-3 space-y-1 text-sm text-[var(--bookshop-muted)]">
                       {order.items.slice(0, 2).map((item) => (
                         <p key={`${order.id}-${item.id}`}>
-                          {item.title} Ãƒâ€” {item.quantity}
+                          {item.title} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {item.quantity}
                         </p>
                       ))}
                     </div>
