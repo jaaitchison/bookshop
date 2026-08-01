@@ -285,3 +285,83 @@ tr th {
   background: var(--bookshop-danger-soft);
   color: var(--bookshop-danger-text);
 }
+
+/* Bookshop reusable page shell */
+.bookshop-page-header {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--bookshop-border);
+  border-radius: 1.75rem;
+  background: var(--bookshop-surface);
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.bookshop-page-header::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0.4rem;
+  background: #2563eb;
+}
+
+.bookshop-page-header[data-area="writer"]::before {
+  background: #d97706;
+}
+
+.bookshop-page-header[data-area="admin"]::before {
+  background: #334155;
+}
+
+.bookshop-page-area {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bookshop-muted);
+}
+
+.bookshop-page-title {
+  margin: 0.35rem 0 0;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.1;
+  font-weight: 850;
+  letter-spacing: -0.03em;
+  color: var(--bookshop-text);
+}
+
+.bookshop-page-description {
+  margin: 0.7rem 0 0;
+  max-width: 48rem;
+  color: var(--bookshop-muted);
+}
+
+.bookshop-display-section {
+  border: 1px solid var(--bookshop-border);
+  border-radius: 1.75rem;
+  background: var(--bookshop-surface);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.bookshop-display-section-heading {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--bookshop-border);
+}
+
+.bookshop-display-section-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--bookshop-text);
+}
+
+.bookshop-display-section-description {
+  margin: 0.35rem 0 0;
+  color: var(--bookshop-muted);
+  font-size: 0.925rem;
+}
+
+.bookshop-display-section-body {
+  padding: 1.5rem;
+}
