@@ -9,8 +9,9 @@ import { mockBooks } from '@/src/data/books';
 import type { AccountOrder } from '@/src/types/account';
 
 export default function LibraryPage() {
-  const { isAuthenticated, orders, profile   } = useAccount();
-  const [wishlistItems, setWishlistItems] = useState<string[]>([]);  const [readingProgressByBook] = useState<Record<string, number>>(() => {
+  const { isAuthenticated, orders, profile } = useAccount();
+  const [wishlistItems, setWishlistItems] = useState<string[]>([]);
+  const [readingProgressByBook] = useState<Record<string, number>>(() => {
     if (typeof window === 'undefined') {
       return {};
     }
@@ -38,7 +39,7 @@ export default function LibraryPage() {
     const loadWishlist = async () => {
       try {
         const response = await fetch('/api/wishlist');
-        const data = await response.json() as { items?: string[] };
+        const data = (await response.json()) as { items?: string[] };
         setWishlistItems(data.items ?? []);
       } catch {
         setWishlistItems([]);
@@ -104,18 +105,18 @@ export default function LibraryPage() {
 
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-16 dark:bg-gray-950 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-gray-200 bg-white p-10 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">Reader access</p>
-          <h1 className="mt-4 text-3xl font-semibold text-gray-900 dark:text-white">Sign in to see your library</h1>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
+      <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-10 text-center shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-violet-700">Reader access</p>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-900">Sign in to see your library</h1>
+          <p className="mt-4 text-slate-600">
             Once authenticated, this view will show your saved books, current reading progress, and personalized recommendations.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/auth" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+            <Link href="/auth" className="bookshop-button-primary px-5 py-2.5 text-sm">
               Sign in to continue
             </Link>
-            <Link href="/books" className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+            <Link href="/books" className="bookshop-button-quiet px-5 py-2.5 text-sm">
               Browse the catalog
             </Link>
           </div>
@@ -125,45 +126,39 @@ export default function LibraryPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="min-h-screen bg-[var(--bookshop-bg)]">
+      <div className="bookshop-shell py-12">
         <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">
-              Unified account
-            </p>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My library</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">Unified account</p>
+            <h1 className="text-3xl font-bold text-[var(--bookshop-text)]">My library</h1>
+            <p className="mt-2 text-[var(--bookshop-muted)]">
               A reader-first view of your acquired and saved books. Your purchases and wishlist appear here when available.
             </p>
           </div>
-          <Link href="/account" className="text-sm font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400">
+          <Link href="/account" className="text-sm font-semibold text-violet-700 hover:text-violet-800">
             Back to account dashboard
           </Link>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {libraryItems.map((book) => (
-            <div key={book.id} className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-              <div className="relative mb-5 h-48 overflow-hidden rounded-2xl">
+            <div key={book.id} className="rounded-[1.75rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
+              <div className="relative mb-5 h-48 overflow-hidden rounded-[1.25rem]">
                 <Image src={book.cover} alt={book.title} fill className="object-cover" />
               </div>
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
-                  {book.status}
-                </p>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{book.title}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{book.author}</p>
-                {book.progress ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{book.progress}</p>
-                ) : null}
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{book.status}</p>
+                <h2 className="text-xl font-semibold text-slate-900">{book.title}</h2>
+                <p className="text-sm text-slate-600">{book.author}</p>
+                {book.progress ? <p className="text-sm text-slate-500">{book.progress}</p> : null}
                 {readingProgressByBook[book.id] !== undefined ? (
-                  <p className="text-sm text-blue-600 dark:text-blue-400">Reading progress: {readingProgressByBook[book.id]}%</p>
+                  <p className="text-sm text-violet-700">Reading progress: {readingProgressByBook[book.id]}%</p>
                 ) : null}
                 <div className="pt-2">
                   <Link
                     href={`/books/${book.id}`}
-                    className="inline-flex rounded-full border border-blue-600 px-3 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950/30"
+                    className="bookshop-button-quiet px-3 py-1 text-xs"
                   >
                     {readingProgressByBook[book.id] !== undefined ? 'Continue reading' : 'Start reading'}
                   </Link>

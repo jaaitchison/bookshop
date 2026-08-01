@@ -1,21 +1,64 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
 import type { ThemeMode } from './ThemeProvider';
-import { useCart } from '../context/CartContext';
 import { useAccount } from '../context/AccountContext';
+import { useCart } from '../context/CartContext';
 import type { AccountRole } from '../types/account';
 
+const navItems = [
+  { href: '/books', label: 'Books' },
+  { href: '/library', label: 'Library' },
+  { href: '/account', label: 'Account' },
+] as const;
+
+const formatSegment = (segment: string) =>
+  segment
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+const getPageTitle = (pathname: string) => {
+  if (pathname === '/') return 'Home';
+  if (pathname === '/books') return 'Books';
+  if (pathname.startsWith('/books/')) return 'Book details';
+  if (pathname === '/library') return 'Library';
+  if (pathname === '/account') return 'Account';
+  if (pathname === '/auth') return 'Sign in';
+  if (pathname === '/checkout') return 'Checkout';
+  if (pathname.startsWith('/checkout/success')) return 'Order confirmed';
+  if (pathname === '/studio') return 'Writer Studio';
+  if (pathname === '/admin') return 'Admin Dashboard';
+
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return 'Home';
+  return formatSegment(segments[segments.length - 1]);
+};
+
+const getBreadcrumb = (pathname: string) => {
+  if (pathname === '/') return 'Public Showcase';
+  return pathname
+    .split('/')
+    .filter(Boolean)
+    .map(formatSegment)
+    .join(' • ');
+};
+
+const isActiveRoute = (pathname: string, href: string) =>
+  pathname === href || pathname.startsWith(`${href}/`);
+
 const Heartbeat: React.FC<{ zone: 'admin' | 'studio' | 'public' }> = ({ zone }) => {
-  const color = zone === 'admin' ? 'bg-red-500' : zone === 'studio' ? 'bg-amber-400' : 'bg-green-500';
+  const color = zone === 'admin' ? 'bg-rose-600' : zone === 'studio' ? 'bg-amber-500' : 'bg-violet-600';
   const ariaLabel = zone === 'admin' ? 'Admin area' : zone === 'studio' ? 'Writer Studio' : 'Public Showcase';
+
   return (
-    <div className="flex items-center">
-      <span className={`h-3 w-3 rounded-full ${color} animate-pulse mr-2`} aria-hidden="true" />
+    <div className="flex items-center rounded-full border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-3 py-1.5 text-sm font-semibold text-[var(--bookshop-text)] shadow-sm">
+      <span className={`mr-2 h-2.5 w-2.5 rounded-full ${color} animate-pulse`} aria-hidden="true" />
+      <span>{ariaLabel}</span>
       <span className="sr-only">{ariaLabel}</span>
     </div>
   );
@@ -25,12 +68,12 @@ const ThemeSwitcher: React.FC = () => {
   const { mode, setMode } = useTheme();
 
   return (
-    <div className="flex items-center space-x-2">
-      <label className="text-sm">Theme</label>
+    <div className="flex items-center gap-2 rounded-full border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-3 py-1.5 text-sm font-semibold text-[var(--bookshop-text)] shadow-sm">
+      <label className="text-sm text-[var(--bookshop-muted)]">Theme</label>
       <select
         value={mode}
         onChange={(e) => setMode(e.target.value as ThemeMode)}
-        className="bg-transparent border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm"
+        className="rounded-full border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] px-2 py-1 text-sm text-[var(--bookshop-text)]"
         aria-label="Theme mode"
       >
         <option value="light">Light</option>
@@ -46,10 +89,7 @@ const AuthActions: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <Link
-        href="/auth"
-        className="rounded-full border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-      >
+      <Link href="/auth" className="bookshop-button-quiet px-3 py-1.5 text-sm">
         Sign in
       </Link>
     );
@@ -57,20 +97,13 @@ const AuthActions: React.FC = () => {
 
   return (
     <div className="flex items-center gap-2">
-      <Link
-        href="/account"
-        className="flex items-center gap-2 rounded-full border border-gray-200 bg-white/70 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:bg-gray-800"
-      >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-xs font-semibold text-white">
+      <Link href="/account" className="bookshop-button-quiet flex items-center gap-2 px-3 py-1.5 text-sm font-medium">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--bookshop-accent)] text-xs font-semibold text-[var(--bookshop-accent-soft)]">
           {profile.avatar}
         </span>
         <span className="hidden md:inline">{profile.username}</span>
       </Link>
-      <button
-        type="button"
-        onClick={signOut}
-        className="rounded-full border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-      >
+      <button type="button" onClick={signOut} className="bookshop-button-quiet px-3 py-1.5 text-sm">
         Sign out
       </button>
     </div>
@@ -86,9 +119,10 @@ const RoleSwitcher: React.FC = () => {
   ];
 
   return (
-    <div className="hidden lg:flex items-center gap-2 rounded-full border border-gray-200 bg-white/70 p-1 dark:border-gray-800 dark:bg-gray-900/70">
+    <div className="hidden xl:flex items-center gap-2 rounded-full border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-1 shadow-sm">
       {roles.filter((role) => role.enabled).map((role) => {
         const active = profile.activeRole === role.id;
+
         return (
           <button
             key={role.id}
@@ -96,8 +130,8 @@ const RoleSwitcher: React.FC = () => {
             onClick={() => setActiveRole(role.id)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition ${
               active
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+                ? 'border border-[var(--bookshop-border)] bg-[var(--bookshop-accent-soft)] text-[var(--bookshop-accent)] shadow-sm'
+                : 'text-[var(--bookshop-accent)] hover:bg-[var(--bookshop-accent-soft)]'
             }`}
           >
             {role.label}
@@ -110,7 +144,8 @@ const RoleSwitcher: React.FC = () => {
 
 const MobileNav: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
   const menuRef = useRef<HTMLDivElement>(null);
-  const { hasRole } = useAccount();
+  const pathname = usePathname() || '/';
+  const { hasRole, isAuthenticated, profile, signOut } = useAccount();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -132,41 +167,40 @@ const MobileNav: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
       <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
       <nav
         ref={menuRef}
-        className="fixed left-0 top-16 bottom-0 w-64 bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 shadow-lg overflow-y-auto"
+        className="fixed bottom-0 left-0 top-[73px] w-72 overflow-y-auto border-r border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] shadow-lg"
       >
-        <div className="p-4 space-y-2">
-          <Link
-            href="/books"
-            className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
-            onClick={onClose}
-          >
-            Books
-          </Link>
-          <Link
-            href="/library"
-            className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
-            onClick={onClose}
-          >
-            My Library
-          </Link>
-          <Link
-            href="/account"
-            className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
-            onClick={onClose}
-          >
-            Account Hub
-          </Link>
-          <Link
-            href="/auth"
-            className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
-            onClick={onClose}
-          >
-            Sign in
-          </Link>
+        <div className="space-y-3 p-4">
+          <div className="bookshop-subcard p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--bookshop-muted)]">Current page</p>
+            <p className="mt-2 text-base font-semibold text-[var(--bookshop-text)]">{getPageTitle(pathname)}</p>
+            <p className="mt-1 text-sm text-[var(--bookshop-muted)]">{getBreadcrumb(pathname)}</p>
+          </div>
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="bookshop-nav-link flex w-full justify-between px-4 py-3"
+              data-active={isActiveRoute(pathname, item.href)}
+              onClick={onClose}
+            >
+              {item.label}
+            </Link>
+          ))}
+          {isAuthenticated ? (
+            <Link href="/account" className="bookshop-nav-link flex w-full items-center justify-between px-4 py-3" onClick={onClose}>
+              <span>Signed in as {profile.username}</span>
+              <span className="bookshop-badge bookshop-badge-accent">{profile.avatar}</span>
+            </Link>
+          ) : (
+            <Link href="/auth" className="bookshop-nav-link flex w-full justify-between px-4 py-3" onClick={onClose}>
+              Sign in
+            </Link>
+          )}
           {hasRole('writer') ? (
             <Link
               href="/studio"
-              className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
+              className="bookshop-nav-link flex w-full justify-between px-4 py-3"
+              data-active={pathname.startsWith('/studio')}
               onClick={onClose}
             >
               Writer Studio
@@ -175,11 +209,24 @@ const MobileNav: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen,
           {hasRole('admin') ? (
             <Link
               href="/admin"
-              className="block px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-sm"
+              className="bookshop-nav-link flex w-full justify-between px-4 py-3"
+              data-active={pathname.startsWith('/admin')}
               onClick={onClose}
             >
               Admin
             </Link>
+          ) : null}
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={() => {
+                signOut();
+                onClose();
+              }}
+              className="bookshop-button-quiet w-full px-4 py-3 text-sm"
+            >
+              Sign out
+            </button>
           ) : null}
         </div>
       </nav>
@@ -198,59 +245,74 @@ export const TopHeader: React.FC = () => {
     ? 'studio'
     : 'public';
 
-  const breadcrumb = pathname === '/' ? 'Showcase' : pathname.split('/').filter(Boolean).join(' > ');
+  const pageTitle = getPageTitle(pathname);
+  const breadcrumb = getBreadcrumb(pathname);
 
   return (
     <>
-      <header className="sticky top-0 z-50 backdrop-blur bg-white/60 dark:bg-gray-900/60 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="h-16 flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+      <header className="sticky top-0 z-50 w-full border-b border-[var(--bookshop-border)] bg-[var(--bookshop-surface)]/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="md:hidden">
               <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                onClick={() => setMobileMenuOpen((open) => !open)}
                 aria-label="Toggle navigation"
                 aria-expanded={mobileMenuOpen}
-                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 md:hidden"
+                className="bookshop-button-quiet p-2"
               >
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
-
-              <Link href="/" className="flex items-center space-x-3">
-                <Image src="/logo.jpg" alt="bookshop logo" width={40} height={40} className="rounded-md object-cover" />
-                <div className="flex flex-col leading-tight">
-                  <span className="text-sm font-semibold">bookshop</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{breadcrumb}</span>
-                </div>
-              </Link>
             </div>
+            <Link href="/" className="flex min-w-0 items-center gap-3">
+              <Image src="/logo.jpg" alt="Bookshop logo" width={44} height={44} className="rounded-2xl object-cover" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-semibold text-[var(--bookshop-text)]">Bookshop</span>
+                  <span className="bookshop-badge bookshop-badge-accent hidden sm:inline-flex">{pageTitle}</span>
+                </div>
+                <p className="truncate text-xs text-[var(--bookshop-muted)]">{breadcrumb}</p>
+              </div>
+            </Link>
+          </div>
 
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-center space-x-4">
-                <Heartbeat zone={zone} />
-                <RoleSwitcher />
-                <ThemeSwitcher />
-                <AuthActions />
-              </div>
-              <div className="hidden sm:flex items-center space-x-2">
-                <Link href="/books" className="text-sm">Books</Link>
-                <Link href="/library" className="text-sm">Library</Link>
-                <Link href="/account" className="text-sm">Account</Link>
-                {hasRole('writer') ? (
-                  <Link href="/studio" className="text-sm">Studio</Link>
-                ) : null}
-                {hasRole('admin') ? (
-                  <Link href="/admin" className="text-sm">Admin</Link>
-                ) : null}
-                <button
-                  onClick={openCart}
-                  className="ml-2 inline-flex items-center rounded-full bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-                >
-                  Cart
-                  {count > 0 ? <span className="ml-2 rounded-full bg-white/20 px-2 py-0.5 text-xs">{count}</span> : null}
-                </button>
-              </div>
+          <nav className="hidden flex-1 items-center justify-center gap-2 lg:flex">
+            {navItems.map((item) => (
+              <Link key={item.href} href={item.href} className="bookshop-nav-link" data-active={isActiveRoute(pathname, item.href)}>
+                {item.label}
+              </Link>
+            ))}
+            {hasRole('writer') ? (
+              <Link href="/studio" className="bookshop-nav-link" data-active={pathname.startsWith('/studio')}>
+                Studio
+              </Link>
+            ) : null}
+            {hasRole('admin') ? (
+              <Link href="/admin" className="bookshop-nav-link" data-active={pathname.startsWith('/admin')}>
+                Admin
+              </Link>
+            ) : null}
+          </nav>
+
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden md:block">
+              <Heartbeat zone={zone} />
+            </div>
+            <RoleSwitcher />
+            <div className="hidden sm:block">
+              <ThemeSwitcher />
+            </div>
+            <button onClick={openCart} className="bookshop-button-primary inline-flex items-center px-3 py-1.5 text-sm">
+              Cart
+              {count > 0 ? (
+                <span className="ml-2 rounded-full bg-[var(--bookshop-accent)] px-2 py-0.5 text-xs text-[var(--bookshop-accent-soft)]">
+                  {count}
+                </span>
+              ) : null}
+            </button>
+            <div className="hidden md:block">
+              <AuthActions />
             </div>
           </div>
         </div>

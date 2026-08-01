@@ -148,18 +148,18 @@ export default function AdminPage() {
 
   if (!isAuthenticated || !hasRole('admin')) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-16 dark:bg-gray-950 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-gray-200 bg-white p-10 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-red-600 dark:text-red-400">Admin access required</p>
-          <h1 className="mt-4 text-3xl font-semibold text-gray-900 dark:text-white">Admin Dashboard is restricted</h1>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
+      <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="bookshop-card mx-auto max-w-3xl p-10 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-rose-700 dark:text-rose-300">Admin access required</p>
+          <h1 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Admin Dashboard is restricted</h1>
+          <p className="mt-4 text-[var(--bookshop-muted)]">
             This area is only available to administrator accounts. Visit your dashboard to request access or continue browsing.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/account" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+            <Link href="/account" className="bookshop-button-primary px-5 py-2.5 text-sm">
               Go to account dashboard
             </Link>
-            <Link href="/books" className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+            <Link href="/books" className="bookshop-button-quiet px-5 py-2.5 text-sm">
               Continue browsing books
             </Link>
           </div>
@@ -169,11 +169,12 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main className="min-h-screen bg-[var(--bookshop-bg)]">
+      <div className="bookshop-shell py-12">
         <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700 dark:text-violet-300">Admin console</p>
+          <h1 className="mt-3 text-3xl font-bold text-[var(--bookshop-text)]">Admin Dashboard</h1>
+          <p className="mt-2 text-[var(--bookshop-muted)]">
             Manage your bookshop, users, and view analytics
           </p>
         </div>
@@ -196,68 +197,68 @@ export default function AdminPage() {
         <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-8">
             <AdminSection title="Catalog Management" description="Create, update, and moderate books from a single workspace.">
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="bookshop-card rounded-[1.5rem] p-6">
                 <form className="space-y-4" onSubmit={handleSubmit}>
                   {error ? (
-                    <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                    <p className="rounded-[1rem] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-300">
                       {error}
                     </p>
                   ) : null}
                   <div className="grid gap-4 md:grid-cols-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-sm font-medium text-[var(--bookshop-text)]">
                       <span className="mb-1 block">Title</span>
                       <input
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        className="bookshop-input"
                         value={form.title}
                         onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                         placeholder="Book title"
                       />
                     </label>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-sm font-medium text-[var(--bookshop-text)]">
                       <span className="mb-1 block">Author</span>
                       <input
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        className="bookshop-input"
                         value={form.author}
                         onChange={(event) => setForm((current) => ({ ...current, author: event.target.value }))}
                         placeholder="Author name"
                       />
                     </label>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-sm font-medium text-[var(--bookshop-text)]">
                       <span className="mb-1 block">Genre</span>
                       <input
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        className="bookshop-input"
                         value={form.genre}
                         onChange={(event) => setForm((current) => ({ ...current, genre: event.target.value }))}
                         placeholder="Genre"
                       />
                     </label>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-sm font-medium text-[var(--bookshop-text)]">
                       <span className="mb-1 block">Price</span>
                       <input
                         type="number"
                         min="0"
                         step="0.01"
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        className="bookshop-input"
                         value={form.price}
                         onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
                         placeholder="19.99"
                       />
                     </label>
                   </div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label className="text-sm font-medium text-[var(--bookshop-text)]">
                     <span className="mb-1 block">Description</span>
                     <textarea
-                      className="min-h-24 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                      className="bookshop-input min-h-24"
                       value={form.description}
                       onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                       placeholder="Describe the book"
                     />
                   </label>
                   <div className="flex flex-wrap items-center gap-3">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label className="text-sm font-medium text-[var(--bookshop-text)]">
                       <span className="mb-1 block">Status</span>
                       <select
-                        className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        className="bookshop-input min-w-36"
                         value={form.status}
                         onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as BookStatus }))}
                       >
@@ -269,14 +270,14 @@ export default function AdminPage() {
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="bookshop-button-primary px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSaving ? 'Saving...' : selectedBookId ? 'Update Book' : 'Create Book'}
                     </button>
                     {selectedBookId ? (
                       <button
                         type="button"
-                        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                        className="bookshop-button-quiet px-4 py-2 text-sm"
                         onClick={() => {
                           setSelectedBookId(null);
                           setForm(emptyForm);
@@ -293,32 +294,32 @@ export default function AdminPage() {
             <AdminSection title="Book Inventory">
               <div className="space-y-4">
                 {books.map((book) => (
-                  <div key={book.id} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                  <div key={book.id} className="bookshop-card rounded-[1.5rem] p-5">
                     <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{book.title}</h3>
-                          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                          <h3 className="text-lg font-semibold text-[var(--bookshop-text)]">{book.title}</h3>
+                          <span className="rounded-full bg-[var(--bookshop-surface-muted)] px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-[var(--bookshop-muted)]">
                             {book.status ?? 'published'}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{book.author} • {book.genre}</p>
-                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{book.description}</p>
+                        <p className="mt-1 text-sm text-[var(--bookshop-muted)]">{book.author} • {book.genre}</p>
+                        <p className="mt-2 text-sm text-[var(--bookshop-muted)]">{book.description}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <button className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800" onClick={() => handleEdit(book)}>
+                        <button className="bookshop-button-quiet px-3 py-2 text-sm" onClick={() => handleEdit(book)}>
                           Edit
                         </button>
-                        <button className="rounded-lg border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950/30" onClick={() => handleStatusChange(book.id, 'draft')}>
+                        <button className="rounded-full border border-amber-200 px-3 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-50 dark:border-amber-900 dark:text-amber-300 dark:hover:bg-amber-950/30" onClick={() => handleStatusChange(book.id, 'draft')}>
                           Draft
                         </button>
-                        <button className="rounded-lg border border-green-200 px-3 py-2 text-sm font-semibold text-green-700 transition hover:bg-green-50 dark:border-green-900 dark:text-green-300 dark:hover:bg-green-950/30" onClick={() => handleStatusChange(book.id, 'published')}>
+                        <button className="rounded-full border border-emerald-200 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-300 dark:hover:bg-emerald-950/30" onClick={() => handleStatusChange(book.id, 'published')}>
                           Publish
                         </button>
-                        <button className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800" onClick={() => handleStatusChange(book.id, 'archived')}>
+                        <button className="bookshop-button-quiet px-3 py-2 text-sm" onClick={() => handleStatusChange(book.id, 'archived')}>
                           Archive
                         </button>
-                        <button className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/30" onClick={() => handleDelete(book.id)}>
+                        <button className="rounded-full border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/30" onClick={() => handleDelete(book.id)}>
                           Delete
                         </button>
                       </div>
@@ -332,34 +333,34 @@ export default function AdminPage() {
           <div>
             <AdminSection title="Quick Actions">
               <div className="space-y-3">
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                <button className="bookshop-button-primary w-full px-4 py-2">
                   Add New Book
                 </button>
-                <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                <button className="bookshop-button-secondary w-full px-4 py-2">
                   Manage Users
                 </button>
-                <button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                <button className="w-full rounded-full bg-emerald-600 px-4 py-2 font-semibold text-white transition hover:bg-emerald-700">
                   View Orders
                 </button>
-                <button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                <button className="w-full rounded-full bg-amber-500 px-4 py-2 font-semibold text-white transition hover:bg-amber-600">
                   Generate Report
                 </button>
               </div>
             </AdminSection>
 
             <AdminSection title="Admin Info">
-              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-4 space-y-3">
+              <div className="bookshop-card rounded-[1.5rem] p-4 space-y-3">
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Role</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Super Admin</p>
+                  <p className="text-xs text-[var(--bookshop-muted)]">Role</p>
+                  <p className="text-sm font-semibold text-[var(--bookshop-text)]">Super Admin</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Last Login</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Today at 2:34 PM</p>
+                  <p className="text-xs text-[var(--bookshop-muted)]">Last Login</p>
+                  <p className="text-sm font-semibold text-[var(--bookshop-text)]">Today at 2:34 PM</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Permissions</p>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">All Access</p>
+                  <p className="text-xs text-[var(--bookshop-muted)]">Permissions</p>
+                  <p className="text-sm font-semibold text-[var(--bookshop-text)]">All Access</p>
                 </div>
               </div>
             </AdminSection>

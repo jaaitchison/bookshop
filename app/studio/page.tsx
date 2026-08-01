@@ -100,18 +100,18 @@ export default function WriterStudioPage() {
 
   if (!isAuthenticated || !hasRole('writer')) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-16 dark:bg-gray-950 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-gray-200 bg-white p-10 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">Creator access required</p>
-          <h1 className="mt-4 text-3xl font-semibold text-gray-900 dark:text-white">Writer Studio is available for verified creators</h1>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
+      <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-10 text-center shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-violet-700">Creator access required</p>
+          <h1 className="mt-4 text-3xl font-semibold text-slate-900">Writer Studio is available for verified creators</h1>
+          <p className="mt-4 text-slate-600">
             Enable creator mode in your account dashboard to access the studio and manage your books.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/account" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+            <Link href="/account" className="bookshop-button-primary px-5 py-2.5 text-sm">
               Go to account dashboard
             </Link>
-            <Link href="/books" className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+            <Link href="/books" className="bookshop-button-quiet px-5 py-2.5 text-sm">
               Continue browsing books
             </Link>
           </div>
@@ -121,46 +121,37 @@ export default function WriterStudioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-[var(--bookshop-bg)]">
+      <div className="border-b border-[var(--bookshop-border)] bg-[var(--bookshop-surface)]">
+        <div className="bookshop-shell py-12">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                Writer Studio
-              </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
-                Manage your books, track sales, and engage with readers
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">Writer Studio</p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900">Writer Studio</h1>
+              <p className="mt-2 text-base text-slate-600">Manage your books, track sales, and engage with readers.</p>
             </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
-              + Publish New Book
+            <button className="bookshop-button-primary px-6 py-3 text-sm">
+              + Publish new book
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="bookshop-shell py-12">
         <div className="mb-12">
           <WriterStatsPanel stats={stats} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  My Books
-                </h2>
-                <div className="flex gap-3">
-                  <select className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm">
-                    <option>All Books</option>
-                    <option>Published</option>
-                    <option>Drafts</option>
-                    <option>Archived</option>
-                  </select>
-                </div>
-              </div>
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-slate-900">My books</h2>
+              <select className="rounded-full border border-[var(--bookshop-border)] bg-white px-4 py-2 text-sm text-slate-700">
+                <option>All books</option>
+                <option>Published</option>
+                <option>Drafts</option>
+                <option>Archived</option>
+              </select>
             </div>
             <WriterBooksList books={books} onStatusChange={handleStatusChange} onDelete={handleDelete} />
           </div>
@@ -170,26 +161,24 @@ export default function WriterStudioPage() {
           </div>
         </div>
 
-        <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
-              <div className="text-2xl mb-2">📝</div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">Write Book</p>
+        <div className="mt-12 rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-8 shadow-sm">
+          <h2 className="mb-6 text-xl font-bold text-slate-900">Quick actions</h2>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <button className="bookshop-subcard p-4 text-center transition hover:bg-violet-50">
+              <div className="mb-2 text-2xl">📝</div>
+              <p className="font-medium text-slate-900">Write book</p>
             </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
-              <div className="text-2xl mb-2">📊</div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">View Analytics</p>
+            <button className="bookshop-subcard p-4 text-center transition hover:bg-violet-50">
+              <div className="mb-2 text-2xl">📊</div>
+              <p className="font-medium text-slate-900">View analytics</p>
             </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
-              <div className="text-2xl mb-2">💬</div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">Reader Reviews</p>
+            <button className="bookshop-subcard p-4 text-center transition hover:bg-violet-50">
+              <div className="mb-2 text-2xl">💬</div>
+              <p className="font-medium text-slate-900">Reader reviews</p>
             </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
-              <div className="text-2xl mb-2">⚙️</div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">Settings</p>
+            <button className="bookshop-subcard p-4 text-center transition hover:bg-violet-50">
+              <div className="mb-2 text-2xl">⚙️</div>
+              <p className="font-medium text-slate-900">Settings</p>
             </button>
           </div>
         </div>

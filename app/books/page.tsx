@@ -33,18 +33,17 @@ export default function BooksPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            Browse Books
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            Explore our collection of {filteredBooks.length} books
+    <div className="min-h-screen bg-[var(--bookshop-bg)]">
+      <div className="bookshop-shell py-16">
+        <div className="mb-8 rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">Reader showcase</p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-[var(--bookshop-text)]">Browse books</h1>
+          <p className="mt-3 max-w-2xl text-base text-[var(--bookshop-muted)]">
+            Explore our collection of {filteredBooks.length} books, from fresh debuts to beloved favourites.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px,1fr]">
           <div className="lg:col-span-1">
             <div className="sticky top-24 space-y-6">
               <BookFilters onFiltersChange={handleFiltersChange} />

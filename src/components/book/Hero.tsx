@@ -3,47 +3,53 @@ import Link from 'next/link';
 
 export const Hero: React.FC = () => {
   return (
-    <section className="relative py-20 sm:py-32 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 -z-10" />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
-              Discover Your Next <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Great Read</span>
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Explore thousands of books across all genres. Find bestsellers, hidden gems, and everything in between.
-            </p>
-          </div>
+    <section className="relative overflow-hidden py-14 sm:py-24">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(107,33,168,0.12),_transparent_45%),linear-gradient(135deg,_#f7f3ff_0%,_#ffffff_60%,_#f8f7f4_100%)]" />
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/books"
-              className="inline-flex items-center justify-center px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-            >
-              Browse Books
-            </Link>
-            <Link
-              href="/studio"
-              className="inline-flex items-center justify-center px-8 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold rounded-lg transition-colors"
-            >
-              Become a Writer
-            </Link>
-          </div>
+      <div className="bookshop-shell">
+        <div className="overflow-hidden rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] shadow-sm">
+          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">Independent publishing</p>
+              <h1 className="mt-3 text-3xl font-black tracking-tight text-[var(--bookshop-text)] sm:text-4xl">
+                Discover books, stories, and a place for authors to publish with clarity.
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--bookshop-muted)]">
+                Bookshop brings readers and writers together in one calm, modern space — from discovery and previewing to checkout and a personal library.
+              </p>
 
-          <div className="grid grid-cols-3 gap-4 sm:gap-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <div>
-              <div className="text-3xl font-bold text-blue-600">50K+</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Books</div>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/books" className="bookshop-button-primary px-5 py-3 text-sm">
+                  Browse the collection
+                </Link>
+                <Link href="/studio" className="bookshop-button-quiet px-5 py-3 text-sm">
+                  Open the writer studio
+                </Link>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-t border-[var(--bookshop-border)] pt-5 text-sm text-[var(--bookshop-muted)]">
+                <div>
+                  <span className="block text-2xl font-semibold text-[var(--bookshop-text)]">50k+</span>
+                  <span>Books</span>
+                </div>
+                <div>
+                  <span className="block text-2xl font-semibold text-[var(--bookshop-text)]">100k+</span>
+                  <span>Readers</span>
+                </div>
+                <div>
+                  <span className="block text-2xl font-semibold text-[var(--bookshop-text)]">5k+</span>
+                  <span>Authors</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-3xl font-bold text-blue-600">100K+</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Readers</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-blue-600">5K+</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Authors</div>
+
+            <div className="rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">What readers can expect</p>
+              <ul className="mt-4 space-y-3 text-sm text-[var(--bookshop-text)]">
+                <li className="rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-4 py-3">Free previews, instant unlocks, and a focused reading view.</li>
+                <li className="rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-4 py-3">A simple purchase journey that feels clear and trustworthy.</li>
+                <li className="rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-4 py-3">A personal library that keeps your books neatly organised.</li>
+              </ul>
             </div>
           </div>
         </div>

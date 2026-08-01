@@ -12,80 +12,80 @@ interface WriterBooksListProps {
 export default function WriterBooksList({ books, onStatusChange, onDelete }: WriterBooksListProps) {
   const getStatusBadge = (status: WriterBook['status']) => {
     const statusConfig = {
-      published: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      archived: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+      published: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200',
+      draft: 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200',
+      archived: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
     };
     return statusConfig[status];
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="bookshop-card overflow-hidden rounded-[1.5rem]">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+          <thead className="border-b border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)]">
             <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Title
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Genre
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Views
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Sales
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Rating
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-right text-sm font-semibold text-[var(--bookshop-text)]">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-[var(--bookshop-border)]">
             {books.map((book) => (
               <tr
                 key={book.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                className="transition-colors hover:bg-[var(--bookshop-surface-muted)]"
               >
                 <td className="px-6 py-4">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                    <p className="font-medium text-[var(--bookshop-text)]">
                       {book.title}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-[var(--bookshop-muted)]">
                       {book.publishedDate}
                     </p>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                <td className="px-6 py-4 text-sm text-[var(--bookshop-muted)]">
                   {book.genre}
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 text-sm font-medium text-[var(--bookshop-text)]">
                   {book.views.toLocaleString()}
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
+                <td className="px-6 py-4 text-sm font-medium text-[var(--bookshop-text)]">
                   {book.sales.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 text-sm">
                   {book.rating > 0 ? (
                     <div className="flex items-center gap-1">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="font-medium text-[var(--bookshop-text)]">
                         {book.rating.toFixed(1)}
                       </span>
                       <span className="text-amber-400">⭐</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-[var(--bookshop-muted)]">
                         ({book.reviews})
                       </span>
                     </div>
                   ) : (
-                    <span className="text-gray-500 dark:text-gray-400">No ratings</span>
+                    <span className="text-[var(--bookshop-muted)]">No ratings</span>
                   )}
                 </td>
                 <td className="px-6 py-4">
@@ -100,25 +100,25 @@ export default function WriterBooksList({ books, onStatusChange, onDelete }: Wri
                 <td className="px-6 py-4 text-right">
                   <div className="flex flex-wrap justify-end gap-2 text-sm">
                     <button
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-violet-700 hover:underline dark:text-violet-300"
                       onClick={() => onStatusChange?.(book.id, 'published')}
                     >
                       Publish
                     </button>
                     <button
-                      className="text-amber-600 dark:text-amber-400 hover:underline"
+                      className="text-amber-700 hover:underline dark:text-amber-300"
                       onClick={() => onStatusChange?.(book.id, 'draft')}
                     >
                       Draft
                     </button>
                     <button
-                      className="text-gray-600 dark:text-gray-400 hover:underline"
+                      className="text-[var(--bookshop-muted)] hover:underline"
                       onClick={() => onStatusChange?.(book.id, 'archived')}
                     >
                       Archive
                     </button>
                     <button
-                      className="text-red-600 dark:text-red-400 hover:underline"
+                      className="text-rose-700 hover:underline dark:text-rose-300"
                       onClick={() => onDelete?.(book.id)}
                     >
                       Delete

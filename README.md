@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bookshop
+
+Bookshop is a Next.js publishing platform prototype with reader accounts, Stripe checkout, and purchase-based library entitlements.
 
 ## Getting Started
 
@@ -19,6 +21,22 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Stripe webhook setup
+
+Add the Stripe variables from [`.env.example`](C:/coding/bookshop/.env.example) into your local `.env.local`:
+
+- `STRIPE_SECRET_KEY`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+
+For local webhook testing, run:
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+Then copy the reported webhook signing secret (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`.
 
 ## Learn More
 

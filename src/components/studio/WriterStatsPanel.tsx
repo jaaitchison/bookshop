@@ -40,26 +40,26 @@ export default function WriterStatsPanel({ stats }: WriterStatsPanelProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
       {statCards.map((card, idx) => (
         <div
           key={idx}
-          className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow"
+          className="bookshop-card rounded-[1.5rem] p-5 transition hover:-translate-y-0.5"
         >
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-medium text-[var(--bookshop-muted)]">
                 {card.label}
               </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-2">
+              <p className="mt-2 text-3xl font-bold text-[var(--bookshop-text)]">
                 {card.value}
               </p>
               {card.growth !== null && (
                 <p
                   className={`text-sm mt-2 font-medium ${
                     card.growth >= 0
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-600 dark:text-red-400'
+                      ? 'text-emerald-600 dark:text-emerald-300'
+                      : 'text-rose-600 dark:text-rose-300'
                   }`}
                 >
                   {card.growth >= 0 ? '↑' : '↓'} {Math.abs(card.growth)}% from last month

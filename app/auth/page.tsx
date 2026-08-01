@@ -63,140 +63,142 @@ export default function AuthPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-16 dark:bg-gray-950 sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 rounded-3xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:flex-row lg:items-stretch">
-        <div className="flex-1 rounded-3xl bg-gradient-to-br from-blue-600 to-purple-700 p-8 text-white">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-100">Welcome back</p>
-          <h1 className="mt-4 text-3xl font-semibold">Create a shared account for reading, writing, and managing your bookstore experience.</h1>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-blue-50/90">
-            Sign in with the demo account or create a new one to unlock the reader dashboard, creator tools, and admin views from the same profile.
-          </p>
-          <div className="mt-8 rounded-2xl border border-white/20 bg-white/10 p-4 text-sm">
-            <p className="font-semibold">Demo sign-in</p>
-            <p className="mt-2">Email: maya@example.com</p>
-            <p>Password: bookshop</p>
-          </div>
-        </div>
-
-        <div className="flex-1">
-          <div className="flex gap-2 rounded-full border border-gray-200 bg-gray-50 p-1 dark:border-gray-800 dark:bg-gray-950">
-            <button
-              type="button"
-              onClick={() => {
-                setMode('signin');
-                clearAuthError();
-              }}
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                mode === 'signin'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-              }`}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode('signup');
-                clearAuthError();
-              }}
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                mode === 'signup'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-              }`}
-            >
-              Create account
-            </button>
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950">
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">Prefer a social sign-in?</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {socialProviders.map((provider) => (
-                <button
-                  key={provider.name}
-                  type="button"
-                  disabled
-                  className="rounded-2xl border border-gray-200 bg-white px-3 py-3 text-left text-sm font-medium text-gray-700 transition hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                >
-                  <p>{provider.name}</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">{provider.description}</p>
-                </button>
-              ))}
+    <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-16 sm:px-6 lg:px-8">
+      <div className="bookshop-shell">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
+          <div className="bookshop-card flex-1 p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700 dark:text-violet-300">Welcome back</p>
+            <h1 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Create a shared account for reading, writing, and managing your bookstore experience.</h1>
+            <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--bookshop-muted)]">
+              Sign in with the demo account or create a new one to unlock the reader dashboard, creator tools, and admin views from the same profile.
+            </p>
+            <div className="mt-8 rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-4 text-sm text-[var(--bookshop-text)]">
+              <p className="font-semibold">Demo sign-in</p>
+              <p className="mt-2">Email: maya@example.com</p>
+              <p>Password: bookshop</p>
             </div>
-            <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-              OAuth providers will connect to your Bookshop profile once the next authentication pass is live.
+          </div>
+
+          <div className="bookshop-card flex-1 p-6 sm:p-8">
+            <div className="flex gap-2 rounded-full border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signin');
+                  clearAuthError();
+                }}
+                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  mode === 'signin'
+                    ? 'bg-violet-700 text-white'
+                    : 'text-[var(--bookshop-muted)] hover:bg-[var(--bookshop-surface)]'
+                }`}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('signup');
+                  clearAuthError();
+                }}
+                className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  mode === 'signup'
+                    ? 'bg-violet-700 text-white'
+                    : 'text-[var(--bookshop-muted)] hover:bg-[var(--bookshop-surface)]'
+                }`}
+              >
+                Create account
+              </button>
+            </div>
+
+            <div className="mt-6 rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-4">
+              <p className="text-sm font-semibold text-[var(--bookshop-text)]">Prefer a social sign-in?</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {socialProviders.map((provider) => (
+                  <button
+                    key={provider.name}
+                    type="button"
+                    disabled
+                    className="rounded-[1rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-3 py-3 text-left text-sm font-medium text-[var(--bookshop-text)] transition hover:border-violet-300"
+                  >
+                    <p>{provider.name}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">{provider.description}</p>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-sm text-[var(--bookshop-muted)]">
+                OAuth providers will connect to your Bookshop profile once the next authentication pass is live.
+              </p>
+            </div>
+
+            <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+              {mode === 'signup' ? (
+                <>
+                  <label className="block text-sm font-medium text-[var(--bookshop-text)]">
+                    Full name
+                    <input
+                      required
+                      value={formValues.name}
+                      onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))}
+                      className="bookshop-input mt-2"
+                      placeholder="Maya Chen"
+                    />
+                  </label>
+                  <label className="block text-sm font-medium text-[var(--bookshop-text)]">
+                    Username
+                    <input
+                      value={formValues.username}
+                      onChange={(event) => setFormValues((current) => ({ ...current, username: event.target.value }))}
+                      className="bookshop-input mt-2"
+                      placeholder="maya-reads"
+                    />
+                  </label>
+                </>
+              ) : null}
+
+              <label className="block text-sm font-medium text-[var(--bookshop-text)]">
+                Email
+                <input
+                  required
+                  type="email"
+                  value={formValues.email}
+                  onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))}
+                  className="bookshop-input mt-2"
+                  placeholder="you@example.com"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-[var(--bookshop-text)]">
+                Password
+                <input
+                  required
+                  type="password"
+                  value={formValues.password}
+                  onChange={(event) => setFormValues((current) => ({ ...current, password: event.target.value }))}
+                  className="bookshop-input mt-2"
+                  placeholder="Choose a password"
+                />
+              </label>
+
+              {authError ? (
+                <div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200">
+                  {authError}
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="bookshop-button-primary w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isSubmitting ? (mode === 'signin' ? 'Signing in…' : 'Creating account…') : mode === 'signin' ? 'Continue to account' : 'Create free account'}
+              </button>
+            </form>
+
+            <p className="mt-6 text-sm text-[var(--bookshop-muted)]">
+              Need a quick preview? Visit <Link href="/account" className="font-semibold text-violet-700 dark:text-violet-300">the account hub</Link> after signing in.
             </p>
           </div>
-
-          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-            {mode === 'signup' ? (
-              <>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Full name
-                  <input
-                    required
-                    value={formValues.name}
-                    onChange={(event) => setFormValues((current) => ({ ...current, name: event.target.value }))}
-                    className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none ring-0 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                    placeholder="Maya Chen"
-                  />
-                </label>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-                  Username
-                  <input
-                    value={formValues.username}
-                    onChange={(event) => setFormValues((current) => ({ ...current, username: event.target.value }))}
-                    className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none ring-0 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                    placeholder="maya-reads"
-                  />
-                </label>
-              </>
-            ) : null}
-
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-              Email
-              <input
-                required
-                type="email"
-                value={formValues.email}
-                onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none ring-0 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                placeholder="you@example.com"
-              />
-            </label>
-
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
-              Password
-              <input
-                required
-                type="password"
-                value={formValues.password}
-                onChange={(event) => setFormValues((current) => ({ ...current, password: event.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none ring-0 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-                placeholder="Choose a password"
-              />
-            </label>
-
-            {authError ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-                {authError}
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-full bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isSubmitting ? (mode === 'signin' ? 'Signing in…' : 'Creating account…') : mode === 'signin' ? 'Continue to account' : 'Create free account'}
-            </button>
-          </form>
-
-          <p className="mt-6 text-sm text-gray-600 dark:text-gray-400">
-            Need a quick preview? Visit <Link href="/account" className="font-semibold text-blue-600 dark:text-blue-400">the account hub</Link> after signing in.
-          </p>
         </div>
       </div>
     </main>

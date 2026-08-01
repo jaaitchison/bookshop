@@ -7,25 +7,25 @@ export const FeaturedBooks = async () => {
 
   return (
     <section className="py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-12">
+      <div className="bookshop-shell">
+        <div className="mb-8 flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            <h2 className="mb-2 text-2xl font-bold text-[var(--bookshop-text)]">
               Featured Books
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-[var(--bookshop-muted)]">
               Discover our handpicked collection of must-read books
             </p>
           </div>
           <Link
             href="/books"
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition-colors"
+            className="text-sm font-semibold text-violet-700 transition-colors hover:text-violet-800"
           >
             View All →
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {books.map((book) => (
             <BookCard key={book.id} book={book} />
           ))}

@@ -1,8 +1,27 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getAccountProfile, saveAccountOrder, saveAccountSession } from '@/src/lib/account-store';
+import { getAccountOrderById, getAccountOrders, getAccountProfile, saveAccountOrder, saveAccountSession } from '@/src/lib/account-store';
 import { AUTH_SESSION_COOKIE, buildAuthSession, encodeAuthSession } from '@/src/lib/auth-session';
 import type { AccountOrder } from '@/src/types/account';
+
+function parseOrderPayload(rawOrderPayload: string | undefined): AccountOrder | null {
+  if (!rawOrderPayload) {
+    return null;
+  }
+
+  let parsed: AccountOrder;
+  try {
+    parsed = JSON.parse(rawOrderPayload) as AccountOrder;
+  } catch {
+    return null;
+  }
+
+  if (!parsed.id || !Array.isArray(parsed.items) || typeof parsed.total !== 'number') {
+    return null;
+  }
+
+  return parsed;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -26,7 +45,7 @@ export async function GET(request: Request) {
 
   const metadata = stripeSession.metadata ?? {};
   const profileId = metadata.profileId;
-  const orderPayload = metadata.orderPayload ? JSON.parse(metadata.orderPayload) as AccountOrder : null;
+  const orderPayload = parseOrderPayload(metadata.orderPayload);
 
   if (!profileId || !orderPayload) {
     return NextResponse.json({ error: 'Checkout session is missing order metadata.' }, { status: 400 });
@@ -37,11 +56,25 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Could not find the matching account profile.' }, { status: 404 });
   }
 
-  const orders = await saveAccountOrder(profileId, orderPayload);
+  const existingOrder = await getAccountOrderById(profileId, orderPayload.id);
+  if (!existingOrder && process.env.STRIPE_WEBHOOK_SECRET) {
+    return NextResponse.json({
+      ok: true,
+      pending: true,
+      orderId: orderPayload.id,
+      message: 'Payment is confirmed. Waiting for secure fulfillment.',
+    }, { status: 202 });
+  }
+
+  const orders = existingOrder
+    ? await getAccountOrders(profileId)
+    : await saveAccountOrder(profileId, orderPayload);
+
   await saveAccountSession(profile);
 
   const purchasedBookIds = Array.from(new Set(orders.flatMap((order) => order.items.map((item) => item.id))));
-  const response = NextResponse.json({ ok: true, orderId: orderPayload.id, order: orderPayload, purchasedBookIds });
+  const fulfilledOrder = existingOrder ?? orderPayload;
+  const response = NextResponse.json({ ok: true, orderId: fulfilledOrder.id, order: fulfilledOrder, purchasedBookIds });
   response.cookies.set(AUTH_SESSION_COOKIE, encodeAuthSession(buildAuthSession(profile, purchasedBookIds)), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
