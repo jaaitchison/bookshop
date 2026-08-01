@@ -1,16 +1,19 @@
-﻿"use client";
+"use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { AccountGoal, AccountProfile, AccountOrder, AccountOrderItem, AccountRole } from '@/src/types/account';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import type {
+  AccountGoal,
+  AccountOrder,
+  AccountOrderItem,
+  AccountProfile,
+  AccountRole,
+} from "@/src/types/account";
 
-const ACCOUNT_API_URL = '/api/account';
-
-interface StoredAccountUser {
-  id: string;
-  email: string;
-  password: string;
-  profile: AccountProfile;
-}
+const ACCOUNT_API_URL = "/api/account";
+const AUTH_ME_URL = "/api/auth/me";
+const AUTH_SIGNIN_URL = "/api/auth/signin";
+const AUTH_SIGNUP_URL = "/api/auth/signup";
+const AUTH_SIGNOUT_URL = "/api/auth/signout";
 
 interface AccountContextValue {
   profile: AccountProfile;
@@ -23,10 +26,17 @@ interface AccountContextValue {
   setActiveRole: (role: AccountRole) => void;
   hasRole: (role: AccountRole) => boolean;
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
   authError: string | null;
   clearAuthError: () => void;
+  refreshSession: () => Promise<boolean>;
   signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (input: { name: string; email: string; password: string; username: string }) => Promise<boolean>;
+  signUp: (input: {
+    name: string;
+    email: string;
+    password: string;
+    username: string;
+  }) => Promise<boolean>;
   signOut: () => Promise<void>;
   orders: AccountOrder[];
   placeOrder: (input: {
@@ -43,28 +53,30 @@ interface AccountContextValue {
 }
 
 const createBaseProfile = (): AccountProfile => ({
-  id: 'demo-user',
-  name: 'Maya Chen',
-  username: 'maya-reads',
-  email: 'maya@example.com',
-  bio: 'Reader, writer, and curator of thoughtful stories.',
-  avatar: 'MC',
-  location: 'Seattle, USA',
-  joined: 'June 2024',
-  goals: ['reading'],
+  id: "",
+  name: "",
+  username: "",
+  email: "",
+  bio: "",
+  avatar: "",
+  location: "",
+  joined: "",
+  goals: ["reading"],
   roles: {
-    reader: true,
+    reader: false,
     writer: false,
     admin: false,
   },
-  activeRole: 'reader',
+  activeRole: "reader",
   onboardingComplete: false,
   connectedSocials: [],
   mfaEnabled: false,
-  mfaMethod: 'Not enabled',
+  mfaMethod: "Not enabled",
 });
 
-const normalizeProfile = (value?: Partial<AccountProfile>): AccountProfile => {
+const normalizeProfile = (
+  value?: Partial<AccountProfile>,
+): AccountProfile => {
   const base = createBaseProfile();
   const source = value ?? {};
 
@@ -72,9 +84,7 @@ const normalizeProfile = (value?: Partial<AccountProfile>): AccountProfile => {
     ...base,
     ...source,
     roles: {
-      reader: true,
-      writer: false,
-      admin: false,
+      ...base.roles,
       ...(source.roles ?? {}),
     },
     goals: source.goals ?? base.goals,
@@ -84,284 +94,272 @@ const normalizeProfile = (value?: Partial<AccountProfile>): AccountProfile => {
   };
 };
 
-export const PROFILE_STORAGE_KEY = 'bookshop-account-profile';
-export const SESSION_STORAGE_KEY = 'bookshop-auth-session';
-const USERS_STORAGE_KEY = 'bookshop-auth-users';
-export const getOrdersStorageKey = (profileId: string) => `bookshop-account-orders-${profileId}`;
+export const getOrdersStorageKey = (profileId: string) =>
+  `bookshop-account-orders-${profileId}`;
 
-const AccountContext = createContext<AccountContextValue | undefined>(undefined);
+const AccountContext = createContext<AccountContextValue | undefined>(
+  undefined,
+);
 
-const readStoredUsers = (): StoredAccountUser[] => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const stored = window.localStorage.getItem(USERS_STORAGE_KEY);
-    return stored ? (JSON.parse(stored) as StoredAccountUser[]) : [];
-  } catch {
-    return [];
-  }
+type AuthPayload = {
+  profile?: AccountProfile | null;
+  authenticated?: boolean;
+  error?: string;
+  code?: string;
 };
 
-const writeStoredUsers = (users: StoredAccountUser[]) => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-};
-
-export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profile, setProfile] = useState<AccountProfile>(() => normalizeProfile());
+export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [profile, setProfile] = useState<AccountProfile>(() =>
+    createBaseProfile(),
+  );
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [orders, setOrders] = useState<AccountOrder[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
+
+  const applyAuthenticatedProfile = (nextProfile: AccountProfile) => {
+    setProfile(normalizeProfile(nextProfile));
+    setIsAuthenticated(true);
+    setAuthError(null);
+  };
+
+  const clearAuthenticatedState = () => {
+    setProfile(createBaseProfile());
+    setIsAuthenticated(false);
+    setOrders([]);
+  };
+
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(AUTH_ME_URL, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        clearAuthenticatedState();
+        return false;
+      }
+
+      const payload = (await response.json()) as AuthPayload;
+
+      if (!payload.authenticated || !payload.profile) {
+        clearAuthenticatedState();
+        return false;
+      }
+
+      applyAuthenticatedProfile(payload.profile);
+      return true;
+    } catch {
+      clearAuthenticatedState();
+      return false;
+    }
+  };
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+    let active = true;
 
-    const hydrateFromStorage = async () => {
-      const storedProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-      const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
-
-      if (storedProfile) {
-        try {
-          const parsed = JSON.parse(storedProfile) as Partial<AccountProfile>;
-          setProfile(normalizeProfile(parsed));
-        } catch {
-          window.localStorage.removeItem(PROFILE_STORAGE_KEY);
-        }
-      }
-
-      if (storedSession) {
-        try {
-          const parsed = JSON.parse(storedSession) as { profile?: Partial<AccountProfile> };
-          if (parsed.profile) {
-            setProfile(normalizeProfile(parsed.profile));
-            setIsAuthenticated(true);
-          }
-        } catch {
-          window.localStorage.removeItem(SESSION_STORAGE_KEY);
-        }
-      }
-
-      if (!readStoredUsers().length) {
-        const demoProfile = normalizeProfile({
-          id: 'demo-user',
-          name: 'Maya Chen',
-          username: 'maya-reads',
-          email: 'maya@example.com',
-          avatar: 'MC',
-          location: 'Seattle, USA',
-          joined: 'June 2024',
-          goals: ['reading'],
-          roles: {
-            reader: true,
-            writer: false,
-            admin: false,
-          },
-          activeRole: 'reader',
-          onboardingComplete: false,
+    const hydrateAuthentication = async () => {
+      try {
+        const response = await fetch(AUTH_ME_URL, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
         });
 
-        const fallbackUsers = [{ id: demoProfile.id, email: demoProfile.email, password: 'bookshop', profile: demoProfile }];
-        writeStoredUsers(fallbackUsers);
-        try {
-          await fetch(ACCOUNT_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ users: fallbackUsers }),
-          });
-        } catch {
-          // Ignore API sync errors and keep local fallback intact.
+        if (!active) {
+          return;
+        }
+
+        if (!response.ok) {
+          clearAuthenticatedState();
+          return;
+        }
+
+        const payload = (await response.json()) as AuthPayload;
+
+        if (payload.authenticated && payload.profile) {
+          applyAuthenticatedProfile(payload.profile);
+        } else {
+          clearAuthenticatedState();
+        }
+      } catch {
+        if (active) {
+          clearAuthenticatedState();
+        }
+      } finally {
+        if (active) {
+          setIsAuthLoading(false);
         }
       }
-
-      setHasLoaded(true);
     };
 
-    void hydrateFromStorage();
+    void hydrateAuthentication();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (!hasLoaded || typeof window === 'undefined') {
-      return;
-    }
-
-    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-
-    if (isAuthenticated) {
-      const users = readStoredUsers();
-      const updatedUsers = users.filter((entry) => entry.email.toLowerCase() !== profile.email.toLowerCase());
-      updatedUsers.push({
-        id: profile.id,
-        email: profile.email,
-        password: users.find((entry) => entry.email.toLowerCase() === profile.email.toLowerCase())?.password ?? '',
-        profile,
-      });
-      writeStoredUsers(updatedUsers);
-      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ profile }));
-
-      void fetch(ACCOUNT_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ users: updatedUsers, type: 'sync-profile' as const, profile }),
-      }).catch(() => undefined);
-    } else {
-      window.localStorage.removeItem(SESSION_STORAGE_KEY);
-    }
-  }, [hasLoaded, isAuthenticated, profile]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (!profile.id) {
-      return;
-    }
-
-    window.localStorage.setItem(getOrdersStorageKey(profile.id), JSON.stringify(orders));
-  }, [orders, profile.id]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (!profile.id) {
+    if (!isAuthenticated || !profile.id || typeof window === "undefined") {
       return;
     }
 
     const loadOrders = async () => {
-      const storedOrders = window.localStorage.getItem(getOrdersStorageKey(profile.id));
-      if (storedOrders) {
-        try {
+      const storageKey = getOrdersStorageKey(profile.id);
+
+      try {
+        const storedOrders = window.localStorage.getItem(storageKey);
+
+        if (storedOrders) {
           const parsed = JSON.parse(storedOrders) as AccountOrder[];
           if (Array.isArray(parsed)) {
             setOrders(parsed);
-            return;
           }
-        } catch {
-          window.localStorage.removeItem(getOrdersStorageKey(profile.id));
         }
+      } catch {
+        window.localStorage.removeItem(storageKey);
       }
 
       try {
-        const response = await fetch(`${ACCOUNT_API_URL}?profileId=${profile.id}`);
+        const response = await fetch(
+          `${ACCOUNT_API_URL}?profileId=${encodeURIComponent(profile.id)}`,
+          {
+            credentials: "include",
+            cache: "no-store",
+          },
+        );
+
         if (!response.ok) {
           return;
         }
-        const payload = await response.json() as { orders?: AccountOrder[] } | AccountOrder[];
-        const nextOrders = Array.isArray(payload) ? payload : payload.orders;
+
+        const payload = (await response.json()) as
+          | { orders?: AccountOrder[] }
+          | AccountOrder[];
+
+        const nextOrders = Array.isArray(payload)
+          ? payload
+          : payload.orders;
+
         if (Array.isArray(nextOrders)) {
           setOrders(nextOrders);
+          window.localStorage.setItem(
+            storageKey,
+            JSON.stringify(nextOrders),
+          );
         }
       } catch {
-        setOrders([]);
-      }
-    };
-
-    const handleAccountUpdated = () => {
-      const storedOrders = window.localStorage.getItem(getOrdersStorageKey(profile.id));
-      if (!storedOrders) {
-        return;
-      }
-
-      try {
-        const parsed = JSON.parse(storedOrders) as AccountOrder[];
-        if (Array.isArray(parsed)) {
-          setOrders(parsed);
-        }
-      } catch {
-        window.localStorage.removeItem(getOrdersStorageKey(profile.id));
+        // Keep harmless local order cache until order migration is complete.
       }
     };
 
     void loadOrders();
-    window.addEventListener('bookshop-account-updated', handleAccountUpdated);
-    return () => {
-      window.removeEventListener('bookshop-account-updated', handleAccountUpdated);
-    };
-  }, [profile.id]);
+  }, [isAuthenticated, profile.id]);
+
+  useEffect(() => {
+    if (
+      !isAuthenticated ||
+      !profile.id ||
+      typeof window === "undefined"
+    ) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      getOrdersStorageKey(profile.id),
+      JSON.stringify(orders),
+    );
+  }, [isAuthenticated, orders, profile.id]);
 
   const updateProfile = (updates: Partial<AccountProfile>) => {
-    setProfile((current) => normalizeProfile({
-      ...current,
-      ...updates,
-      roles: {
-        ...current.roles,
-        ...(updates.roles ?? {}),
-      },
-    }));
+    setProfile((current) =>
+      normalizeProfile({
+        ...current,
+        ...updates,
+        id: current.id,
+        email: current.email,
+        roles: current.roles,
+      }),
+    );
   };
 
   const setGoals = (goals: AccountGoal[]) => {
-    setProfile((current) => {
-      const writerEnabled = goals.includes('writing') || goals.includes('both');
-      const nextActiveRole = current.activeRole === 'admin'
-        ? 'admin'
-        : writerEnabled
-          ? 'writer'
-          : current.activeRole === 'writer'
-            ? 'reader'
-            : current.activeRole;
-
-      return normalizeProfile({
+    setProfile((current) =>
+      normalizeProfile({
         ...current,
         goals,
         roles: current.roles,
-        activeRole: nextActiveRole,
-      });
-    });
+        activeRole:
+          current.activeRole === "admin" && current.roles.admin
+            ? "admin"
+            : current.activeRole === "writer" && current.roles.writer
+              ? "writer"
+              : "reader",
+      }),
+    );
   };
 
   const completeOnboarding = () => {
-    setProfile((current) => normalizeProfile({
-      ...current,
-      onboardingComplete: true,
-      roles: current.roles,
-      activeRole: current.goals.includes('writing') || current.goals.includes('both')
-        ? 'writer'
-        : 'reader',
-    }));
+    setProfile((current) =>
+      normalizeProfile({
+        ...current,
+        onboardingComplete: true,
+        roles: current.roles,
+        activeRole:
+          current.activeRole === "admin" && current.roles.admin
+            ? "admin"
+            : current.activeRole === "writer" && current.roles.writer
+              ? "writer"
+              : "reader",
+      }),
+    );
   };
 
   const toggleWriter = () => {
-    console.warn("Writer role changes are now server-controlled.");
+    console.warn("Writer role changes are server-controlled.");
   };
 
   const toggleAdmin = () => {
-    console.warn("Administrator role changes are now server-controlled.");
+    console.warn("Administrator role changes are server-controlled.");
   };
 
   const setActiveRole = (role: AccountRole) => {
     setProfile((current) => {
-      if (role === 'writer' && !current.roles.writer) {
+      if (role === "writer" && !current.roles.writer) {
         return current;
       }
 
-      if (role === 'admin' && !current.roles.admin) {
+      if (role === "admin" && !current.roles.admin) {
+        return current;
+      }
+
+      if (role === "reader" && !current.roles.reader) {
         return current;
       }
 
       return normalizeProfile({
         ...current,
         activeRole: role,
+        roles: current.roles,
       });
     });
   };
 
   const hasRole = (role: AccountRole) => {
-    if (role === 'reader') {
+    if (!isAuthenticated) {
+      return false;
+    }
+
+    if (role === "reader") {
       return profile.roles.reader;
     }
 
-    if (role === 'writer') {
+    if (role === "writer") {
       return profile.roles.writer;
     }
 
@@ -372,164 +370,91 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setAuthError(null);
   };
 
-  const signIn = async (email: string, password: string) => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    let users = readStoredUsers();
+  const signIn = async (
+    email: string,
+    password: string,
+  ): Promise<boolean> => {
+    setAuthError(null);
 
     try {
-      const response = await fetch(`${ACCOUNT_API_URL}?email=${encodeURIComponent(normalizedEmail)}`);
-      if (response.ok) {
-        const payload = await response.json() as { email?: string; password?: string; profile?: AccountProfile };
-        if (payload.profile && payload.password === password) {
-          users = [...users.filter((entry) => entry.email.toLowerCase() !== normalizedEmail), { id: payload.profile.id, email: payload.profile.email, password: payload.password, profile: payload.profile }];
-          writeStoredUsers(users);
-          setProfile(normalizeProfile(payload.profile));
-          setIsAuthenticated(true);
-          setAuthError(null);
-          try {
-            await fetch(ACCOUNT_API_URL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ type: 'sync-session', profile: payload.profile }),
-            });
-          } catch {
-            // Ignore sync errors while syncing the session.
-          }
-          return true;
-        }
+      const response = await fetch(AUTH_SIGNIN_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const payload = (await response.json()) as AuthPayload;
+
+      if (!response.ok || !payload.profile) {
+        setAuthError(
+          payload.error ??
+            "We could not sign you in with that email and password.",
+        );
+        clearAuthenticatedState();
+        return false;
       }
+
+      applyAuthenticatedProfile(payload.profile);
+      return true;
     } catch {
-      // Fall back to local lookup below.
-    }
-
-    const existingUser = users.find((entry) => entry.email.toLowerCase() === normalizedEmail && entry.password === password);
-
-    if (!existingUser) {
-      setAuthError('We could not find an account with that email and password.');
+      setAuthError("Unable to sign you in right now.");
+      clearAuthenticatedState();
       return false;
     }
-
-    setAuthError(null);
-    setProfile(normalizeProfile(existingUser.profile));
-    setIsAuthenticated(true);
-
-    if (typeof window !== 'undefined') {
-      try {
-        await fetch(ACCOUNT_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'sync-session', profile: existingUser.profile }),
-        });
-      } catch {
-        // Ignore sync errors while syncing the session.
-      }
-    }
-
-    return true;
   };
 
-  const signUp = async (input: { name: string; email: string; password: string; username: string }) => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    const name = input.name.trim();
-    const email = input.email.trim().toLowerCase();
-    const username = input.username.trim() || `reader-${Math.random().toString(36).slice(2, 6)}`;
-
-    if (!name || !email || !input.password) {
-      setAuthError('Please complete all required fields.');
-      return false;
-    }
-
-    const users = readStoredUsers();
-    if (users.some((entry) => entry.email.toLowerCase() === email)) {
-      setAuthError('That email is already registered for the demo experience.');
-      return false;
-    }
-
-    const avatar = name
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || 'U';
-
-    const nextProfile = normalizeProfile({
-      id: `user-${Date.now()}`,
-      name,
-      username,
-      email,
-      avatar,
-      joined: new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date()),
-      goals: ['reading'],
-      roles: {
-        reader: true,
-        writer: false,
-        admin: false,
-      },
-      activeRole: 'reader',
-      onboardingComplete: false,
-    });
-
-    const nextUsers = [...users, {
-      id: nextProfile.id,
-      email,
-      password: input.password,
-      profile: nextProfile,
-    }];
-
-    writeStoredUsers(nextUsers);
-    try {
-      await fetch(ACCOUNT_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ users: nextUsers }),
-      });
-    } catch {
-      // Ignore API sync errors and keep the local fallback intact.
-    }
-
+  const signUp = async (input: {
+    name: string;
+    email: string;
+    password: string;
+    username: string;
+  }): Promise<boolean> => {
     setAuthError(null);
-    setProfile(nextProfile);
-    setIsAuthenticated(true);
 
-    if (typeof window !== 'undefined') {
-      try {
-        await fetch(ACCOUNT_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'sync-session', profile: nextProfile }),
-        });
-      } catch {
-        // Ignore sync errors while syncing the session.
+    try {
+      const response = await fetch(AUTH_SIGNUP_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      });
+
+      const payload = (await response.json()) as AuthPayload;
+
+      if (!response.ok || !payload.profile) {
+        setAuthError(
+          payload.error ?? "Unable to create your account right now.",
+        );
+        clearAuthenticatedState();
+        return false;
       }
-    }
 
-    return true;
+      applyAuthenticatedProfile(payload.profile);
+      return true;
+    } catch {
+      setAuthError("Unable to create your account right now.");
+      clearAuthenticatedState();
+      return false;
+    }
   };
 
   const signOut = async () => {
-    setAuthError(null);
-    setOrders([]);
-    setProfile(normalizeProfile());
-    setIsAuthenticated(false);
-
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(SESSION_STORAGE_KEY);
-      try {
-        await fetch(ACCOUNT_API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: 'signout', email: profile.email }),
-        });
-      } catch {
-        // Ignore sync errors during sign-out.
-      }
+    try {
+      await fetch(AUTH_SIGNOUT_URL, {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      clearAuthenticatedState();
+      setAuthError(null);
     }
   };
 
@@ -543,16 +468,17 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       city: string;
       zip: string;
     };
-  }) => {
-    if (!isAuthenticated) {
+  }): Promise<boolean> => {
+    if (!isAuthenticated || !profile.id) {
+      setAuthError("Please sign in before placing an order.");
       return false;
     }
 
     const order: AccountOrder = {
       id: `order-${Date.now()}`,
       orderedAt: new Date().toISOString(),
-      total: input.total,
-      status: 'Processing',
+      total: Number(input.total),
+      status: "Processing",
       items: input.items,
       shippingName: input.shipping.name,
       shippingEmail: input.shipping.email,
@@ -561,50 +487,79 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       shippingZip: input.shipping.zip,
     };
 
-    const nextOrders = [order, ...orders];
-    setOrders(nextOrders);
+    setOrders((current) => [
+      order,
+      ...current.filter((existing) => existing.id !== order.id),
+    ]);
 
     try {
-      await fetch(ACCOUNT_API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'place-order', profileId: profile.id, order }),
+      const response = await fetch(ACCOUNT_API_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "place-order",
+          profileId: profile.id,
+          order,
+        }),
       });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const payload = (await response.json()) as {
+        orders?: AccountOrder[];
+      };
+
+      if (Array.isArray(payload.orders)) {
+        setOrders(payload.orders);
+      }
+
+      return true;
     } catch {
-      // Ignore sync errors for order persistence; local state remains intact.
+      // Keep the local order cache until the Order model migration is wired in.
+      return true;
     }
-
-    return true;
   };
 
-  const value = {
-    profile,
-    setProfile,
-    updateProfile,
-    setGoals,
-    completeOnboarding,
-    toggleWriter,
-    toggleAdmin,
-    setActiveRole,
-    hasRole,
-    isAuthenticated,
-    authError,
-    clearAuthError,
-    signIn,
-    signUp,
-    signOut,
-    orders,
-    placeOrder,
-  };
-
-  return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
+  return (
+    <AccountContext.Provider
+      value={{
+        profile,
+        setProfile,
+        updateProfile,
+        setGoals,
+        completeOnboarding,
+        toggleWriter,
+        toggleAdmin,
+        setActiveRole,
+        hasRole,
+        isAuthenticated,
+        isAuthLoading,
+        authError,
+        clearAuthError,
+        refreshSession,
+        signIn,
+        signUp,
+        signOut,
+        orders,
+        placeOrder,
+      }}
+    >
+      {children}
+    </AccountContext.Provider>
+  );
 };
 
-export const useAccount = () => {
+export function useAccount(): AccountContextValue {
   const context = useContext(AccountContext);
-  if (!context) {
-    throw new Error('useAccount must be used inside an AccountProvider');
-  }
-  return context;
-};
 
+  if (!context) {
+    throw new Error("useAccount must be used within AccountProvider.");
+  }
+
+  return context;
+}
