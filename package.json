@@ -20,7 +20,8 @@
     "db:verify-foundation": "tsx prisma/verify-database-foundation.ts",
     "db:status": "prisma migrate status",
     "db:deploy": "prisma migrate deploy",
-    "auth:test-crypto": "tsx prisma/test-auth-crypto.ts"
+    "auth:test-crypto": "tsx prisma/test-auth-crypto.ts",
+    "auth:test-signup": "tsx prisma/test-signup.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
