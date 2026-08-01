@@ -115,15 +115,17 @@ export default function PageHeader() {
   const config = getPageConfig(pathname);
 
   return (
-    <section className="bookshop-shell pt-6 sm:pt-8" aria-labelledby="site-page-title">
-      <div className="bookshop-page-header" data-area={config.area}>
-        <div>
-          <p className="bookshop-page-area">{config.areaLabel}</p>
-          <h1 id="site-page-title" className="bookshop-page-title">
-            {config.title}
-          </h1>
-          <p className="bookshop-page-description">{config.description}</p>
-        </div>
+    <section className="mx-auto w-11/12 pt-10 sm:w-10/12 sm:pt-12 lg:w-4/5">
+      <div className="rounded-3xl border border-slate-200 border-l-8 border-l-blue-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-blue-500 dark:bg-slate-900">
+        <p className="text-xs font-extrabold uppercase tracking-widest text-blue-700 dark:text-blue-300">
+          {config.areaLabel}
+        </p>
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+          {config.title}
+        </h1>
+        <p className="mt-4 max-w-3xl text-base text-slate-600 dark:text-slate-300">
+          {config.description}
+        </p>
       </div>
     </section>
   );

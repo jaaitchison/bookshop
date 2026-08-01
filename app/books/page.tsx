@@ -35,7 +35,7 @@ export default function BooksPage() {
 
   return (
     <main className="bg-[var(--bookshop-bg)]">
-      <div className="bookshop-shell space-y-6 py-6 pb-12 sm:py-8 sm:pb-16">
+      <div className="mx-auto w-11/12 space-y-8 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
         <DisplaySection
           title="Browse and filter books"
           description={`Explore the catalogue using search, genre, price and rating filters. ${filteredBooks.length} books are currently shown.`}
@@ -56,3 +56,5 @@ export default function BooksPage() {
     </main>
   );
 }
+
+

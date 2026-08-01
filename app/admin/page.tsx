@@ -170,7 +170,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)]">
-      <div className="bookshop-shell py-6 pb-12 sm:py-8 sm:pb-16">
+      <div className="mx-auto w-11/12 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
 
         <div className="mb-8">
           <AdminAlert
@@ -367,4 +367,5 @@ export default function AdminPage() {
     </main>
   );
 }
+
 

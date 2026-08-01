@@ -1,56 +1,62 @@
-import React from 'react';
+﻿import React from 'react';
 import Link from 'next/link';
 
 export const Hero: React.FC = () => {
   return (
-    <section className="relative overflow-hidden py-14 sm:py-24">
-      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(107,33,168,0.12),_transparent_45%),linear-gradient(135deg,_#f7f3ff_0%,_#ffffff_60%,_#f8f7f4_100%)]" />
+    <section className="py-8">
+      <div className="mx-auto w-11/12 sm:w-10/12 lg:w-4/5">
+        <div className="rounded-3xl border border-slate-200 border-l-8 border-l-blue-600 bg-white px-10 py-8 shadow-sm dark:border-slate-700 dark:border-l-blue-500 dark:bg-slate-900">
+          <p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300">
+            Independent publishing
+          </p>
 
-      <div className="bookshop-shell">
-        <div className="overflow-hidden rounded-[2rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] shadow-sm">
-          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-            <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">Independent publishing</p>
-              <h1 className="mt-3 text-3xl font-black tracking-tight text-[var(--bookshop-text)] sm:text-4xl">
-                Discover books, stories, and a place for authors to publish with clarity.
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--bookshop-muted)]">
-                Bookshop brings readers and writers together in one calm, modern space — from discovery and previewing to checkout and a personal library.
-              </p>
+          <h2 className="mt-4 max-w-4xl text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            Discover books, stories, and a place for authors to publish with clarity.
+          </h2>
 
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/books" className="bookshop-button-primary px-5 py-3 text-sm">
-                  Browse the collection
-                </Link>
-                <Link href="/studio" className="bookshop-button-quiet px-5 py-3 text-sm">
-                  Open the writer studio
-                </Link>
-              </div>
+          <p className="mt-4 max-w-4xl text-base leading-7 text-slate-600 dark:text-slate-300">
+            Bookshop brings readers and writers together in one calm, modern space â€” from discovery and previewing to checkout and a personal library.
+          </p>
 
-              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-t border-[var(--bookshop-border)] pt-5 text-sm text-[var(--bookshop-muted)]">
-                <div>
-                  <span className="block text-2xl font-semibold text-[var(--bookshop-text)]">50k+</span>
-                  <span>Books</span>
-                </div>
-                <div>
-                  <span className="block text-2xl font-semibold text-[var(--bookshop-text)]">100k+</span>
-                  <span>Readers</span>
-                </div>
-                <div>
-                  <span className="block text-2xl font-semibold text-[var(--bookshop-text)]">5k+</span>
-                  <span>Authors</span>
-                </div>
-              </div>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link href="/books" className="bookshop-button-primary px-5 py-3 text-sm">
+              Browse the collection
+            </Link>
+            <Link href="/studio" className="bookshop-button-quiet px-5 py-3 text-sm">
+              Open the writer studio
+            </Link>
+          </div>
+
+          <div className="mt-7 flex flex-wrap gap-x-10 gap-y-4 border-t border-slate-200 pt-6 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">
+            <div>
+              <span className="block text-2xl font-bold text-slate-900 dark:text-white">50k+</span>
+              <span>Books</span>
             </div>
-
-            <div className="rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-5 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">What readers can expect</p>
-              <ul className="mt-4 space-y-3 text-sm text-[var(--bookshop-text)]">
-                <li className="rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-4 py-3">Free previews, instant unlocks, and a focused reading view.</li>
-                <li className="rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-4 py-3">A simple purchase journey that feels clear and trustworthy.</li>
-                <li className="rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] px-4 py-3">A personal library that keeps your books neatly organised.</li>
-              </ul>
+            <div>
+              <span className="block text-2xl font-bold text-slate-900 dark:text-white">100k+</span>
+              <span>Readers</span>
             </div>
+            <div>
+              <span className="block text-2xl font-bold text-slate-900 dark:text-white">5k+</span>
+              <span>Authors</span>
+            </div>
+          </div>
+
+          <div className="mt-7 border-t border-slate-200 pt-6 dark:border-slate-700">
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300">
+              What readers can expect
+            </p>
+            <ul className="mt-4 space-y-3 text-sm text-slate-700 dark:text-slate-200">
+              <li className="border-b border-slate-200 pb-3 dark:border-slate-700">
+                Free previews, instant unlocks, and a focused reading view.
+              </li>
+              <li className="border-b border-slate-200 pb-3 dark:border-slate-700">
+                A simple purchase journey that feels clear and trustworthy.
+              </li>
+              <li>
+                A personal library that keeps your books neatly organised.
+              </li>
+            </ul>
           </div>
         </div>
       </div>

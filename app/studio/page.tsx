@@ -102,7 +102,7 @@ export default function WriterStudioPage() {
   if (!isAuthenticated || !hasRole('writer')) {
     return (
       <main className="bg-[var(--bookshop-bg)]">
-        <div className="bookshop-shell py-6 pb-12 sm:py-8 sm:pb-16">
+        <div className="mx-auto w-11/12 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
           <DisplaySection
             title="Creator access required"
             description="Writer Back Office is available to accounts with writer access."
@@ -128,7 +128,7 @@ export default function WriterStudioPage() {
 
   return (
     <main className="bg-[var(--bookshop-bg)]">
-      <div className="bookshop-shell space-y-6 py-6 pb-12 sm:py-8 sm:pb-16">
+      <div className="mx-auto w-11/12 space-y-8 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
         <DisplaySection
           title="Publishing overview"
           description="A summary of your books, readership, sales and ratings."
@@ -187,3 +187,5 @@ export default function WriterStudioPage() {
     </main>
   );
 }
+
+
