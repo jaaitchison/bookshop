@@ -64,7 +64,7 @@ export default function AuthPage() {
 
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-16 sm:px-6 lg:px-8">
-      <div className="bookshop-shell">
+      <div className="mx-auto w-11/12 sm:w-10/12 lg:w-4/5">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
           <div className="bookshop-card flex-1 p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700 dark:text-violet-300">Welcome back</p>
@@ -191,7 +191,7 @@ export default function AuthPage() {
                 disabled={isSubmitting}
                 className="bookshop-button-primary w-full px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {isSubmitting ? (mode === 'signin' ? 'Signing in…' : 'Creating account…') : mode === 'signin' ? 'Continue to account' : 'Create free account'}
+                {isSubmitting ? (mode === 'signin' ? 'Signing inÃ¢â‚¬Â¦' : 'Creating accountÃ¢â‚¬Â¦') : mode === 'signin' ? 'Continue to account' : 'Create free account'}
               </button>
             </form>
 

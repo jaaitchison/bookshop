@@ -169,7 +169,7 @@ export default function AccountPage() {
   if (!isAuthenticated) {
     return (
       <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-10">
-        <div className="bookshop-card mx-auto max-w-3xl p-10 text-center">
+        <div className="mx-auto w-11/12 rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-8 text-center shadow-sm sm:w-10/12 lg:w-4/5 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-accent)]">Secure access</p>
           <h1 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Sign in to unlock your account hub</h1>
           <p className="mt-4 text-[var(--bookshop-muted)]">
@@ -190,8 +190,8 @@ export default function AccountPage() {
 
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-10">
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <section className="bookshop-card p-6 md:p-8">
+      <div className="mx-auto flex w-11/12 flex-col gap-8 sm:w-10/12 lg:w-4/5">
+        <section className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-8 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bookshop-accent)] text-xl font-semibold text-[var(--bookshop-accent-soft)]">
@@ -206,7 +206,7 @@ export default function AccountPage() {
                 </div>
                 <h1 className="text-3xl font-bold text-[var(--bookshop-text)]">{profile.name}</h1>
                 <p className="mt-1 text-sm text-[var(--bookshop-muted)]">
-                  @{profile.username} • {profile.location} • Joined {profile.joined}
+                  @{profile.username} Ã¢â‚¬Â¢ {profile.location} Ã¢â‚¬Â¢ Joined {profile.joined}
                 </p>
               </div>
             </div>
@@ -233,7 +233,7 @@ export default function AccountPage() {
 
         <section className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
           <div className="space-y-6">
-            <div className="bookshop-card p-6">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
@@ -271,7 +271,7 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <div className="bookshop-card p-6">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
@@ -323,7 +323,7 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <div className="bookshop-card p-6">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
@@ -379,7 +379,7 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <div className="bookshop-card p-6">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
@@ -443,7 +443,7 @@ export default function AccountPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="bookshop-card p-6">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Notifications</h2>
                 <span className="rounded-full bg-[var(--bookshop-surface-muted)] px-3 py-1 text-sm text-[var(--bookshop-muted)]">
@@ -465,14 +465,14 @@ export default function AccountPage() {
                       ) : null}
                     </div>
                     <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">
-                      {notification.category} • {notification.timestamp}
+                      {notification.category} Ã¢â‚¬Â¢ {notification.timestamp}
                     </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bookshop-card p-6">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Quick links</h2>
                 <span className="rounded-full bg-[var(--bookshop-surface-muted)] px-3 py-1 text-sm text-[var(--bookshop-muted)]">
@@ -507,7 +507,7 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <div className="bookshop-card p-6">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Recent activity</h2>
               <div className="mt-4 space-y-3">
                 {accountActivity.map((item) => (
@@ -522,7 +522,7 @@ export default function AccountPage() {
         </section>
 
         <section className="grid gap-8 lg:grid-cols-2">
-          <div className="bookshop-card p-6">
+          <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Your library</h2>
               <span className="text-sm text-[var(--bookshop-muted)]">Reader view</span>
@@ -542,7 +542,7 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div className="bookshop-card p-6">
+          <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Order history</h2>
               <span className="text-sm text-[var(--bookshop-muted)]">Signed-in purchases</span>
@@ -567,7 +567,7 @@ export default function AccountPage() {
                     <div className="mt-3 space-y-1 text-sm text-[var(--bookshop-muted)]">
                       {order.items.slice(0, 2).map((item) => (
                         <p key={`${order.id}-${item.id}`}>
-                          {item.title} × {item.quantity}
+                          {item.title} Ãƒâ€” {item.quantity}
                         </p>
                       ))}
                     </div>
@@ -582,3 +582,4 @@ export default function AccountPage() {
     </main>
   );
 }
+

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { usePathname } from "next/navigation";
 
@@ -17,7 +17,7 @@ function getPageConfig(pathname: string): PageHeaderConfig {
       area: "admin",
       areaLabel: "Administration",
       title: "Administration Dashboard",
-      description: "Manage the catalogue, users, orders and operation of the Bookshop platform.",
+      description: "Manage the catalogue, users, orders and operation of the Book Shop platform.",
     };
   }
 
@@ -34,8 +34,8 @@ function getPageConfig(pathname: string): PageHeaderConfig {
     return {
       area: "front",
       areaLabel: "Front of House",
-      title: "Bookshop",
-      description: "Discover books, writers and stories from across the Bookshop catalogue.",
+      title: "Book Shop",
+      description: "Discover books, writers and stories from across the catalogue.",
     };
   }
 
@@ -44,7 +44,7 @@ function getPageConfig(pathname: string): PageHeaderConfig {
       area: "front",
       areaLabel: "Front of House",
       title: "Books Catalogue",
-      description: "Browse, search and filter the books currently available through Bookshop.",
+      description: "Browse, search and filter books currently available through Book Shop.",
     };
   }
 
@@ -53,7 +53,7 @@ function getPageConfig(pathname: string): PageHeaderConfig {
       area: "front",
       areaLabel: "Front of House",
       title: "Book Details",
-      description: "Read about this title, review its details and choose how you would like to continue.",
+      description: "Read about this title, preview available content and choose how you would like to continue.",
     };
   }
 
@@ -80,7 +80,7 @@ function getPageConfig(pathname: string): PageHeaderConfig {
       area: "front",
       areaLabel: "Front of House",
       title: "Sign In",
-      description: "Sign in to your Bookshop account or create a new account.",
+      description: "Sign in to your Book Shop account or create a new account.",
     };
   }
 
@@ -89,7 +89,7 @@ function getPageConfig(pathname: string): PageHeaderConfig {
       area: "front",
       areaLabel: "Front of House",
       title: "Order Confirmation",
-      description: "Your purchase has been completed and your order details are shown below.",
+      description: "Your purchase status and order details are shown below.",
     };
   }
 
@@ -105,9 +105,21 @@ function getPageConfig(pathname: string): PageHeaderConfig {
   return {
     area: "front",
     areaLabel: "Front of House",
-    title: "Bookshop",
+    title: "Book Shop",
     description: "Independent publishing and reading in one connected platform.",
   };
+}
+
+function getAreaBorder(area: SiteArea) {
+  if (area === "admin") return "border-l-red-600 dark:border-l-red-500";
+  if (area === "writer") return "border-l-amber-500 dark:border-l-amber-400";
+  return "border-l-emerald-600 dark:border-l-emerald-500";
+}
+
+function getAreaText(area: SiteArea) {
+  if (area === "admin") return "text-red-700 dark:text-red-300";
+  if (area === "writer") return "text-amber-700 dark:text-amber-300";
+  return "text-emerald-700 dark:text-emerald-300";
 }
 
 export default function PageHeader() {
@@ -115,15 +127,17 @@ export default function PageHeader() {
   const config = getPageConfig(pathname);
 
   return (
-    <section className="mx-auto w-11/12 pt-10 sm:w-10/12 sm:pt-12 lg:w-4/5">
-      <div className="rounded-3xl border border-slate-200 border-l-8 border-l-blue-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-blue-500 dark:bg-slate-900">
-        <p className="text-xs font-extrabold uppercase tracking-widest text-blue-700 dark:text-blue-300">
+    <section className="mx-auto w-11/12 pt-8 sm:w-10/12 sm:pt-10 lg:w-4/5">
+      <div
+        className={`rounded-3xl border border-slate-200 border-l-8 bg-white px-8 py-7 shadow-sm sm:px-10 dark:border-slate-700 dark:bg-slate-900 ${getAreaBorder(config.area)}`}
+      >
+        <p className={`text-xs font-extrabold uppercase tracking-widest ${getAreaText(config.area)}`}>
           {config.areaLabel}
         </p>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl dark:text-white">
           {config.title}
         </h1>
-        <p className="mt-4 max-w-3xl text-base text-slate-600 dark:text-slate-300">
+        <p className="mt-4 max-w-4xl text-base leading-7 text-slate-600 dark:text-slate-300">
           {config.description}
         </p>
       </div>

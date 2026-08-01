@@ -268,7 +268,7 @@ export default function CheckoutPage() {
               items.map((item) => (
                 <div key={item.book.id} className="bookshop-subcard flex items-center justify-between p-4 text-sm text-[var(--bookshop-text)]">
                   <span>
-                    {item.book.title} × {item.quantity}
+                    {item.book.title} Ãƒâ€” {item.quantity}
                   </span>
                   <span>${(item.book.price * item.quantity).toFixed(2)}</span>
                 </div>

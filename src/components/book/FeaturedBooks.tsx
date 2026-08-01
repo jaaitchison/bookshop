@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { BookCard } from './BookCard';
 import { getFeaturedBooks } from '@/src/lib/catalog-data';
 
@@ -8,7 +8,7 @@ export const FeaturedBooks = async () => {
   return (
     <section className="pb-16 pt-0">
       <div className="mx-auto w-11/12 sm:w-10/12 lg:w-4/5">
-        <div className="rounded-3xl border border-slate-200 border-l-8 border-l-blue-600 bg-white shadow-sm dark:border-slate-700 dark:border-l-blue-500 dark:bg-slate-900">
+        <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b border-slate-200 px-10 py-6 dark:border-slate-700">
             <div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -20,9 +20,9 @@ export const FeaturedBooks = async () => {
             </div>
             <Link
               href="/books"
-              className="text-sm font-semibold text-blue-700 transition hover:text-blue-800 dark:text-blue-300"
+              className="text-sm font-semibold text-emerald-700 transition hover:text-emerald-800 dark:text-emerald-300"
             >
-              View All â†’
+              View All Ã¢â€ â€™
             </Link>
           </div>
 

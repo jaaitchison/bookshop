@@ -127,7 +127,7 @@ export default function LibraryPage() {
 
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)]">
-      <div className="bookshop-shell py-12">
+      <div className="mx-auto w-11/12 py-8 sm:w-10/12 lg:w-4/5">
         <div className="mb-8 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700">Unified account</p>

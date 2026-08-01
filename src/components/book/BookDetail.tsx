@@ -192,9 +192,9 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
 
   return (
     <div className="min-h-screen bg-[var(--bookshop-bg)]">
-      <div className="bookshop-shell py-16">
+      <div className="mx-auto w-11/12 py-8 sm:w-10/12 lg:w-4/5">
         <Link href="/books" className="mb-8 inline-flex items-center text-sm font-medium text-violet-700 hover:text-violet-800">
-          ← Back to books
+          Ã¢â€ Â Back to books
         </Link>
 
         <div className="grid gap-6 lg:grid-cols-[300px,1fr]">
@@ -219,7 +219,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               <div className="flex flex-wrap items-center gap-6">
                 <div className="text-3xl font-bold text-slate-900">${book.price.toFixed(2)}</div>
                 <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="text-amber-500">★</span>
+                  <span className="text-amber-500">Ã¢Ëœâ€¦</span>
                   <span className="font-semibold text-slate-900">{book.rating}</span>
                   <span>({book.reviews.toLocaleString()} reviews)</span>
                 </div>
@@ -307,7 +307,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               <h2 className="mt-2 text-2xl font-bold text-slate-900">Reviews from your community</h2>
             </div>
             <div className="rounded-full bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700">
-              {reviews.length} review{reviews.length === 1 ? '' : 's'} • {averageReviewScore}/5 avg
+              {reviews.length} review{reviews.length === 1 ? '' : 's'} Ã¢â‚¬Â¢ {averageReviewScore}/5 avg
             </div>
           </div>
 
@@ -322,7 +322,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
                   <div key={review.id} className="rounded-[1.5rem] border border-[var(--bookshop-border)] bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-semibold text-slate-900">{review.user}</p>
-                      <div className="text-sm font-semibold text-amber-600">{'★'.repeat(review.rating)}</div>
+                      <div className="text-sm font-semibold text-amber-600">{'Ã¢Ëœâ€¦'.repeat(review.rating)}</div>
                     </div>
                     <p className="mt-3 text-sm leading-7 text-slate-700">{review.comment}</p>
                     <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">{new Date(review.createdAt).toLocaleDateString()}</p>

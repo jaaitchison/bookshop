@@ -15,7 +15,7 @@ function CheckoutSuccessContent() {
   const initialState = isDemo
     ? { status: 'success' as const, message: 'Your demo checkout is complete. Your library will unlock as soon as you refresh the page.' }
     : sessionId
-      ? { status: 'loading' as const, message: 'Completing your purchase and unlocking your books…' }
+      ? { status: 'loading' as const, message: 'Completing your purchase and unlocking your booksÃ¢â‚¬Â¦' }
       : { status: 'error' as const, message: 'We could not confirm your Stripe session. Please try the checkout flow again.' };
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>(initialState.status);
   const [message, setMessage] = useState(initialState.message);
@@ -108,7 +108,7 @@ function CheckoutSuccessContent() {
 
 export default function CheckoutSuccessPage() {
   return (
-    <Suspense fallback={<main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-24"><div className="bookshop-card bookshop-shell-tight p-10"><p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-300">Processing</p><h1 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Preparing your purchase confirmation…</h1></div></main>}>
+    <Suspense fallback={<main className="min-h-screen bg-[var(--bookshop-bg)] px-4 py-24"><div className="bookshop-card bookshop-shell-tight p-10"><p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700 dark:text-emerald-300">Processing</p><h1 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Preparing your purchase confirmationÃ¢â‚¬Â¦</h1></div></main>}>
       <CheckoutSuccessContent />
     </Suspense>
   );

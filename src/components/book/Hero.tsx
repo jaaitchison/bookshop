@@ -1,12 +1,12 @@
-﻿import React from 'react';
+import React from 'react';
 import Link from 'next/link';
 
 export const Hero: React.FC = () => {
   return (
     <section className="py-8">
       <div className="mx-auto w-11/12 sm:w-10/12 lg:w-4/5">
-        <div className="rounded-3xl border border-slate-200 border-l-8 border-l-blue-600 bg-white px-10 py-8 shadow-sm dark:border-slate-700 dark:border-l-blue-500 dark:bg-slate-900">
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300">
+        <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-8 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
             Independent publishing
           </p>
 
@@ -15,7 +15,7 @@ export const Hero: React.FC = () => {
           </h2>
 
           <p className="mt-4 max-w-4xl text-base leading-7 text-slate-600 dark:text-slate-300">
-            Bookshop brings readers and writers together in one calm, modern space â€” from discovery and previewing to checkout and a personal library.
+            Bookshop brings readers and writers together in one calm, modern space Ã¢â‚¬â€ from discovery and previewing to checkout and a personal library.
           </p>
 
           <div className="mt-7 flex flex-wrap gap-3">
@@ -43,7 +43,7 @@ export const Hero: React.FC = () => {
           </div>
 
           <div className="mt-7 border-t border-slate-200 pt-6 dark:border-slate-700">
-            <p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300">
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
               What readers can expect
             </p>
             <ul className="mt-4 space-y-3 text-sm text-slate-700 dark:text-slate-200">
