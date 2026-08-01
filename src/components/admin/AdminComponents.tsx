@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
+import DisplaySection from '@/src/components/layout/DisplaySection';
 
 export const AdminAlert: React.FC<{
   type: 'warning' | 'info' | 'success' | 'error';
@@ -31,7 +32,7 @@ export const AdminAlert: React.FC<{
   return (
     <div className={`rounded-[1.5rem] border p-4 ${colors[type]}`}>
       <h3 className={`font-semibold ${titleColors[type]}`}>{title}</h3>
-      <p className={`text-sm mt-1 ${textColors[type]}`}>{message}</p>
+      <p className={`mt-1 text-sm ${textColors[type]}`}>{message}</p>
     </div>
   );
 };
@@ -42,15 +43,9 @@ export const AdminSection: React.FC<{
   children: React.ReactNode;
 }> = ({ title, description, children }) => {
   return (
-    <section className="mb-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-[var(--bookshop-text)]">{title}</h2>
-        {description && (
-          <p className="mt-1 text-[var(--bookshop-muted)]">{description}</p>
-        )}
-      </div>
-      <div>{children}</div>
-    </section>
+    <DisplaySection title={title} description={description} className="mb-6">
+      {children}
+    </DisplaySection>
   );
 };
 

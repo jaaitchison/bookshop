@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -170,14 +170,7 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)]">
-      <div className="bookshop-shell py-12">
-        <div className="mb-12">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700 dark:text-violet-300">Admin console</p>
-          <h1 className="mt-3 text-3xl font-bold text-[var(--bookshop-text)]">Admin Dashboard</h1>
-          <p className="mt-2 text-[var(--bookshop-muted)]">
-            Manage your bookshop, users, and view analytics
-          </p>
-        </div>
+      <div className="bookshop-shell py-6 pb-12 sm:py-8 sm:pb-16">
 
         <div className="mb-8">
           <AdminAlert
@@ -303,7 +296,7 @@ export default function AdminPage() {
                             {book.status ?? 'published'}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm text-[var(--bookshop-muted)]">{book.author} • {book.genre}</p>
+                        <p className="mt-1 text-sm text-[var(--bookshop-muted)]">{book.author} â€¢ {book.genre}</p>
                         <p className="mt-2 text-sm text-[var(--bookshop-muted)]">{book.description}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
@@ -374,3 +367,4 @@ export default function AdminPage() {
     </main>
   );
 }
+

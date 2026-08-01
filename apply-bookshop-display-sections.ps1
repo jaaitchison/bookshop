@@ -1,4 +1,81 @@
-﻿'use client';
+$ErrorActionPreference = "Stop"
+
+$repo = (Get-Location).Path
+if (-not (Test-Path (Join-Path $repo "package.json"))) {
+    throw "Run this script from the root of C:\coding\bookshop."
+}
+
+# --------------------------------------------------------------------
+# Books page
+# --------------------------------------------------------------------
+$booksPage = @'
+'use client';
+
+import React from 'react';
+import { BookFilters } from '@/src/components/book/BookFilters';
+import { BookGrid } from '@/src/components/book/BookGrid';
+import DisplaySection from '@/src/components/layout/DisplaySection';
+import type { FilterOptions } from '@/src/data/books';
+import type { Book } from '@/src/types/book';
+
+export default function BooksPage() {
+  const [filteredBooks, setFilteredBooks] = React.useState<Book[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  const handleFiltersChange = async (filters: FilterOptions) => {
+    setIsLoading(true);
+
+    const params = new URLSearchParams();
+    if (filters.search) params.set('search', filters.search);
+    if (filters.genre && filters.genre !== 'all') params.set('genre', filters.genre);
+    if (filters.minPrice !== undefined) params.set('minPrice', String(filters.minPrice));
+    if (filters.maxPrice !== undefined) params.set('maxPrice', String(filters.maxPrice));
+    if (filters.minRating !== undefined) params.set('minRating', String(filters.minRating));
+    if (filters.sortBy) params.set('sortBy', filters.sortBy);
+
+    try {
+      const response = await fetch(`/api/books?${params.toString()}`);
+      const nextBooks = (await response.json()) as Book[];
+      setFilteredBooks(nextBooks);
+    } catch {
+      setFilteredBooks([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <main className="bg-[var(--bookshop-bg)]">
+      <div className="bookshop-shell space-y-6 py-6 pb-12 sm:py-8 sm:pb-16">
+        <DisplaySection
+          title="Browse and filter books"
+          description={`Explore the catalogue using search, genre, price and rating filters. ${filteredBooks.length} books are currently shown.`}
+        >
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px,1fr]">
+            <aside>
+              <div className="sticky top-24">
+                <BookFilters onFiltersChange={handleFiltersChange} />
+              </div>
+            </aside>
+
+            <div className="min-w-0">
+              <BookGrid books={filteredBooks} isLoading={isLoading} />
+            </div>
+          </div>
+        </DisplaySection>
+      </div>
+    </main>
+  );
+}
+'@
+
+Set-Content -Path (Join-Path $repo "app\books\page.tsx") -Value $booksPage -Encoding utf8
+
+# --------------------------------------------------------------------
+# Writer Studio page
+# --------------------------------------------------------------------
+$studioPage = @'
+'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -166,19 +243,19 @@ export default function WriterStudioPage() {
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">ðŸ“</div>
+              <div className="mb-2 text-2xl">📝</div>
               <p className="font-medium text-[var(--bookshop-text)]">Write book</p>
             </button>
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">ðŸ“Š</div>
+              <div className="mb-2 text-2xl">📊</div>
               <p className="font-medium text-[var(--bookshop-text)]">View analytics</p>
             </button>
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">ðŸ’¬</div>
+              <div className="mb-2 text-2xl">💬</div>
               <p className="font-medium text-[var(--bookshop-text)]">Reader reviews</p>
             </button>
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">âš™ï¸</div>
+              <div className="mb-2 text-2xl">⚙️</div>
               <p className="font-medium text-[var(--bookshop-text)]">Settings</p>
             </button>
           </div>
@@ -187,3 +264,106 @@ export default function WriterStudioPage() {
     </main>
   );
 }
+'@
+
+Set-Content -Path (Join-Path $repo "app\studio\page.tsx") -Value $studioPage -Encoding utf8
+
+# --------------------------------------------------------------------
+# Make the admin-specific wrapper use the generic display section.
+# --------------------------------------------------------------------
+$adminComponents = @'
+'use client';
+
+import React from 'react';
+import DisplaySection from '@/src/components/layout/DisplaySection';
+
+export const AdminAlert: React.FC<{
+  type: 'warning' | 'info' | 'success' | 'error';
+  title: string;
+  message: string;
+}> = ({ type, title, message }) => {
+  const colors = {
+    warning: 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50',
+    info: 'bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800/50',
+    success: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/50',
+    error: 'bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800/50',
+  };
+
+  const textColors = {
+    warning: 'text-amber-800 dark:text-amber-200',
+    info: 'text-violet-800 dark:text-violet-200',
+    success: 'text-emerald-800 dark:text-emerald-200',
+    error: 'text-rose-800 dark:text-rose-200',
+  };
+
+  const titleColors = {
+    warning: 'text-amber-900 dark:text-amber-100',
+    info: 'text-violet-900 dark:text-violet-100',
+    success: 'text-emerald-900 dark:text-emerald-100',
+    error: 'text-rose-900 dark:text-rose-100',
+  };
+
+  return (
+    <div className={`rounded-[1.5rem] border p-4 ${colors[type]}`}>
+      <h3 className={`font-semibold ${titleColors[type]}`}>{title}</h3>
+      <p className={`mt-1 text-sm ${textColors[type]}`}>{message}</p>
+    </div>
+  );
+};
+
+export const AdminSection: React.FC<{
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}> = ({ title, description, children }) => {
+  return (
+    <DisplaySection title={title} description={description} className="mb-6">
+      {children}
+    </DisplaySection>
+  );
+};
+
+export default AdminAlert;
+'@
+
+Set-Content -Path (Join-Path $repo "src\components\admin\AdminComponents.tsx") -Value $adminComponents -Encoding utf8
+
+# --------------------------------------------------------------------
+# Remove the duplicate Admin page heading because PageHeader owns it.
+# --------------------------------------------------------------------
+$adminPath = Join-Path $repo "app\admin\page.tsx"
+$admin = Get-Content $adminPath -Raw
+
+$oldHeader = @'
+        <div className="mb-12">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700 dark:text-violet-300">Admin console</p>
+          <h1 className="mt-3 text-3xl font-bold text-[var(--bookshop-text)]">Admin Dashboard</h1>
+          <p className="mt-2 text-[var(--bookshop-muted)]">
+            Manage your bookshop, users, and view analytics
+          </p>
+        </div>
+
+'@
+
+if ($admin.Contains($oldHeader)) {
+    $admin = $admin.Replace($oldHeader, "")
+} else {
+    Write-Warning "The expected Admin duplicate header was not found. No Admin business logic was changed."
+}
+
+# tighten spacing now that the global PageHeader is above the page
+$admin = $admin.Replace('<div className="bookshop-shell py-12">', '<div className="bookshop-shell py-6 pb-12 sm:py-8 sm:pb-16">')
+
+Set-Content -Path $adminPath -Value $admin -Encoding utf8
+
+Write-Host ""
+Write-Host "Second-pass layout refactor completed." -ForegroundColor Green
+Write-Host "Updated:"
+Write-Host "  app/books/page.tsx"
+Write-Host "  app/studio/page.tsx"
+Write-Host "  app/admin/page.tsx"
+Write-Host "  src/components/admin/AdminComponents.tsx"
+Write-Host ""
+Write-Host "Now run:"
+Write-Host "  npm run lint"
+Write-Host "  npm run build"
