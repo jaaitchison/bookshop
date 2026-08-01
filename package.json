@@ -27,7 +27,9 @@
     "auth:test-roles": "tsx prisma/test-role-authorization.ts",
     "auth:test-context": "tsx prisma/test-account-context-auth.ts",
     "auth:test-routes": "tsx prisma/test-route-protection.ts",
-    "auth:test-proxy": "tsx prisma/test-proxy-source.ts"
+    "auth:test-proxy": "tsx prisma/test-proxy-source.ts",
+    "auth:seed-dev-users": "tsx prisma/seed-dev-auth-users.ts",
+    "auth:test-dev-users": "tsx prisma/test-dev-auth-users.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
