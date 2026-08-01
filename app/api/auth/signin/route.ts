@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createDatabaseSession, DATABASE_AUTH_COOKIE, getDatabaseAuthCookieOptions } from "@/src/lib/database-session";
 import { signinUser, SigninError } from "@/src/lib/signin";
 
 export async function POST(request: Request) {
@@ -26,9 +27,19 @@ export async function POST(request: Request) {
       password: body.password,
     });
 
-    return NextResponse.json({
+    const session = await createDatabaseSession(result.profile.id);
+
+    const response = NextResponse.json({
       profile: result.profile,
     });
+
+    response.cookies.set(
+      DATABASE_AUTH_COOKIE,
+      session.token,
+      getDatabaseAuthCookieOptions(session.expiresAt),
+    );
+
+    return response;
   } catch (error) {
     if (error instanceof SigninError) {
       return NextResponse.json(
