@@ -1,111 +1,127 @@
-import { NextResponse } from 'next/server';
-import { getAccountOrders, saveAccountOrder, saveAccountProfile, saveAccountSession, saveAccountUsers, getAccountUsers, clearAccountSession } from '@/src/lib/account-store';
-import { AUTH_SESSION_COOKIE, buildAuthSession, encodeAuthSession, getAuthSessionFromCookieHeader, hasSessionRole } from '@/src/lib/auth-session';
-import type { AccountOrder, AccountProfile } from '@/src/types/account';
+import { NextResponse } from "next/server";
+import {
+  getAccountOrders,
+  saveAccountOrder,
+} from "@/src/lib/account-store";
+import {
+  DATABASE_AUTH_COOKIE,
+  resolveDatabaseSession,
+} from "@/src/lib/database-session";
+import { userHasRole } from "@/src/lib/role-authorization";
+import type { AccountOrder } from "@/src/types/account";
 
-interface StoredAccountUser {
-  id: string;
-  email: string;
-  password: string;
-  profile: AccountProfile;
+function getCookieValue(
+  cookieHeader: string | null,
+  name: string,
+): string | undefined {
+  if (!cookieHeader) {
+    return undefined;
+  }
+
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    const separator = trimmed.indexOf("=");
+
+    if (separator === -1) {
+      continue;
+    }
+
+    if (trimmed.slice(0, separator) === name) {
+      return trimmed.slice(separator + 1);
+    }
+  }
+
+  return undefined;
+}
+
+async function getRequestSession(request: Request) {
+  const token = getCookieValue(
+    request.headers.get("cookie"),
+    DATABASE_AUTH_COOKIE,
+  );
+
+  return resolveDatabaseSession(token);
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const email = searchParams.get('email');
-  const profileId = searchParams.get('profileId');
-  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
+  const profileId = searchParams.get("profileId");
 
-  if (email) {
-    const users = await getAccountUsers();
-    const user = users.find((entry) => entry.email.toLowerCase() === email.toLowerCase());
-    if (!user) {
-      return NextResponse.json({ error: 'User not found.' }, { status: 404 });
-    }
-
-    return NextResponse.json(user);
+  if (!profileId) {
+    return NextResponse.json(
+      {
+        error:
+          "The legacy users endpoint has been removed. Supply profileId for order history.",
+      },
+      { status: 400 },
+    );
   }
 
-  if (profileId) {
-    if (!session || (session.profileId !== profileId && !hasSessionRole(session, 'admin'))) {
-      return NextResponse.json({ error: 'Unauthorized to access this account order history.' }, { status: 403 });
-    }
-    const orders = await getAccountOrders(profileId);
-    return NextResponse.json({ orders });
+  const session = await getRequestSession(request);
+
+  if (!session) {
+    return NextResponse.json(
+      { error: "Authentication required." },
+      { status: 401 },
+    );
   }
 
-  return NextResponse.json({ users: await getAccountUsers() });
+  const canRead =
+    session.userId === profileId ||
+    (await userHasRole(session.userId, "admin"));
+
+  if (!canRead) {
+    return NextResponse.json(
+      { error: "Unauthorized to access this account order history." },
+      { status: 403 },
+    );
+  }
+
+  const orders = await getAccountOrders(profileId);
+  return NextResponse.json({ orders });
 }
 
 export async function POST(request: Request) {
-  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
-  const body = await request.json() as {
-    type?: 'sync-profile' | 'sync-session' | 'place-order' | 'signout';
-    profile?: AccountProfile;
-    users?: StoredAccountUser[];
+  const session = await getRequestSession(request);
+
+  if (!session) {
+    return NextResponse.json(
+      { error: "Authentication required." },
+      { status: 401 },
+    );
+  }
+
+  const body = (await request.json()) as {
+    type?: "place-order";
     profileId?: string;
     order?: AccountOrder;
-    email?: string;
   };
 
-  if (body.type === 'sync-profile' && body.profile) {
-    await saveAccountProfile(body.profile);
-    return NextResponse.json({ ok: true });
+  if (
+    body.type !== "place-order" ||
+    !body.profileId ||
+    !body.order
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Legacy account/auth actions have been removed. Only place-order remains temporarily supported.",
+      },
+      { status: 400 },
+    );
   }
 
-  if (body.type === 'sync-session' && body.profile) {
-    await saveAccountSession(body.profile);
-    const orders = await getAccountOrders(body.profile.id);
-    const purchasedBookIds = Array.from(new Set(orders.flatMap((order) => order.items.map((item) => item.id))));
-    const response = NextResponse.json({ ok: true });
-    response.cookies.set(AUTH_SESSION_COOKIE, encodeAuthSession(buildAuthSession(body.profile, purchasedBookIds)), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30,
-    });
-    return response;
+  if (session.userId !== body.profileId) {
+    return NextResponse.json(
+      { error: "Unauthorized to place an order for this account." },
+      { status: 403 },
+    );
   }
 
-  if (body.type === 'place-order' && body.profileId && body.order) {
-    if (!session || session.profileId !== body.profileId) {
-      return NextResponse.json({ error: 'Unauthorized to place order for this profile.' }, { status: 403 });
-    }
-    const orders = await saveAccountOrder(body.profileId, body.order);
-    const users = await getAccountUsers();
-    const profile = users.find((entry) => entry.profile.id === body.profileId)?.profile;
-    const response = NextResponse.json({ orders });
-    if (profile) {
-      const purchasedBookIds = Array.from(new Set(orders.flatMap((order) => order.items.map((item) => item.id))));
-      response.cookies.set(AUTH_SESSION_COOKIE, encodeAuthSession(buildAuthSession(profile, purchasedBookIds)), {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 30,
-      });
-    }
-    return response;
-  }
+  const orders = await saveAccountOrder(
+    body.profileId,
+    body.order,
+  );
 
-  if (body.type === 'signout' && body.email) {
-    await clearAccountSession(body.email);
-    const response = NextResponse.json({ ok: true });
-    response.cookies.set(AUTH_SESSION_COOKIE, '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 0,
-    });
-    return response;
-  }
-
-  if (body.users) {
-    await saveAccountUsers(body.users);
-    return NextResponse.json({ ok: true });
-  }
-
-  return NextResponse.json({ error: 'Unsupported account action.' }, { status: 400 });
+  return NextResponse.json({ orders });
 }

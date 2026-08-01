@@ -1,28 +1,49 @@
-import { NextResponse } from 'next/server';
-import type { FilterOptions } from '@/src/data/books';
-import { createCatalogBook, filterCatalogBooks, getCatalogBooks } from '@/src/lib/catalog-data';
-import { getAuthSessionFromCookieHeader, hasSessionRole } from '@/src/lib/auth-session';
-import type { Book } from '@/src/types/book';
+import { NextResponse } from "next/server";
+import type { FilterOptions } from "@/src/data/books";
+import {
+  createCatalogBook,
+  filterCatalogBooks,
+  getCatalogBooks,
+} from "@/src/lib/catalog-data";
+import { getRequestDatabaseSession } from "@/src/lib/request-auth";
+import { userHasRole } from "@/src/lib/role-authorization";
+import type { Book } from "@/src/types/book";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
 
-  if (searchParams.get('includeDrafts') === 'true') {
-    if (!hasSessionRole(session, 'writer')) {
-      return NextResponse.json({ error: 'Writer or admin access required.' }, { status: 403 });
+  if (searchParams.get("includeDrafts") === "true") {
+    const session = await getRequestDatabaseSession(request);
+
+    if (
+      !session ||
+      !(await userHasRole(session.userId, "writer"))
+    ) {
+      return NextResponse.json(
+        { error: "Writer or admin access required." },
+        { status: 403 },
+      );
     }
+
     const books = await getCatalogBooks();
     return NextResponse.json(books);
   }
 
   const filters: FilterOptions = {
-    search: searchParams.get('search') ?? undefined,
-    genre: searchParams.get('genre') ?? undefined,
-    minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
-    maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
-    minRating: searchParams.get('minRating') ? Number(searchParams.get('minRating')) : undefined,
-    sortBy: (searchParams.get('sortBy') as FilterOptions['sortBy']) ?? undefined,
+    search: searchParams.get("search") ?? undefined,
+    genre: searchParams.get("genre") ?? undefined,
+    minPrice: searchParams.get("minPrice")
+      ? Number(searchParams.get("minPrice"))
+      : undefined,
+    maxPrice: searchParams.get("maxPrice")
+      ? Number(searchParams.get("maxPrice"))
+      : undefined,
+    minRating: searchParams.get("minRating")
+      ? Number(searchParams.get("minRating"))
+      : undefined,
+    sortBy:
+      (searchParams.get("sortBy") as FilterOptions["sortBy"]) ??
+      undefined,
   };
 
   const books = await filterCatalogBooks(filters);
@@ -30,9 +51,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
-  if (!hasSessionRole(session, 'writer')) {
-    return NextResponse.json({ error: 'Writer or admin access required.' }, { status: 403 });
+  const session = await getRequestDatabaseSession(request);
+
+  if (
+    !session ||
+    !(await userHasRole(session.userId, "writer"))
+  ) {
+    return NextResponse.json(
+      { error: "Writer or admin access required." },
+      { status: 403 },
+    );
   }
 
   try {
@@ -54,6 +82,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(book, { status: 201 });
   } catch {
-    return NextResponse.json({ error: 'Failed to create book' }, { status: 400 });
+    return NextResponse.json(
+      { error: "Failed to create book" },
+      { status: 400 },
+    );
   }
 }

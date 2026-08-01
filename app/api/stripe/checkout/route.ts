@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
-import { getAccountProfile } from '@/src/lib/account-store';
-import { getAuthSessionFromCookieHeader } from '@/src/lib/auth-session';
+import { NextResponse } from "next/server";
+import Stripe from "stripe";
+import {
+  DATABASE_AUTH_COOKIE,
+  resolveDatabaseSession,
+} from "@/src/lib/database-session";
+import { getDatabaseAccountProfile } from "@/src/lib/database-account-profile";
 
 interface CheckoutItem {
   id: string;
@@ -25,18 +28,57 @@ interface CheckoutPayload {
   customerName?: string;
 }
 
-export async function POST(request: Request) {
-  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
-  const body = await request.json() as CheckoutPayload;
-  const profileId = body.profileId ?? session?.profileId;
-
-  if (!profileId) {
-    return NextResponse.json({ error: 'Please sign in before checkout.' }, { status: 401 });
+function getCookieValue(
+  cookieHeader: string | null,
+  name: string,
+): string | undefined {
+  if (!cookieHeader) {
+    return undefined;
   }
 
-  const profile = await getAccountProfile(profileId);
+  for (const part of cookieHeader.split(";")) {
+    const trimmed = part.trim();
+    const separator = trimmed.indexOf("=");
+
+    if (separator !== -1 && trimmed.slice(0, separator) === name) {
+      return trimmed.slice(separator + 1);
+    }
+  }
+
+  return undefined;
+}
+
+export async function POST(request: Request) {
+  const token = getCookieValue(
+    request.headers.get("cookie"),
+    DATABASE_AUTH_COOKIE,
+  );
+  const session = await resolveDatabaseSession(token);
+
+  if (!session) {
+    return NextResponse.json(
+      { error: "Please sign in before checkout." },
+      { status: 401 },
+    );
+  }
+
+  const body = (await request.json()) as CheckoutPayload;
+
+  if (body.profileId && body.profileId !== session.userId) {
+    return NextResponse.json(
+      { error: "Checkout account does not match the signed-in user." },
+      { status: 403 },
+    );
+  }
+
+  const profileId = session.userId;
+  const profile = await getDatabaseAccountProfile(profileId);
+
   if (!profile) {
-    return NextResponse.json({ error: 'Account profile could not be found.' }, { status: 404 });
+    return NextResponse.json(
+      { error: "Account profile could not be found." },
+      { status: 404 },
+    );
   }
 
   const origin = new URL(request.url).origin;
@@ -49,38 +91,49 @@ export async function POST(request: Request) {
   }));
 
   if (!checkoutItems.length) {
-    return NextResponse.json({ error: 'Your cart is empty.' }, { status: 400 });
+    return NextResponse.json(
+      { error: "Your cart is empty." },
+      { status: 400 },
+    );
   }
 
   const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+
   if (!stripeSecretKey) {
     return NextResponse.json({
       demo: true,
-      message: 'Stripe is not configured yet, so checkout is running in demo mode.',
-      fallbackUrl: '/checkout/success?demo=1',
+      message:
+        "Stripe is not configured yet, so checkout is running in demo mode.",
+      fallbackUrl: "/checkout/success?demo=1",
     });
   }
 
   const stripe = new Stripe(stripeSecretKey);
+
   const orderPayload = {
     id: `order-${Date.now()}`,
     orderedAt: new Date().toISOString(),
-    total: checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    status: 'Processing' as const,
+    total: checkoutItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    ),
+    status: "Processing" as const,
     items: checkoutItems,
     shippingName: body.shipping?.name ?? profile.name,
-    shippingEmail: body.shipping?.email ?? body.email ?? profile.email,
-    shippingAddress: body.shipping?.address ?? '',
-    shippingCity: body.shipping?.city ?? '',
-    shippingZip: body.shipping?.zip ?? '',
+    shippingEmail:
+      body.shipping?.email ?? body.email ?? profile.email,
+    shippingAddress: body.shipping?.address ?? "",
+    shippingCity: body.shipping?.city ?? "",
+    shippingZip: body.shipping?.zip ?? "",
   };
 
   const sessionPayload = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    customer_email: body.shipping?.email ?? body.email ?? profile.email,
+    mode: "payment",
+    customer_email:
+      body.shipping?.email ?? body.email ?? profile.email,
     line_items: checkoutItems.map((item) => ({
       price_data: {
-        currency: 'usd',
+        currency: "usd",
         unit_amount: Math.round(item.price * 100),
         product_data: {
           name: item.title,

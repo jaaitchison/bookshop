@@ -1,29 +1,64 @@
-import { NextResponse } from 'next/server';
-import { addBookReview, getBookReviews } from '@/src/lib/reviews-store';
-import { getAuthSessionFromCookieHeader, hasSessionRole } from '@/src/lib/auth-session';
-import type { BookReview } from '@/src/types/book';
+import { NextResponse } from "next/server";
+import {
+  addBookReview,
+  getBookReviews,
+} from "@/src/lib/reviews-store";
+import { getAccountOrders } from "@/src/lib/account-store";
+import { getRequestDatabaseSession } from "@/src/lib/request-auth";
+import { userHasRole } from "@/src/lib/role-authorization";
+import type { BookReview } from "@/src/types/book";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params;
   const reviews = await getBookReviews(id);
   return NextResponse.json(reviews);
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const { id } = await params;
-  const session = getAuthSessionFromCookieHeader(request.headers.get('cookie'));
-  const canReview = hasSessionRole(session, 'writer')
-    || hasSessionRole(session, 'admin')
-    || Boolean(session?.purchasedBookIds.includes(id));
+  const session = await getRequestDatabaseSession(request);
 
-  if (!canReview) {
-    return NextResponse.json({ error: 'Purchase required before posting a review.' }, { status: 403 });
+  if (!session) {
+    return NextResponse.json(
+      { error: "Sign in required before posting a review." },
+      { status: 401 },
+    );
   }
 
-  const body = await request.json() as Partial<BookReview>;
+  const [isWriter, isAdmin, orders] = await Promise.all([
+    userHasRole(session.userId, "writer"),
+    userHasRole(session.userId, "admin"),
+    getAccountOrders(session.userId),
+  ]);
 
-  if (!body.user || !body.comment || typeof body.rating !== 'number') {
-    return NextResponse.json({ error: 'Please provide a name, comment, and rating.' }, { status: 400 });
+  const hasPurchased = orders.some((order) =>
+    order.items.some((item) => item.id === id),
+  );
+
+  if (!isWriter && !isAdmin && !hasPurchased) {
+    return NextResponse.json(
+      { error: "Purchase required before posting a review." },
+      { status: 403 },
+    );
+  }
+
+  const body = (await request.json()) as Partial<BookReview>;
+
+  if (
+    !body.user ||
+    !body.comment ||
+    typeof body.rating !== "number"
+  ) {
+    return NextResponse.json(
+      { error: "Please provide a name, comment, and rating." },
+      { status: 400 },
+    );
   }
 
   const review: BookReview = {
