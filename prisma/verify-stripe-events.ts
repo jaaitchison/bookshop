@@ -58,17 +58,29 @@ async function main() {
 
     console.log("");
     console.log("4. JSON compatibility removal");
-    const store = JSON.parse(
-      await readFile(
-        path.join(process.cwd(), "data", "account-store.json"),
-        "utf8",
-      ),
-    ) as Record<string, unknown>;
+
+    let legacyStoreExists = true;
+
+    try {
+      await access(
+        path.join(
+          process.cwd(),
+          "data",
+          "account-store.json",
+        ),
+      );
+    } catch {
+      legacyStoreExists = false;
+    }
+
     assert(
-      !("stripeProcessedEvents" in store),
-      "stripeProcessedEvents still exists in account-store.json.",
+      !legacyStoreExists,
+      "Legacy data/account-store.json still exists.",
     );
-    console.log("   PASS - JSON Stripe event tracking has been removed.");
+
+    console.log(
+      "   PASS - legacy JSON Stripe/order compatibility store is gone.",
+    );
 
     console.log("");
     console.log("SECTION 6.3 PASSED.");
