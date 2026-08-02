@@ -43,7 +43,6 @@ export default function AccountPage() {
     hasRole,
     isAuthenticated,
     orders,
-    updateProfile,
   } = useAccount();
   const [wishlistCount, setWishlistCount] = useState(0);
 
@@ -55,21 +54,7 @@ export default function AccountPage() {
     setGoals(nextGoals);
   };
 
-  const toggleSocialProvider = (provider: SocialProvider) => {
-    const nextProviders = profile.connectedSocials.includes(provider)
-      ? profile.connectedSocials.filter((item) => item !== provider)
-      : [...profile.connectedSocials, provider];
 
-    updateProfile({ connectedSocials: nextProviders });
-  };
-
-  const toggleMfa = () => {
-    const nextEnabled = !profile.mfaEnabled;
-    updateProfile({
-      mfaEnabled: nextEnabled,
-      mfaMethod: nextEnabled ? 'Authenticator app' : 'Not enabled',
-    });
-  };
 
   useEffect(() => {
     const loadWishlist = async () => {
@@ -334,11 +319,10 @@ export default function AccountPage() {
                         <button
                           key={provider}
                           type="button"
-                          onClick={() => toggleSocialProvider(provider)}
                           className={`rounded-xl border px-3 py-3 text-left text-sm font-medium transition ${connected ? 'border-[var(--bookshop-accent)] bg-[var(--bookshop-accent-soft)] text-[var(--bookshop-accent)]' : 'border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] text-[var(--bookshop-text)] hover:border-[var(--bookshop-accent)]'}`}
                         >
                           <p>{provider}</p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">{connected ? 'Connected' : 'Available soon'}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">{connected ? 'Connected by verified OAuth' : 'Available soon'}</p>
                         </button>
                       );
                     })}
@@ -352,17 +336,12 @@ export default function AccountPage() {
                     <div>
                       <p className="text-sm font-semibold text-[var(--bookshop-text)]">Multi-factor authentication</p>
                       <p className="mt-1 text-sm text-[var(--bookshop-muted)]">Current method: {profile.mfaMethod}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={toggleMfa}
-                      className={`${profile.mfaEnabled ? 'bookshop-button-secondary' : 'bookshop-button-primary'} px-4 py-2 text-sm`}
-                    >
-                      {profile.mfaEnabled ? 'Disable MFA' : 'Enable MFA'}
-                    </button>
+                    </div>                    <span className="bookshop-badge bookshop-badge-neutral">
+                      Configuration coming later
+                    </span>
                   </div>
                   <p className="mt-3 text-sm text-[var(--bookshop-muted)]">
-                    The next iteration will add authenticator-app verification, passkey support, and recovery codes without disturbing your existing reader and writer workflows.
+                    MFA status is read from the server. Enabling or disabling MFA will only be available once the real verification and recovery flow is implemented.
                   </p>
                 </div>
               </div>

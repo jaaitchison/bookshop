@@ -42,7 +42,9 @@
     "db:verify-stripe-events": "tsx prisma/verify-stripe-events.ts",
     "db:verify-no-json-orders": "tsx prisma/verify-json-order-removal.ts",
     "db:verify-wishlist": "tsx prisma/verify-wishlist-migration.ts",
-    "db:verify-no-legacy-wishlist": "tsx prisma/verify-no-legacy-wishlist.ts"
+    "db:verify-no-legacy-wishlist": "tsx prisma/verify-no-legacy-wishlist.ts",
+    "db:verify-profile": "tsx prisma/verify-profile-persistence.ts",
+    "db:verify-profile-source": "tsx prisma/verify-profile-source.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

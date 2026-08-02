@@ -10,6 +10,7 @@ import type {
 } from "@/src/types/account";
 
 const ACCOUNT_API_URL = "/api/account";
+const ACCOUNT_PROFILE_API_URL = "/api/account/profile";
 const AUTH_ME_URL = "/api/auth/me";
 const AUTH_SIGNIN_URL = "/api/auth/signin";
 const AUTH_SIGNUP_URL = "/api/auth/signup";
@@ -274,16 +275,62 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   }, [isAuthenticated, orders, profile.id]);
 
+  const persistProfileUpdates = async (
+    updates: Partial<AccountProfile>,
+  ) => {
+    try {
+      const response = await fetch(ACCOUNT_PROFILE_API_URL, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      });
+
+      const payload = (await response.json()) as {
+        profile?: AccountProfile;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.profile) {
+        setAuthError(payload.error ?? "Profile update failed.");
+        await refreshSession();
+        return;
+      }
+
+      setProfile(normalizeProfile(payload.profile));
+      setAuthError(null);
+    } catch {
+      setAuthError("Profile update failed.");
+      await refreshSession();
+    }
+  };
+
   const updateProfile = (updates: Partial<AccountProfile>) => {
+    const safeUpdates: Partial<AccountProfile> = {
+      ...(updates.name !== undefined ? { name: updates.name } : {}),
+      ...(updates.username !== undefined
+        ? { username: updates.username }
+        : {}),
+      ...(updates.bio !== undefined ? { bio: updates.bio } : {}),
+      ...(updates.avatar !== undefined ? { avatar: updates.avatar } : {}),
+      ...(updates.location !== undefined
+        ? { location: updates.location }
+        : {}),
+    };
+
     setProfile((current) =>
       normalizeProfile({
         ...current,
-        ...updates,
+        ...safeUpdates,
         id: current.id,
         email: current.email,
         roles: current.roles,
       }),
     );
+
+    void persistProfileUpdates(safeUpdates);
   };
 
   const setGoals = (goals: AccountGoal[]) => {
@@ -292,14 +339,10 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
         ...current,
         goals,
         roles: current.roles,
-        activeRole:
-          current.activeRole === "admin" && current.roles.admin
-            ? "admin"
-            : current.activeRole === "writer" && current.roles.writer
-              ? "writer"
-              : "reader",
       }),
     );
+
+    void persistProfileUpdates({ goals });
   };
 
   const completeOnboarding = () => {
@@ -308,16 +351,17 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
         ...current,
         onboardingComplete: true,
         roles: current.roles,
-        activeRole:
-          current.activeRole === "admin" && current.roles.admin
-            ? "admin"
-            : current.activeRole === "writer" && current.roles.writer
-              ? "writer"
-              : "reader",
       }),
     );
+
+    void persistProfileUpdates({
+      onboardingComplete: true,
+    });
   };
-const setActiveRole = (role: AccountRole) => {
+
+  const setActiveRole = (role: AccountRole) => {
+    let permitted = false;
+
     setProfile((current) => {
       if (role === "writer" && !current.roles.writer) {
         return current;
@@ -331,12 +375,20 @@ const setActiveRole = (role: AccountRole) => {
         return current;
       }
 
+      permitted = true;
+
       return normalizeProfile({
         ...current,
         activeRole: role,
         roles: current.roles,
       });
     });
+
+    if (permitted) {
+      void persistProfileUpdates({
+        activeRole: role,
+      });
+    }
   };
 
   const hasRole = (role: AccountRole) => {
