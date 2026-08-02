@@ -30,7 +30,9 @@
     "auth:test-proxy": "tsx prisma/test-proxy-source.ts",
     "auth:seed-dev-users": "tsx prisma/seed-dev-auth-users.ts",
     "auth:test-dev-users": "tsx prisma/test-dev-auth-users.ts",
-    "auth:test-no-legacy": "tsx prisma/test-legacy-auth-removed.ts"
+    "auth:test-no-legacy": "tsx prisma/test-legacy-auth-removed.ts",
+    "auth:test-browser": "playwright test tests/browser/auth-role-flow.spec.ts",
+    "auth:test-browser:headed": "playwright test tests/browser/auth-role-flow.spec.ts --headed"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
@@ -44,6 +46,7 @@
     "stripe": "^22.4.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.3",

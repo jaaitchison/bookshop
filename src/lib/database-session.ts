@@ -108,7 +108,7 @@ export async function resolveDatabaseSession(
     return null;
   }
 
-  await prisma.authSession.update({
+  await prisma.authSession.updateMany({
     where: {
       id: session.id,
     },
