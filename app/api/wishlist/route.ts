@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
 import {
-  getWishlistItems,
-  toggleWishlistItem,
-} from "@/src/lib/wishlist-store";
+  getWishlistItemsForUser,
+  toggleWishlistItemForUser,
+} from "@/src/lib/wishlist-repository";
 
 async function requireReader(request: Request) {
   const session = await getRequestDatabaseSession(request);
@@ -29,8 +29,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const wishlist = await getWishlistItems();
-  return NextResponse.json(wishlist);
+  const items = await getWishlistItemsForUser(session.userId);
+
+  return NextResponse.json({ items });
 }
 
 export async function POST(request: Request) {
@@ -55,10 +56,23 @@ export async function POST(request: Request) {
     );
   }
 
-  const items = await toggleWishlistItem(
-    body.bookId,
-    body.action === "remove" ? "remove" : "add",
-  );
+  try {
+    const items = await toggleWishlistItemForUser(
+      session.userId,
+      body.bookId,
+      body.action === "remove" ? "remove" : "add",
+    );
 
-  return NextResponse.json({ items });
+    return NextResponse.json({ items });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Wishlist update failed.";
+
+    return NextResponse.json(
+      { error: message },
+      { status: 400 },
+    );
+  }
 }
