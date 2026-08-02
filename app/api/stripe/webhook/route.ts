@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import {
-  hasStripeEventBeenProcessed,
-  markStripeEventProcessed,
-} from "@/src/lib/account-store";
+  hasStripeWebhookEventBeenProcessed,
+  markStripeWebhookEventProcessed,
+} from "@/src/lib/stripe-event-repository";
 import { saveOrderForUser } from "@/src/lib/order-repository";
 import { getPrismaClient } from "@/src/lib/prisma";
 import type { AccountOrder } from "@/src/types/account";
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     });
   }
 
-  if (await hasStripeEventBeenProcessed(event.id)) {
+  if (await hasStripeWebhookEventBeenProcessed(event.id)) {
     return NextResponse.json({
       received: true,
       duplicate: true,
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
   }
 
   await saveOrderForUser(profileId, order);
-  await markStripeEventProcessed(event.id);
+  await markStripeWebhookEventProcessed(event.id, event.type);
 
   return NextResponse.json({
     received: true,

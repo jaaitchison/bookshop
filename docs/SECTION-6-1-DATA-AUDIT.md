@@ -69,3 +69,13 @@ Stripe processed event IDs: undefined
 ## Section 6.2 decision
 
 Orders move first because the Prisma schema already contains `Order` and `OrderItem`. PostgreSQL becomes the primary runtime order source while JSON remains temporarily available as a fallback and mirror. Stripe event IDs remain untouched until Section 6.3.
+
+## Section 6.4 update
+
+The runtime JSON order compatibility layer has now been removed.
+
+- PostgreSQL `Order` and `OrderItem` are the sole runtime order authority.
+- `src/lib/account-store.ts` has been removed.
+- `data/account-store.json` has been removed.
+- the one-time JSON order importer has been retired.
+- any legacy unmapped orders were preserved only as archive data under `data/archive/` and are not loaded by the application.

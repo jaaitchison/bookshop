@@ -1,5 +1,10 @@
-import { readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+function assert(condition: unknown, message: string): asserts condition {
+  if (!condition) {
+    throw new Error(message);
+  }
+}
 
 const ROOTS = ["app", "src", "proxy.ts"];
 
@@ -76,54 +81,48 @@ async function main() {
       `Legacy authentication remains:\n${violations.join("\n")}`,
     );
   }
+  let legacyAccountStoreExists = true;
 
-  const accountStoreSource = await readFile(
-    path.join(process.cwd(), "src", "lib", "account-store.ts"),
-    "utf8",
+  try {
+    await access(
+      path.join(
+        process.cwd(),
+        "src",
+        "lib",
+        "account-store.ts",
+      ),
+    );
+  } catch {
+    legacyAccountStoreExists = false;
+  }
+
+  assert(
+    !legacyAccountStoreExists,
+    "src/lib/account-store.ts still exists.",
   );
 
-  for (const token of [
-    "password:",
-    "StoredAccountUser",
-    "profiles:",
-    "sessions:",
-  ]) {
-    if (accountStoreSource.includes(token)) {
-      throw new Error(
-        `account-store.ts still contains auth/profile data: ${token}`,
-      );
-    }
-  }
+  let legacyJsonStoreExists = true;
 
-  const jsonStore = JSON.parse(
-    await readFile(
-      path.join(process.cwd(), "data", "account-store.json"),
-      "utf8",
-    ),
-  ) as Record<string, unknown>;
-
-  for (const key of ["users", "profiles", "sessions"]) {
-    if (key in jsonStore) {
-      throw new Error(
-        `data/account-store.json still contains legacy ${key}.`,
-      );
-    }
-  }
-
-  if (!("ordersByProfile" in jsonStore)) {
-    throw new Error("Order compatibility data was removed unexpectedly.");
-  }
-
-  if (!("stripeProcessedEvents" in jsonStore)) {
-    throw new Error(
-      "Stripe event compatibility data was removed unexpectedly.",
+  try {
+    await access(
+      path.join(
+        process.cwd(),
+        "data",
+        "account-store.json",
+      ),
     );
+  } catch {
+    legacyJsonStoreExists = false;
   }
 
-  console.log("PASS - legacy encoded-cookie authentication is removed.");
-  console.log("PASS - JSON users/passwords/profiles/sessions are removed.");
-  console.log("PASS - order and Stripe-event compatibility data remains.");
-  console.log("");
+  assert(
+    !legacyJsonStoreExists,
+    "data/account-store.json still exists.",
+  );
+
+  console.log(
+    "PASS - legacy authentication/account JSON storage remains removed.",
+  );console.log("");
   console.log("SECTION 5.10 PASSED.");
 }
 

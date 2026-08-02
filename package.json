@@ -37,8 +37,10 @@
     "auth:test-core": "npm run auth:test-crypto && npm run auth:test-signup && npm run auth:test-signin && npm run auth:test-session && npm run auth:test-roles && npm run auth:test-context && npm run auth:test-routes && npm run auth:test-proxy && npm run auth:test-no-legacy && npm run auth:test-dev-users && npm run auth:verify",
     "auth:test-all": "npm run auth:test-core && npm run auth:test-browser",
     "data:audit": "tsx prisma/audit-remaining-account-data.ts",
-    "db:import-orders": "tsx prisma/import-account-orders.ts",
-    "db:verify-orders": "tsx prisma/verify-order-migration.ts"
+    "db:verify-orders": "tsx prisma/verify-order-migration.ts",
+    "db:import-stripe-events": "tsx prisma/import-stripe-events.ts",
+    "db:verify-stripe-events": "tsx prisma/verify-stripe-events.ts",
+    "db:verify-no-json-orders": "tsx prisma/verify-json-order-removal.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

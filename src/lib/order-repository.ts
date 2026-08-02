@@ -1,10 +1,5 @@
 import { OrderStatus } from "@/src/generated/prisma/client";
 import type { AccountOrder } from "@/src/types/account";
-import {
-  getAccountOrderById as getJsonOrderById,
-  getAccountOrders as getJsonOrders,
-  saveAccountOrder as saveJsonOrder,
-} from "@/src/lib/account-store";
 import { getPrismaClient } from "@/src/lib/prisma";
 
 function toOrderStatus(status: AccountOrder["status"]): OrderStatus {
@@ -53,7 +48,9 @@ type DatabaseOrder = {
   }>;
 };
 
-function databaseOrderToAccountOrder(order: DatabaseOrder): AccountOrder {
+function databaseOrderToAccountOrder(
+  order: DatabaseOrder,
+): AccountOrder {
   return {
     id: order.id,
     orderedAt: order.orderedAt.toISOString(),
@@ -74,84 +71,55 @@ function databaseOrderToAccountOrder(order: DatabaseOrder): AccountOrder {
   };
 }
 
-async function databaseUserExists(userId: string): Promise<boolean> {
+function requirePrisma() {
   const prisma = getPrismaClient();
 
   if (!prisma) {
-    return false;
+    throw new Error("PostgreSQL is unavailable for order operations.");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true },
-  });
-
-  return Boolean(user);
+  return prisma;
 }
 
 export async function getOrdersForUser(
   userId: string,
 ): Promise<AccountOrder[]> {
-  const prisma = getPrismaClient();
+  const prisma = requirePrisma();
 
-  if (prisma) {
-    try {
-      const orders = await prisma.order.findMany({
-        where: { userId },
-        include: { items: true },
-        orderBy: { orderedAt: "desc" },
-      });
+  const orders = await prisma.order.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      items: true,
+    },
+    orderBy: {
+      orderedAt: "desc",
+    },
+  });
 
-      if (orders.length > 0) {
-        return orders.map(databaseOrderToAccountOrder);
-      }
-
-      // During transition, an empty database result may still have legacy JSON.
-      const fallback = await getJsonOrders(userId);
-      if (fallback.length > 0) {
-        return fallback;
-      }
-
-      return [];
-    } catch (error) {
-      console.warn(
-        "PostgreSQL order read failed; using JSON fallback.",
-        error,
-      );
-    }
-  }
-
-  return getJsonOrders(userId);
+  return orders.map(databaseOrderToAccountOrder);
 }
 
 export async function getOrderForUserById(
   userId: string,
   orderId: string,
 ): Promise<AccountOrder | undefined> {
-  const prisma = getPrismaClient();
+  const prisma = requirePrisma();
 
-  if (prisma) {
-    try {
-      const order = await prisma.order.findFirst({
-        where: {
-          id: orderId,
-          userId,
-        },
-        include: { items: true },
-      });
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      userId,
+    },
+    include: {
+      items: true,
+    },
+  });
 
-      if (order) {
-        return databaseOrderToAccountOrder(order);
-      }
-    } catch (error) {
-      console.warn(
-        "PostgreSQL order lookup failed; using JSON fallback.",
-        error,
-      );
-    }
-  }
-
-  return getJsonOrderById(userId, orderId);
+  return order
+    ? databaseOrderToAccountOrder(order)
+    : undefined;
 }
 
 export async function saveOrderForUser(
@@ -162,94 +130,103 @@ export async function saveOrderForUser(
     paymentId?: string | null;
   },
 ): Promise<AccountOrder[]> {
-  const prisma = getPrismaClient();
+  const prisma = requirePrisma();
 
-  let databaseSaved = false;
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+    },
+  });
 
-  if (prisma && (await databaseUserExists(userId))) {
-    try {
-      await prisma.$transaction(async (tx) => {
-        const existing = await tx.order.findUnique({
-          where: { id: order.id },
-          select: { id: true },
-        });
+  if (!user) {
+    throw new Error(
+      `Cannot save order for unknown PostgreSQL user ${userId}.`,
+    );
+  }
 
-        if (existing) {
-          await tx.orderItem.deleteMany({
-            where: { orderId: order.id },
-          });
+  await prisma.$transaction(async (tx) => {
+    const existing = await tx.order.findUnique({
+      where: {
+        id: order.id,
+      },
+      select: {
+        id: true,
+        userId: true,
+      },
+    });
 
-          await tx.order.update({
-            where: { id: order.id },
-            data: {
-              userId,
-              status: toOrderStatus(order.status),
-              total: order.total,
-              currency: "GBP",
-              stripeSessionId: stripe?.sessionId ?? undefined,
-              stripePaymentId: stripe?.paymentId ?? undefined,
-              shippingName: order.shippingName,
-              shippingEmail: order.shippingEmail,
-              shippingAddress: order.shippingAddress,
-              shippingCity: order.shippingCity,
-              shippingPostcode: order.shippingZip,
-              orderedAt: new Date(order.orderedAt),
-              items: {
-                create: order.items.map((item) => ({
-                  bookId: item.id || null,
-                  titleSnapshot: item.title,
-                  authorSnapshot: item.author,
-                  price: item.price,
-                  quantity: item.quantity,
-                })),
-              },
-            },
-          });
-        } else {
-          await tx.order.create({
-            data: {
-              id: order.id,
-              userId,
-              status: toOrderStatus(order.status),
-              total: order.total,
-              currency: "GBP",
-              stripeSessionId: stripe?.sessionId ?? null,
-              stripePaymentId: stripe?.paymentId ?? null,
-              shippingName: order.shippingName,
-              shippingEmail: order.shippingEmail,
-              shippingAddress: order.shippingAddress,
-              shippingCity: order.shippingCity,
-              shippingPostcode: order.shippingZip,
-              orderedAt: new Date(order.orderedAt),
-              items: {
-                create: order.items.map((item) => ({
-                  bookId: item.id || null,
-                  titleSnapshot: item.title,
-                  authorSnapshot: item.author,
-                  price: item.price,
-                  quantity: item.quantity,
-                })),
-              },
-            },
-          });
-        }
-      });
-
-      databaseSaved = true;
-    } catch (error) {
-      console.error(
-        "PostgreSQL order write failed; preserving JSON compatibility copy.",
-        error,
+    if (existing && existing.userId !== userId) {
+      throw new Error(
+        "Order ID already belongs to another PostgreSQL user.",
       );
     }
-  }
 
-  // Keep JSON mirrored during Section 6.2 even after successful DB writes.
-  const jsonOrders = await saveJsonOrder(userId, order);
+    const orderData = {
+      userId,
+      status: toOrderStatus(order.status),
+      total: order.total,
+      currency: "GBP",
+      shippingName: order.shippingName,
+      shippingEmail: order.shippingEmail,
+      shippingAddress: order.shippingAddress,
+      shippingCity: order.shippingCity,
+      shippingPostcode: order.shippingZip,
+      orderedAt: new Date(order.orderedAt),
+    };
 
-  if (!databaseSaved) {
-    return jsonOrders;
-  }
+    if (existing) {
+      await tx.orderItem.deleteMany({
+        where: {
+          orderId: order.id,
+        },
+      });
+
+      await tx.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          ...orderData,
+          ...(stripe?.sessionId !== undefined
+            ? { stripeSessionId: stripe.sessionId }
+            : {}),
+          ...(stripe?.paymentId !== undefined
+            ? { stripePaymentId: stripe.paymentId }
+            : {}),
+          items: {
+            create: order.items.map((item) => ({
+              bookId: item.id || null,
+              titleSnapshot: item.title,
+              authorSnapshot: item.author,
+              price: item.price,
+              quantity: item.quantity,
+            })),
+          },
+        },
+      });
+    } else {
+      await tx.order.create({
+        data: {
+          id: order.id,
+          ...orderData,
+          stripeSessionId: stripe?.sessionId ?? null,
+          stripePaymentId: stripe?.paymentId ?? null,
+          items: {
+            create: order.items.map((item) => ({
+              bookId: item.id || null,
+              titleSnapshot: item.title,
+              authorSnapshot: item.author,
+              price: item.price,
+              quantity: item.quantity,
+            })),
+          },
+        },
+      });
+    }
+  });
 
   return getOrdersForUser(userId);
 }

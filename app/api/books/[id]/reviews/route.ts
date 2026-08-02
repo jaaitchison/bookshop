@@ -3,7 +3,7 @@ import {
   addBookReview,
   getBookReviews,
 } from "@/src/lib/reviews-store";
-import { getAccountOrders } from "@/src/lib/account-store";
+import { getOrdersForUser } from "@/src/lib/order-repository";
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
 import type { BookReview } from "@/src/types/book";
@@ -34,7 +34,7 @@ export async function POST(
   const [isWriter, isAdmin, orders] = await Promise.all([
     userHasRole(session.userId, "writer"),
     userHasRole(session.userId, "admin"),
-    getAccountOrders(session.userId),
+    getOrdersForUser(session.userId),
   ]);
 
   const hasPurchased = orders.some((order) =>

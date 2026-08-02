@@ -257,3 +257,10 @@ model AuthSession {
   @@index([userId])
   @@index([expiresAt])
 }
+model StripeWebhookEvent {
+  eventId     String   @id
+  eventType   String   @default("")
+  processedAt DateTime @default(now())
+
+  @@index([processedAt])
+}

@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { AccountOrder } from "../src/types/account";
 import {
@@ -10,7 +10,18 @@ import {
 import { getPrismaClient } from "../src/lib/prisma";
 
 function assert(condition: unknown, message: string): asserts condition {
-  if (!condition) throw new Error(message);
+  if (!condition) {
+    throw new Error(message);
+  }
+}
+
+async function fileExists(relativePath: string) {
+  try {
+    await access(path.join(process.cwd(), relativePath));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function main() {
@@ -19,7 +30,9 @@ async function main() {
 
   const suffix = Date.now().toString(36);
   const user = await prisma.user.findUnique({
-    where: { email: "reader@bookshop.local" },
+    where: {
+      email: "reader@bookshop.local",
+    },
   });
 
   assert(
@@ -27,14 +40,24 @@ async function main() {
     "reader@bookshop.local is missing. Run npm run auth:seed-dev-users.",
   );
 
+  const writer = await prisma.user.findUnique({
+    where: {
+      email: "writer@bookshop.local",
+    },
+  });
+
+  assert(writer, "writer@bookshop.local is missing.");
+
   const book = await prisma.book.findFirst({
-    orderBy: { createdAt: "asc" },
+    orderBy: {
+      createdAt: "asc",
+    },
   });
 
   assert(book, "No PostgreSQL book exists for the order test.");
 
   const order: AccountOrder = {
-    id: `section-6-2-${suffix}`,
+    id: `section-6-4-${suffix}`,
     orderedAt: new Date().toISOString(),
     total: Number(book.price.toString()),
     status: "Processing",
@@ -47,7 +70,7 @@ async function main() {
         quantity: 1,
       },
     ],
-    shippingName: "Section 6.2 Test",
+    shippingName: "Section 6.4 Test",
     shippingEmail: user.email,
     shippingAddress: "1 Test Street",
     shippingCity: "Edinburgh",
@@ -55,7 +78,7 @@ async function main() {
   };
 
   console.log("");
-  console.log("SECTION 6.2 PostgreSQL order repository verification");
+  console.log("SECTION 6.4 PostgreSQL-only order verification");
   console.log("");
 
   try {
@@ -63,110 +86,123 @@ async function main() {
     await saveOrderForUser(user.id, order);
 
     const dbOrder = await prisma.order.findUnique({
-      where: { id: order.id },
-      include: { items: true },
+      where: {
+        id: order.id,
+      },
+      include: {
+        items: true,
+      },
     });
 
     assert(dbOrder, "Order was not written to PostgreSQL.");
     assert(dbOrder.userId === user.id, "Order owner is incorrect.");
     assert(dbOrder.items.length === 1, "OrderItem was not created.");
-    assert(dbOrder.items[0].bookId === book.id, "OrderItem book relation is incorrect.");
+    assert(
+      dbOrder.items[0].bookId === book.id,
+      "OrderItem book relation is incorrect.",
+    );
 
-    console.log("   PASS - Order and OrderItem written to PostgreSQL.");
+    console.log(
+      "   PASS - Order and OrderItem are persisted in PostgreSQL.",
+    );
 
     console.log("");
     console.log("2. Repository read");
 
-    const resolved = await getOrderForUserById(user.id, order.id);
-    assert(resolved, "Repository could not read the saved order.");
-    assert(resolved.id === order.id, "Repository returned wrong order.");
-    assert(resolved.items[0].title === book.title, "Snapshot title mismatch.");
+    const resolved = await getOrderForUserById(
+      user.id,
+      order.id,
+    );
 
-    console.log("   PASS - PostgreSQL-first repository returns AccountOrder shape.");
+    assert(resolved, "Repository could not read the saved order.");
+    assert(
+      resolved.items[0].title === book.title,
+      "Snapshot title mismatch.",
+    );
+
+    console.log(
+      "   PASS - PostgreSQL repository returns AccountOrder shape.",
+    );
 
     console.log("");
     console.log("3. User isolation");
 
-    const writer = await prisma.user.findUnique({
-      where: { email: "writer@bookshop.local" },
-    });
-    assert(writer, "Writer dev user missing.");
+    const leaked = await getOrderForUserById(
+      writer.id,
+      order.id,
+    );
 
-    const leaked = await getOrderForUserById(writer.id, order.id);
     assert(!leaked, "Order leaked to another user.");
 
-    console.log("   PASS - order lookup is user-isolated.");
-
-    console.log("");
-    console.log("4. JSON mirror");
-
-    const store = JSON.parse(
-      await readFile(
-        path.join(process.cwd(), "data", "account-store.json"),
-        "utf8",
-      ),
-    ) as {
-      ordersByProfile?: Record<string, AccountOrder[]>;
-    };
-
-    const mirrored = (store.ordersByProfile?.[user.id] ?? []).find(
-      (candidate) => candidate.id === order.id,
+    console.log(
+      "   PASS - PostgreSQL order lookup is user-isolated.",
     );
-    assert(mirrored, "JSON compatibility mirror was not written.");
-
-    console.log("   PASS - JSON compatibility mirror remains available.");
 
     console.log("");
-    console.log("5. List read");
+    console.log("4. List read");
 
     const orders = await getOrdersForUser(user.id);
+
     assert(
       orders.some((candidate) => candidate.id === order.id),
-      "Saved order missing from repository list.",
+      "Saved order missing from PostgreSQL order list.",
     );
 
-    console.log("   PASS - database order appears in user order list.");
+    console.log(
+      "   PASS - database order appears in user order list.",
+    );
+
     console.log("");
-    console.log("SECTION 6.2 PASSED.");
-  } finally {
-    await prisma.order.deleteMany({
-      where: { id: order.id },
-    });
+    console.log("5. JSON runtime removal");
 
-    // Remove only this test order from JSON mirror.
-    const storePath = path.join(
-      process.cwd(),
-      "data",
-      "account-store.json",
+    assert(
+      !(await fileExists("data/account-store.json")),
+      "data/account-store.json still exists as an active compatibility store.",
     );
-    const store = JSON.parse(
-      await readFile(storePath, "utf8"),
-    ) as {
-      ordersByProfile?: Record<string, AccountOrder[]>;
-      stripeProcessedEvents?: string[];
-    };
 
-    if (store.ordersByProfile?.[user.id]) {
-      store.ordersByProfile[user.id] = store.ordersByProfile[user.id].filter(
-        (candidate) => candidate.id !== order.id,
-      );
-    }
+    assert(
+      !(await fileExists("src/lib/account-store.ts")),
+      "src/lib/account-store.ts still exists.",
+    );
 
-    const { writeFile } = await import("node:fs/promises");
-    await writeFile(
-      storePath,
-      JSON.stringify(store, null, 2) + "\n",
+    const repositorySource = await readFile(
+      path.join(
+        process.cwd(),
+        "src",
+        "lib",
+        "order-repository.ts",
+      ),
       "utf8",
     );
 
-    console.log("Temporary Section 6.2 test order cleaned up.");
+    assert(
+      !repositorySource.includes("account-store"),
+      "Order repository still imports the JSON compatibility layer.",
+    );
+
+    console.log(
+      "   PASS - runtime JSON order compatibility layer is gone.",
+    );
+
+    console.log("");
+    console.log("SECTION 6.4 PASSED.");
+  } finally {
+    await prisma.order.deleteMany({
+      where: {
+        id: order.id,
+      },
+    });
+
+    console.log(
+      "Temporary Section 6.4 PostgreSQL order cleaned up.",
+    );
   }
 }
 
 main()
   .catch((error) => {
     console.error("");
-    console.error("SECTION 6.2 FAILED.");
+    console.error("SECTION 6.4 FAILED.");
     console.error(error);
     process.exitCode = 1;
   })
