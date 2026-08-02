@@ -26,8 +26,8 @@ export default function AuthPage() {
   const [formValues, setFormValues] = useState({
     name: '',
     username: '',
-    email: 'maya@example.com',
-    password: 'bookshop',
+    email: '',
+    password: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -70,13 +70,8 @@ export default function AuthPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-violet-700 dark:text-violet-300">Welcome back</p>
             <h2 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Create a shared account for reading, writing, and managing your bookstore experience.</h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-[var(--bookshop-muted)]">
-              Sign in with the demo account or create a new one to unlock the reader dashboard, creator tools, and admin views from the same profile.
+              Sign in with your Bookshop account or create a new reader account to access your library, purchases, and role-based tools.
             </p>
-            <div className="mt-8 rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-4 text-sm text-[var(--bookshop-text)]">
-              <p className="font-semibold">Demo sign-in</p>
-              <p className="mt-2">Email: maya@example.com</p>
-              <p>Password: bookshop</p>
-            </div>
           </div>
 
           <div className="flex-1 rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm sm:px-10 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">

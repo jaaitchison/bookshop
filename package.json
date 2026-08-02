@@ -32,7 +32,10 @@
     "auth:test-dev-users": "tsx prisma/test-dev-auth-users.ts",
     "auth:test-no-legacy": "tsx prisma/test-legacy-auth-removed.ts",
     "auth:test-browser": "playwright test tests/browser/auth-role-flow.spec.ts",
-    "auth:test-browser:headed": "playwright test tests/browser/auth-role-flow.spec.ts --headed"
+    "auth:test-browser:headed": "playwright test tests/browser/auth-role-flow.spec.ts --headed",
+    "auth:verify": "tsx prisma/verify-authentication-closeout.ts",
+    "auth:test-core": "npm run auth:test-crypto && npm run auth:test-signup && npm run auth:test-signin && npm run auth:test-session && npm run auth:test-roles && npm run auth:test-context && npm run auth:test-routes && npm run auth:test-proxy && npm run auth:test-no-legacy && npm run auth:test-dev-users && npm run auth:verify",
+    "auth:test-all": "npm run auth:test-core && npm run auth:test-browser"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

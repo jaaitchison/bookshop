@@ -7,6 +7,7 @@ import {
 } from "../src/lib/database-session";
 import { signinUser } from "../src/lib/signin";
 import { getPrismaClient } from "../src/lib/prisma";
+import { hashSessionToken } from "../src/lib/session-token";
 
 type Role = "reader" | "writer" | "admin";
 
@@ -127,13 +128,16 @@ async function main() {
 
     await revokeDatabaseSession(session.token);
 
-    const remaining = await prisma.authSession.findFirst({
+    const remaining = await prisma.authSession.findUnique({
       where: {
-        userId: signin.profile.id,
+        tokenHash: hashSessionToken(session.token),
       },
     });
 
-    assert(!remaining, "Signout/revoke did not remove the test session.");
+    assert(
+      !remaining,
+      "Signout/revoke did not remove the exact test session.",
+    );
 
     console.log("  PASS - signin, session, authorization and revoke all correct.");
   }

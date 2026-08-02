@@ -21,8 +21,6 @@ interface AccountContextValue {
   updateProfile: (updates: Partial<AccountProfile>) => void;
   setGoals: (goals: AccountGoal[]) => void;
   completeOnboarding: () => void;
-  toggleWriter: (enabled?: boolean) => void;
-  toggleAdmin: (enabled?: boolean) => void;
   setActiveRole: (role: AccountRole) => void;
   hasRole: (role: AccountRole) => boolean;
   isAuthenticated: boolean;
@@ -319,16 +317,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
       }),
     );
   };
-
-  const toggleWriter = () => {
-    console.warn("Writer role changes are server-controlled.");
-  };
-
-  const toggleAdmin = () => {
-    console.warn("Administrator role changes are server-controlled.");
-  };
-
-  const setActiveRole = (role: AccountRole) => {
+const setActiveRole = (role: AccountRole) => {
     setProfile((current) => {
       if (role === "writer" && !current.roles.writer) {
         return current;
@@ -533,8 +522,6 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
         updateProfile,
         setGoals,
         completeOnboarding,
-        toggleWriter,
-        toggleAdmin,
         setActiveRole,
         hasRole,
         isAuthenticated,

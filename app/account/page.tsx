@@ -39,8 +39,6 @@ export default function AccountPage() {
     profile,
     setGoals,
     completeOnboarding,
-    toggleWriter,
-    toggleAdmin,
     setActiveRole,
     hasRole,
     isAuthenticated,
@@ -311,13 +309,6 @@ export default function AccountPage() {
                 >
                   Save onboarding profile
                 </button>
-                <button
-                  type="button"
-                  onClick={() => toggleWriter(true)}
-                  className="bookshop-button-secondary px-5 py-2.5 text-sm"
-                >
-                  Enable creator mode
-                </button>
               </div>
             </div>
 
@@ -408,16 +399,19 @@ export default function AccountPage() {
                     <span className="bookshop-badge bookshop-badge-warning normal-case tracking-normal">Create</span>
                   </div>
                   <p className="mt-2 text-sm text-[var(--bookshop-muted)]">Publish books and manage sales from one place.</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toggleWriter(true);
-                      setActiveRole('writer');
-                    }}
-                    className="bookshop-button-primary mt-4 px-4 py-2 text-sm"
-                  >
-                    {hasRole('writer') ? 'Open creator view' : 'Enable writer mode'}
-                  </button>
+                  {hasRole('writer') ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveRole('writer')}
+                      className="bookshop-button-primary mt-4 px-4 py-2 text-sm"
+                    >
+                      Open creator view
+                    </button>
+                  ) : (
+                    <p className="mt-4 text-sm text-[var(--bookshop-muted)]">
+                      Writer access must be assigned by an administrator.
+                    </p>
+                  )}
                 </div>
                 <div className="bookshop-subcard p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -425,16 +419,19 @@ export default function AccountPage() {
                     <span className="bookshop-badge bookshop-badge-danger normal-case tracking-normal">Manage</span>
                   </div>
                   <p className="mt-2 text-sm text-[var(--bookshop-muted)]">Moderate reviews and guide platform operations.</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toggleAdmin(true);
-                      setActiveRole('admin');
-                    }}
-                    className="bookshop-button-primary mt-4 px-4 py-2 text-sm"
-                  >
-                    {hasRole('admin') ? 'Open admin view' : 'Enable admin access'}
-                  </button>
+                  {hasRole('admin') ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveRole('admin')}
+                      className="bookshop-button-primary mt-4 px-4 py-2 text-sm"
+                    >
+                      Open admin view
+                    </button>
+                  ) : (
+                    <p className="mt-4 text-sm text-[var(--bookshop-muted)]">
+                      Administrator access must be assigned by an administrator.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -463,7 +460,7 @@ export default function AccountPage() {
                       ) : null}
                     </div>
                     <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">
-                      {notification.category} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ {notification.timestamp}
+                      {notification.category} Â· {notification.timestamp}
                     </p>
                   </div>
                 ))}
@@ -565,7 +562,7 @@ export default function AccountPage() {
                     <div className="mt-3 space-y-1 text-sm text-[var(--bookshop-muted)]">
                       {order.items.slice(0, 2).map((item) => (
                         <p key={`${order.id}-${item.id}`}>
-                          {item.title} ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â {item.quantity}
+                          {item.title} ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â {item.quantity}
                         </p>
                       ))}
                     </div>
