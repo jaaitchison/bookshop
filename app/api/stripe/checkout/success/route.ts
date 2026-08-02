@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import {
-  getAccountOrderById,
-  getAccountOrders,
-  saveAccountOrder,
-} from "@/src/lib/account-store";
+  getOrderForUserById,
+  getOrdersForUser,
+  saveOrderForUser,
+} from "@/src/lib/order-repository";
 import {
   DATABASE_AUTH_COOKIE,
   resolveDatabaseSession,
@@ -115,7 +115,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const existingOrder = await getAccountOrderById(
+  const existingOrder = await getOrderForUserById(
     profileId,
     orderPayload.id,
   );
@@ -134,8 +134,8 @@ export async function GET(request: Request) {
   }
 
   const orders = existingOrder
-    ? await getAccountOrders(profileId)
-    : await saveAccountOrder(profileId, orderPayload);
+    ? await getOrdersForUser(profileId)
+    : await saveOrderForUser(profileId, orderPayload);
 
   const purchasedBookIds = Array.from(
     new Set(

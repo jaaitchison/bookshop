@@ -35,7 +35,10 @@
     "auth:test-browser:headed": "playwright test tests/browser/auth-role-flow.spec.ts --headed",
     "auth:verify": "tsx prisma/verify-authentication-closeout.ts",
     "auth:test-core": "npm run auth:test-crypto && npm run auth:test-signup && npm run auth:test-signin && npm run auth:test-session && npm run auth:test-roles && npm run auth:test-context && npm run auth:test-routes && npm run auth:test-proxy && npm run auth:test-no-legacy && npm run auth:test-dev-users && npm run auth:verify",
-    "auth:test-all": "npm run auth:test-core && npm run auth:test-browser"
+    "auth:test-all": "npm run auth:test-core && npm run auth:test-browser",
+    "data:audit": "tsx prisma/audit-remaining-account-data.ts",
+    "db:import-orders": "tsx prisma/import-account-orders.ts",
+    "db:verify-orders": "tsx prisma/verify-order-migration.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

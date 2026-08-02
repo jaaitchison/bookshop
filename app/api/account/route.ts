@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import {
-  getAccountOrders,
-  saveAccountOrder,
-} from "@/src/lib/account-store";
+  getOrdersForUser,
+  saveOrderForUser,
+} from "@/src/lib/order-repository";
 import {
   DATABASE_AUTH_COOKIE,
   resolveDatabaseSession,
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const orders = await getAccountOrders(profileId);
+  const orders = await getOrdersForUser(profileId);
   return NextResponse.json({ orders });
 }
 
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const orders = await saveAccountOrder(
+  const orders = await saveOrderForUser(
     body.profileId,
     body.order,
   );

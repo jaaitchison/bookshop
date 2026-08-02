@@ -3,8 +3,8 @@ import Stripe from "stripe";
 import {
   hasStripeEventBeenProcessed,
   markStripeEventProcessed,
-  saveAccountOrder,
 } from "@/src/lib/account-store";
+import { saveOrderForUser } from "@/src/lib/order-repository";
 import { getPrismaClient } from "@/src/lib/prisma";
 import type { AccountOrder } from "@/src/types/account";
 
@@ -129,7 +129,7 @@ export async function POST(request: Request) {
     );
   }
 
-  await saveAccountOrder(profileId, order);
+  await saveOrderForUser(profileId, order);
   await markStripeEventProcessed(event.id);
 
   return NextResponse.json({
