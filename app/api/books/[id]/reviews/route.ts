@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
-import {
-  addBookReview,
-  getBookReviews,
-} from "@/src/lib/reviews-store";
 import { getOrdersForUser } from "@/src/lib/order-repository";
+import {
+  getPublishedBookReviews,
+  upsertBookReviewForUser,
+} from "@/src/lib/review-repository";
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
-import type { BookReview } from "@/src/types/book";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const reviews = await getBookReviews(id);
+  const reviews = await getPublishedBookReviews(id);
+
   return NextResponse.json(reviews);
 }
 
@@ -48,27 +48,40 @@ export async function POST(
     );
   }
 
-  const body = (await request.json()) as Partial<BookReview>;
+  const body = (await request.json()) as {
+    rating?: number;
+    comment?: string;
+  };
 
   if (
-    !body.user ||
-    !body.comment ||
-    typeof body.rating !== "number"
+    typeof body.rating !== "number" ||
+    typeof body.comment !== "string"
   ) {
     return NextResponse.json(
-      { error: "Please provide a name, comment, and rating." },
+      { error: "Please provide a comment and rating." },
       { status: 400 },
     );
   }
 
-  const review: BookReview = {
-    id: `review-${Date.now()}`,
-    user: body.user.trim(),
-    rating: Math.min(5, Math.max(1, body.rating)),
-    comment: body.comment.trim(),
-    createdAt: new Date().toISOString(),
-  };
+  try {
+    const reviews = await upsertBookReviewForUser({
+      userId: session.userId,
+      bookId: id,
+      rating: body.rating,
+      comment: body.comment,
+      verifiedPurchase: hasPurchased,
+    });
 
-  const reviews = await addBookReview(id, review);
-  return NextResponse.json(reviews);
+    return NextResponse.json(reviews);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Review could not be saved.";
+
+    return NextResponse.json(
+      { error: message },
+      { status: 400 },
+    );
+  }
 }
