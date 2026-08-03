@@ -79,18 +79,25 @@ async function main() {
   console.log("   PASS - database session cookie participates in auth requests.");
 
   console.log("");
-  console.log("5. Order cache scope");
+  console.log("5. Order cache removal");
 
   assert(
-    source.includes("bookshop-account-orders-"),
-    "Order cache was unexpectedly removed.",
+    !source.includes("bookshop-account-orders-"),
+    "Order localStorage key still exists.",
+  );
+  assert(
+    !source.includes("getOrdersStorageKey"),
+    "getOrdersStorageKey still exists.",
+  );
+  assert(
+    !source.includes("localStorage"),
+    "AccountContext still stores order data in localStorage.",
   );
 
-  console.log("   PASS - only non-authentication order caching remains in localStorage.");
+  console.log("   PASS - order data is no longer stored in localStorage.");
 
   console.log("");
-  console.log("");
-  console.log("6. Checkout success no longer restores auth from localStorage");
+  console.log("6. Checkout success uses server-backed orders");
 
   const checkoutSuccessPath = path.join(
     process.cwd(),
@@ -110,11 +117,19 @@ async function main() {
     "Checkout success still imports the old session auth storage key.",
   );
   assert(
-    checkoutSource.includes("getOrdersStorageKey"),
-    "Checkout success unexpectedly lost the harmless order cache.",
+    !checkoutSource.includes("getOrdersStorageKey"),
+    "Checkout success still imports getOrdersStorageKey.",
+  );
+  assert(
+    !checkoutSource.includes("localStorage"),
+    "Checkout success still stores order data in localStorage.",
+  );
+  assert(
+    checkoutSource.includes("refreshOrders"),
+    "Checkout success does not refresh server-backed orders.",
   );
 
-  console.log("   PASS - checkout success keeps order cache only, not auth state.");
+  console.log("   PASS - checkout success refreshes server-backed orders without localStorage.");
 
   console.log("");
   console.log("SECTION 5.7 PASSED.");

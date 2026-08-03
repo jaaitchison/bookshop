@@ -4,12 +4,11 @@ import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAccount } from '@/src/context/AccountContext';
-import { getOrdersStorageKey } from '@/src/context/AccountContext';
 import type { AccountOrder } from '@/src/types/account';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
-  const { profile, orders } = useAccount();
+  const { refreshOrders } = useAccount();
   const sessionId = searchParams.get('session_id');
   const isDemo = searchParams.get('demo') === '1';
   const initialState = isDemo
@@ -60,12 +59,7 @@ function CheckoutSuccessContent() {
             return;
           }
 
-          if (payload.order) {
-            const nextOrders = [payload.order, ...orders.filter((existing) => existing.id !== payload.order?.id)];
-            const storageKey = getOrdersStorageKey(profile.id);
-            window.localStorage.setItem(storageKey, JSON.stringify(nextOrders));
-            window.dispatchEvent(new Event('bookshop-account-updated'));
-          }
+          await refreshOrders();
 
           setStatus('success');
           setMessage(`Your payment was confirmed and your order ${payload.orderId ?? 'is'} is now ready to access.`);
@@ -78,7 +72,7 @@ function CheckoutSuccessContent() {
     };
 
     void completeCheckout();
-  }, [isDemo, orders, profile, sessionId]);
+  }, [isDemo, refreshOrders, sessionId]);
 
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)] py-8">

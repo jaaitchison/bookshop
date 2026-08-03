@@ -3,13 +3,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { getOrdersStorageKey, useAccount } from '@/src/context/AccountContext';
+import { useAccount } from "@/src/context/AccountContext";
 import { accountLibrary } from '@/src/data/account';
 import { mockBooks } from '@/src/data/books';
-import type { AccountOrder } from '@/src/types/account';
 
 export default function LibraryPage() {
-  const { isAuthenticated, orders, profile } = useAccount();
+  const { isAuthenticated, orders } = useAccount();
   const [wishlistItems, setWishlistItems] = useState<string[]>([]);
   const [readingProgressByBook] = useState<Record<string, number>>(() => {
     if (typeof window === 'undefined') {
@@ -49,27 +48,7 @@ export default function LibraryPage() {
     void loadWishlist();
   }, []);
 
-  const resolvedOrders = useMemo(() => {
-    if (orders.length > 0) {
-      return orders;
-    }
-
-    if (typeof window === 'undefined' || !profile.id) {
-      return [] as AccountOrder[];
-    }
-
-    try {
-      const storedValue = window.localStorage.getItem(getOrdersStorageKey(profile.id));
-      if (!storedValue) {
-        return [] as AccountOrder[];
-      }
-
-      const parsed = JSON.parse(storedValue) as AccountOrder[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [] as AccountOrder[];
-    }
-  }, [orders, profile.id]);
+  const resolvedOrders = orders;
 
   const libraryItems = useMemo(() => {
     const purchased = resolvedOrders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {

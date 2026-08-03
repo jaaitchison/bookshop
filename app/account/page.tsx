@@ -3,10 +3,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
-import { getOrdersStorageKey, useAccount } from '@/src/context/AccountContext';
+import { useAccount } from '@/src/context/AccountContext';
 import { accountActivity, accountLibrary, getPersonalizedNotifications } from '@/src/data/account';
 import { mockBooks } from '@/src/data/books';
-import type { AccountOrder, SocialProvider } from '@/src/types/account';
+import type { SocialProvider } from '@/src/types/account';
 
 type GoalOption = {
   id: 'reading' | 'writing' | 'both';
@@ -70,27 +70,7 @@ export default function AccountPage() {
     void loadWishlist();
   }, []);
 
-  const resolvedOrders = useMemo(() => {
-    if (orders.length > 0) {
-      return orders;
-    }
-
-    if (typeof window === 'undefined' || !profile.id) {
-      return [] as AccountOrder[];
-    }
-
-    try {
-      const storedValue = window.localStorage.getItem(getOrdersStorageKey(profile.id));
-      if (!storedValue) {
-        return [] as AccountOrder[];
-      }
-
-      const parsed = JSON.parse(storedValue) as AccountOrder[];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [] as AccountOrder[];
-    }
-  }, [orders, profile.id]);
+  const resolvedOrders = orders;
 
   const notifications = useMemo(() => getPersonalizedNotifications(profile, resolvedOrders), [profile, resolvedOrders]);
   const libraryItems = useMemo(() => {

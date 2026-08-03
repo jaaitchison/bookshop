@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type {
   AccountGoal,
   AccountOrder,
@@ -38,6 +38,7 @@ interface AccountContextValue {
   }) => Promise<boolean>;
   signOut: () => Promise<void>;
   orders: AccountOrder[];
+  refreshOrders: () => Promise<boolean>;
   placeOrder: (input: {
     items: AccountOrderItem[];
     total: number;
@@ -93,8 +94,6 @@ const normalizeProfile = (
   };
 };
 
-export const getOrdersStorageKey = (profileId: string) =>
-  `bookshop-account-orders-${profileId}`;
 
 const AccountContext = createContext<AccountContextValue | undefined>(
   undefined,
@@ -203,37 +202,64 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
+  const refreshOrders = useCallback(async (): Promise<boolean> => {
+    if (!isAuthenticated || !profile.id) {
+      setOrders([]);
+      return false;
+    }
+
+    try {
+      const response = await fetch(ACCOUNT_API_URL, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        setOrders([]);
+        return false;
+      }
+
+      const payload = (await response.json()) as
+        | { orders?: AccountOrder[] }
+        | AccountOrder[];
+
+      const nextOrders = Array.isArray(payload)
+        ? payload
+        : payload.orders;
+
+      if (!Array.isArray(nextOrders)) {
+        setOrders([]);
+        return false;
+      }
+
+      setOrders(nextOrders);
+      return true;
+    } catch {
+      setOrders([]);
+      return false;
+    }
+  }, [isAuthenticated, profile.id]);
+
   useEffect(() => {
-    if (!isAuthenticated || !profile.id || typeof window === "undefined") {
+    if (!isAuthenticated || !profile.id) {
       return;
     }
 
+    let active = true;
+
     const loadOrders = async () => {
-      const storageKey = getOrdersStorageKey(profile.id);
-
       try {
-        const storedOrders = window.localStorage.getItem(storageKey);
-
-        if (storedOrders) {
-          const parsed = JSON.parse(storedOrders) as AccountOrder[];
-          if (Array.isArray(parsed)) {
-            setOrders(parsed);
-          }
-        }
-      } catch {
-        window.localStorage.removeItem(storageKey);
-      }
-
-      try {
-        const response = await fetch(
-          `${ACCOUNT_API_URL}?profileId=${encodeURIComponent(profile.id)}`,
-          {
-            credentials: "include",
-            cache: "no-store",
-          },
-        );
+        const response = await fetch(ACCOUNT_API_URL, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
 
         if (!response.ok) {
+          if (active) {
+            setOrders([]);
+          }
           return;
         }
 
@@ -245,36 +271,22 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
           ? payload
           : payload.orders;
 
-        if (Array.isArray(nextOrders)) {
-          setOrders(nextOrders);
-          window.localStorage.setItem(
-            storageKey,
-            JSON.stringify(nextOrders),
-          );
+        if (active) {
+          setOrders(Array.isArray(nextOrders) ? nextOrders : []);
         }
       } catch {
-        // Keep harmless local order cache until order migration is complete.
+        if (active) {
+          setOrders([]);
+        }
       }
     };
 
     void loadOrders();
+
+    return () => {
+      active = false;
+    };
   }, [isAuthenticated, profile.id]);
-
-  useEffect(() => {
-    if (
-      !isAuthenticated ||
-      !profile.id ||
-      typeof window === "undefined"
-    ) {
-      return;
-    }
-
-    window.localStorage.setItem(
-      getOrdersStorageKey(profile.id),
-      JSON.stringify(orders),
-    );
-  }, [isAuthenticated, orders, profile.id]);
-
   const persistProfileUpdates = async (
     updates: Partial<AccountProfile>,
   ) => {
@@ -528,10 +540,6 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
       shippingZip: input.shipping.zip,
     };
 
-    setOrders((current) => [
-      order,
-      ...current.filter((existing) => existing.id !== order.id),
-    ]);
 
     try {
       const response = await fetch(ACCOUNT_API_URL, {
@@ -548,6 +556,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       if (!response.ok) {
+        await refreshOrders();
         return false;
       }
 
@@ -559,10 +568,9 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
         setOrders(payload.orders);
       }
 
-      return true;
-    } catch {
-      // Keep the local order cache until the Order model migration is wired in.
-      return true;
+      return true;    } catch {
+      await refreshOrders();
+      return false;
     }
   };
 
@@ -585,6 +593,7 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
         signUp,
         signOut,
         orders,
+        refreshOrders,
         placeOrder,
       }}
     >
