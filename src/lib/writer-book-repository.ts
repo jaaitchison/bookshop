@@ -354,3 +354,176 @@ export async function createWriterOwnedDraft(input: {
 
   return mapBook(book);
 }
+
+export type WriterBookMetadataUpdate = {
+  title?: string;
+  description?: string;
+  genre?: string;
+  coverUrl?: string;
+  price?: number;
+  status?: "draft" | "published" | "archived";
+};
+
+export type ManagedBookSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  authorDisplayName: string;
+  authorId: string | null;
+  description: string;
+  genre: string;
+  coverUrl: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  status: "draft" | "published" | "archived";
+  publishedAt: string | null;
+  archivedAt: string | null;
+  updatedAt: string;
+};
+
+function mapManagedBook(book: {
+  id: string;
+  slug: string;
+  title: string;
+  authorDisplayName: string;
+  authorId: string | null;
+  description: string;
+  genre: string;
+  coverUrl: string;
+  price: { toString(): string };
+  ratingAverage: { toString(): string };
+  reviewCount: number;
+  status: BookStatus;
+  publishedAt: Date | null;
+  archivedAt: Date | null;
+  updatedAt: Date;
+}): ManagedBookSummary {
+  return {
+    id: book.id,
+    slug: book.slug,
+    title: book.title,
+    authorDisplayName: book.authorDisplayName,
+    authorId: book.authorId,
+    description: book.description,
+    genre: book.genre,
+    coverUrl: book.coverUrl,
+    price: Number(book.price.toString()),
+    rating: Number(book.ratingAverage.toString()),
+    reviews: book.reviewCount,
+    status: toClientStatus(book.status),
+    publishedAt: book.publishedAt?.toISOString() ?? null,
+    archivedAt: book.archivedAt?.toISOString() ?? null,
+    updatedAt: book.updatedAt.toISOString(),
+  };
+}
+
+export async function updateManagedBookMetadata(
+  userId: string,
+  bookIdOrSlug: string,
+  updates: WriterBookMetadataUpdate,
+): Promise<ManagedBookSummary | null> {
+  const prisma = requirePrisma();
+
+  const existing = await prisma.book.findFirst({
+    where: {
+      OR: [
+        { id: bookIdOrSlug },
+        { slug: bookIdOrSlug },
+      ],
+    },
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  if (!(await canManageBook(userId, existing.id))) {
+    throw new Error("You do not have permission to manage this book.");
+  }
+
+  const data: {
+    title?: string;
+    description?: string;
+    genre?: string;
+    coverUrl?: string;
+    price?: number;
+    status?: BookStatus;
+    publishedAt?: Date | null;
+    archivedAt?: Date | null;
+  } = {};
+
+  if (updates.title !== undefined) {
+    const title = updates.title.trim();
+
+    if (!title) {
+      throw new Error("Book title cannot be empty.");
+    }
+
+    data.title = title;
+  }
+
+  if (updates.description !== undefined) {
+    data.description = updates.description.trim();
+  }
+
+  if (updates.genre !== undefined) {
+    const genre = updates.genre.trim();
+
+    if (!genre) {
+      throw new Error("Book genre cannot be empty.");
+    }
+
+    data.genre = genre;
+  }
+
+  if (updates.coverUrl !== undefined) {
+    data.coverUrl = updates.coverUrl.trim();
+  }
+
+  if (updates.price !== undefined) {
+    if (
+      !Number.isFinite(updates.price) ||
+      updates.price < 0
+    ) {
+      throw new Error("Book price must be zero or greater.");
+    }
+
+    data.price = updates.price;
+  }
+
+  if (updates.status !== undefined) {
+    const now = new Date();
+
+    switch (updates.status) {
+      case "draft":
+        data.status = BookStatus.DRAFT;
+        data.publishedAt = null;
+        data.archivedAt = null;
+        break;
+
+      case "published":
+        data.status = BookStatus.PUBLISHED;
+        data.publishedAt = existing.publishedAt ?? now;
+        data.archivedAt = null;
+        break;
+
+      case "archived":
+        data.status = BookStatus.ARCHIVED;
+        data.archivedAt = now;
+        break;
+
+      default:
+        throw new Error("Invalid publishing status.");
+    }
+  }
+
+  const updated = await prisma.book.update({
+    where: {
+      id: existing.id,
+    },
+    data,
+  });
+
+  return mapManagedBook(updated);
+}
