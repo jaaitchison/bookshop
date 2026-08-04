@@ -3,7 +3,7 @@ import { getPrismaClient } from "@/src/lib/prisma";
 
 export type WriterOwnedBookSummary = {
   id: string;
-  slug: string;
+  slug?: string;
   title: string;
   authorDisplayName: string;
   authorId: string;
@@ -48,7 +48,7 @@ function toClientStatus(
 
 function mapBook(book: {
   id: string;
-  slug: string;
+  slug?: string;
   title: string;
   authorDisplayName: string;
   authorId: string | null;
@@ -266,10 +266,48 @@ export async function canManageBook(
   return book.authorId === userId;
 }
 
+
+export function slugifyBookTitle(title: string): string {
+  const slug = title
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return slug || "untitled-book";
+}
+
+export async function createUniqueBookSlug(
+  title: string,
+): Promise<string> {
+  const prisma = requirePrisma();
+  const baseSlug = slugifyBookTitle(title);
+
+  let candidate = baseSlug;
+  let suffix = 2;
+
+  while (
+    await prisma.book.findUnique({
+      where: {
+        slug: candidate,
+      },
+      select: {
+        id: true,
+      },
+    })
+  ) {
+    candidate = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  return candidate;
+}
 export async function createWriterOwnedDraft(input: {
   userId: string;
   title: string;
-  slug: string;
+  slug?: string;
   description?: string;
   genre?: string;
   coverUrl?: string;
@@ -278,7 +316,9 @@ export async function createWriterOwnedDraft(input: {
   const prisma = requirePrisma();
 
   const title = input.title.trim();
-  const slug = input.slug.trim().toLowerCase();
+  const slug = input.slug?.trim()
+    ? input.slug.trim().toLowerCase()
+    : await createUniqueBookSlug(title);
 
   if (!title) {
     throw new Error("Book title is required.");

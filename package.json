@@ -56,7 +56,9 @@
     "studio:verify-ownership": "tsx prisma/verify-writer-ownership.ts",
     "studio:verify-ownership-source": "tsx prisma/verify-writer-ownership-source.ts",
     "studio:verify-books-api": "tsx prisma/verify-studio-books-api.ts",
-    "studio:verify-books-source": "tsx prisma/verify-studio-books-source.ts"
+    "studio:verify-books-source": "tsx prisma/verify-studio-books-source.ts",
+    "studio:verify-create": "tsx prisma/verify-secure-book-creation.ts",
+    "studio:verify-create-source": "tsx prisma/verify-secure-book-creation-source.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

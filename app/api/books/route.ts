@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import type { FilterOptions } from "@/src/data/books";
 import {
-  createCatalogBook,
   filterCatalogBooks,
   getCatalogBooks,
 } from "@/src/lib/catalog-data";
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
-import type { Book } from "@/src/types/book";
+import {
+  createWriterOwnedDraft,
+} from "@/src/lib/writer-book-repository";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -64,26 +65,63 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as Partial<Book>;
+    const body = (await request.json()) as {
+      title?: string;
+      description?: string;
+      genre?: string;
+      cover?: string;
+      price?: number;
+      slug?: string;
+      author?: string;
+      authorId?: string;
+      status?: string;
+      featured?: boolean;
+      new?: boolean;
+      rating?: number;
+      reviews?: number;
+    };
 
-    const book = await createCatalogBook({
+    if (typeof body.title !== "string" || !body.title.trim()) {
+      return NextResponse.json(
+        { error: "Book title is required." },
+        { status: 400 },
+      );
+    }
+
+    const book = await createWriterOwnedDraft({
+      userId: session.userId,
       title: body.title,
-      author: body.author,
-      cover: body.cover,
-      price: body.price,
-      rating: body.rating,
-      reviews: body.reviews,
-      description: body.description,
-      genre: body.genre,
-      featured: body.featured,
-      new: body.new,
-      status: body.status,
+      slug:
+        typeof body.slug === "string" && body.slug.trim()
+          ? body.slug
+          : undefined,
+      description:
+        typeof body.description === "string"
+          ? body.description
+          : undefined,
+      genre:
+        typeof body.genre === "string"
+          ? body.genre
+          : undefined,
+      coverUrl:
+        typeof body.cover === "string"
+          ? body.cover
+          : undefined,
+      price:
+        typeof body.price === "number"
+          ? body.price
+          : undefined,
     });
 
     return NextResponse.json(book, { status: 201 });
-  } catch {
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to create book";
+
     return NextResponse.json(
-      { error: "Failed to create book" },
+      { error: message },
       { status: 400 },
     );
   }
