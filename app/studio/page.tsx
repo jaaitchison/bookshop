@@ -10,6 +10,15 @@ import WriterActivityFeed from '@/src/components/studio/WriterActivityFeed';
 import DisplaySection from '@/src/components/layout/DisplaySection';
 import type { Book } from '@/src/types/book';
 import type { WriterBook } from '@/src/types/studio';
+type WriterStudioApiBook = {
+  id: string;
+  title: string;
+  genre: string;
+  coverUrl: string;
+  rating: number;
+  reviews: number;
+  status: WriterBook['status'];
+};
 
 export default function WriterStudioPage() {
   const { isAuthenticated, hasRole } = useAccount();
@@ -23,19 +32,30 @@ export default function WriterStudioPage() {
 
     const loadBooks = async () => {
       try {
-        const response = await fetch('/api/books?includeDrafts=true');
-        const data = await response.json();
-        const normalizedBooks = (Array.isArray(data) ? data : []).map((book: Book, index: number) => ({
+        const response = await fetch('/api/studio/books', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          throw new Error('Unable to load Writer books.');
+        }
+
+        const data = (await response.json()) as {
+          books?: WriterStudioApiBook[];
+        };
+
+        const normalizedBooks = (data.books ?? []).map((book, index) => ({
           id: book.id,
           title: book.title,
           genre: book.genre,
-          publishedDate: book.status === 'published' ? 'Published today' : book.status === 'archived' ? 'Archived' : 'Draft in progress',
+          publishedDate: book.status === 'published' ? 'Published' : book.status === 'archived' ? 'Archived' : 'Draft in progress',
           views: 1200 + index * 260 + (book.rating > 0 ? 150 : 0),
           sales: 40 + index * 12 + (book.status === 'published' ? 20 : 0),
           rating: book.rating,
           reviews: book.reviews,
-          status: (book.status ?? 'published') as WriterBook['status'],
-          cover: book.cover,
+          status: book.status,
+          cover: book.coverUrl,
         }));
 
         setBooks(normalizedBooks);

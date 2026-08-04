@@ -11,6 +11,8 @@ export type WriterOwnedBookSummary = {
   genre: string;
   coverUrl: string;
   price: number;
+  rating: number;
+  reviews: number;
   status: "draft" | "published" | "archived";
   publishedAt: string | null;
   archivedAt: string | null;
@@ -54,6 +56,8 @@ function mapBook(book: {
   genre: string;
   coverUrl: string;
   price: { toString(): string };
+  ratingAverage: { toString(): string };
+  reviewCount: number;
   status: BookStatus;
   publishedAt: Date | null;
   archivedAt: Date | null;
@@ -76,6 +80,8 @@ function mapBook(book: {
     genre: book.genre,
     coverUrl: book.coverUrl,
     price: Number(book.price.toString()),
+    rating: Number(book.ratingAverage.toString()),
+    reviews: book.reviewCount,
     status: toClientStatus(book.status),
     publishedAt: book.publishedAt?.toISOString() ?? null,
     archivedAt: book.archivedAt?.toISOString() ?? null,
@@ -174,6 +180,25 @@ export async function getWriterOwnedBooks(
   return books.map(mapBook);
 }
 
+
+export async function getAllWriterOwnedBooks(): Promise<
+  WriterOwnedBookSummary[]
+> {
+  const prisma = requirePrisma();
+
+  const books = await prisma.book.findMany({
+    where: {
+      authorId: {
+        not: null,
+      },
+    },
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+
+  return books.map(mapBook);
+}
 export async function getWriterOwnedBook(
   userId: string,
   bookIdOrSlug: string,
