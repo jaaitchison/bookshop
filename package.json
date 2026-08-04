@@ -52,7 +52,9 @@
     "db:verify-no-browser-reading-progress": "tsx prisma/verify-no-browser-reading-progress.ts",
     "db:verify-account-data": "tsx prisma/verify-account-data-closeout.ts",
     "db:test-account-data": "npm run db:verify-foundation && npm run db:verify-orders && npm run db:verify-stripe-events && npm run db:verify-wishlist && npm run db:verify-reviews && npm run db:verify-profile && npm run db:verify-no-order-cache && npm run db:verify-reading-progress && npm run db:verify-account-data",
-    "studio:verify-audit": "tsx prisma/verify-phase-7-1-audit.ts"
+    "studio:verify-audit": "tsx prisma/verify-phase-7-1-audit.ts",
+    "studio:verify-ownership": "tsx prisma/verify-writer-ownership.ts",
+    "studio:verify-ownership-source": "tsx prisma/verify-writer-ownership-source.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
