@@ -10,30 +10,8 @@ import { mockBooks } from '@/src/data/books';
 export default function LibraryPage() {
   const { isAuthenticated, orders } = useAccount();
   const [wishlistItems, setWishlistItems] = useState<string[]>([]);
-  const [readingProgressByBook] = useState<Record<string, number>>(() => {
-    if (typeof window === 'undefined') {
-      return {};
-    }
-
-    return Object.keys(window.localStorage)
-      .filter((key) => key.startsWith('bookshop-reading-progress-'))
-      .reduce<Record<string, number>>((acc, key) => {
-        try {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) {
-            return acc;
-          }
-          const parsed = JSON.parse(raw) as { progress?: number };
-          const progress = typeof parsed.progress === 'number' ? parsed.progress : 0;
-          const bookId = key.replace('bookshop-reading-progress-', '');
-          acc[bookId] = progress;
-          return acc;
-        } catch {
-          return acc;
-        }
-      }, {});
-  });
-
+  const [readingProgressByBook, setReadingProgressByBook] =
+    useState<Record<string, number>>({});
   useEffect(() => {
     const loadWishlist = async () => {
       try {
@@ -46,6 +24,55 @@ export default function LibraryPage() {
     };
 
     void loadWishlist();
+  }, []);
+  useEffect(() => {
+    let active = true;
+
+    const loadReadingProgress = async () => {
+      try {
+        const response = await fetch('/api/reading-progress', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          if (active) {
+            setReadingProgressByBook({});
+          }
+          return;
+        }
+
+        const data = (await response.json()) as {
+          items?: Array<{
+            bookId: string;
+            progress: number;
+          }>;
+        };
+
+        if (!active) {
+          return;
+        }
+
+        const progressByBook = (data.items ?? []).reduce<
+          Record<string, number>
+        >((acc, item) => {
+          acc[item.bookId] = item.progress;
+          return acc;
+        }, {});
+
+        setReadingProgressByBook(progressByBook);
+      } catch {
+        if (active) {
+          setReadingProgressByBook({});
+        }
+      }
+    };
+
+    void loadReadingProgress();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const resolvedOrders = orders;

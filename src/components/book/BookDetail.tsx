@@ -15,46 +15,14 @@ interface BookDetailProps {
 export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) => {
   const { addItem } = useCart();
   const { isAuthenticated, orders, hasRole } = useAccount();
-  const readingStorageKey = `bookshop-reading-progress-${book.id}`;
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
   const [reviews, setReviews] = useState<BookReview[]>([]);
   const [reviewForm, setReviewForm] = useState({ user: '', rating: 5, comment: '' });
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
-  const [activeChapterId, setActiveChapterId] = useState<string | null>(() => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    try {
-      const savedProgress = window.localStorage.getItem(readingStorageKey);
-      if (!savedProgress) {
-        return null;
-      }
-      const parsed = JSON.parse(savedProgress) as { chapterId?: string };
-      return typeof parsed.chapterId === 'string' ? parsed.chapterId : null;
-    } catch {
-      window.localStorage.removeItem(readingStorageKey);
-      return null;
-    }
-  });
-  const [scrollProgress, setScrollProgress] = useState<number>(() => {
-    if (typeof window === 'undefined') {
-      return 0;
-    }
-
-    try {
-      const savedProgress = window.localStorage.getItem(readingStorageKey);
-      if (!savedProgress) {
-        return 0;
-      }
-      const parsed = JSON.parse(savedProgress) as { progress?: number };
-      return typeof parsed.progress === 'number' && parsed.progress >= 0 && parsed.progress <= 100 ? parsed.progress : 0;
-    } catch {
-      return 0;
-    }
-  });
+  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const chapters = useMemo<BookChapter[]>(() => {
     if (book.manuscriptChapters && book.manuscriptChapters.length > 0) {
@@ -117,18 +85,75 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
   }, [book.id]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !isAuthenticated || !activeChapter) {
+    if (!isAuthenticated) {
       return;
     }
 
-    window.localStorage.setItem(
-      readingStorageKey,
-      JSON.stringify({
-        chapterId: activeChapter.id,
-        progress: scrollProgress,
-      }),
-    );
-  }, [activeChapter, isAuthenticated, readingStorageKey, scrollProgress]);
+    let active = true;
+
+    const loadReadingProgress = async () => {
+      try {
+        const response = await fetch('/api/reading-progress', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as {
+          items?: Array<{
+            bookId: string;
+            chapterId: string | null;
+            progress: number;
+          }>;
+        };
+
+        const item = (data.items ?? []).find(
+          (candidate) => candidate.bookId === book.id,
+        );
+
+        if (!active || !item) {
+          return;
+        }
+
+        setActiveChapterId(item.chapterId);
+        setScrollProgress(item.progress);
+      } catch {
+        // Leave the default chapter and progress unchanged.
+      }
+    };
+
+    void loadReadingProgress();
+
+    return () => {
+      active = false;
+    };
+  }, [book.id, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !activeChapter) {
+      return;
+    }
+
+    const saveReadingProgress = async () => {
+      await fetch('/api/reading-progress', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          chapterId: activeChapter.id,
+          progress: scrollProgress,
+        }),
+      });
+    };
+
+    void saveReadingProgress();
+  }, [activeChapter, book.id, isAuthenticated, scrollProgress]);
 
   const handleWishlistToggle = async () => {
     const nextValue = !isWishlisted;

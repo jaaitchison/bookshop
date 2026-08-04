@@ -47,7 +47,9 @@
     "db:verify-profile-source": "tsx prisma/verify-profile-source.ts",
     "db:verify-no-order-cache": "tsx prisma/verify-no-browser-order-cache.ts",
     "db:verify-reviews": "tsx prisma/verify-review-migration.ts",
-    "db:verify-no-legacy-reviews": "tsx prisma/verify-no-legacy-reviews.ts"
+    "db:verify-no-legacy-reviews": "tsx prisma/verify-no-legacy-reviews.ts",
+    "db:verify-reading-progress": "tsx prisma/verify-reading-progress.ts",
+    "db:verify-no-browser-reading-progress": "tsx prisma/verify-no-browser-reading-progress.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
