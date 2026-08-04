@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import type { WriterBook } from '@/src/types/studio';
 
 interface WriterBooksListProps {
@@ -99,6 +100,12 @@ export default function WriterBooksList({ books, onStatusChange, onDelete }: Wri
                 </td>
                 <td className="px-6 py-4 text-right">
                   <div className="flex flex-wrap justify-end gap-2 text-sm">
+                    <Link
+                      href={`/studio/books/${book.id}`}
+                      className="font-medium text-violet-700 hover:underline dark:text-violet-300"
+                    >
+                      Edit
+                    </Link>
                     <button
                       className="text-violet-700 hover:underline dark:text-violet-300"
                       onClick={() => onStatusChange?.(book.id, 'published')}

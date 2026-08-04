@@ -185,10 +185,13 @@ export default function WriterStudioPage() {
           description="Common Writer Back Office tasks."
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
-              <div className="mb-2 text-2xl">Ã°Å¸â€œÂ</div>
+            <Link
+              href="/studio/new"
+              className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]"
+            >
+              <div className="mb-2 text-2xl" aria-hidden="true">+</div>
               <p className="font-medium text-[var(--bookshop-text)]">Write book</p>
-            </button>
+            </Link>
             <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
               <div className="mb-2 text-2xl">Ã°Å¸â€œÅ </div>
               <p className="font-medium text-[var(--bookshop-text)]">View analytics</p>
