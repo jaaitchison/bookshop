@@ -60,7 +60,9 @@
     "studio:verify-create": "tsx prisma/verify-secure-book-creation.ts",
     "studio:verify-create-source": "tsx prisma/verify-secure-book-creation-source.ts",
     "studio:verify-update": "tsx prisma/verify-secure-book-updates.ts",
-    "studio:verify-update-source": "tsx prisma/verify-secure-book-updates-source.ts"
+    "studio:verify-update-source": "tsx prisma/verify-secure-book-updates-source.ts",
+    "studio:verify-chapters": "tsx prisma/verify-stable-chapters.ts",
+    "studio:verify-chapters-source": "tsx prisma/verify-stable-chapters-source.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

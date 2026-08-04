@@ -388,53 +388,31 @@ export async function updateCatalogBook(
           reviews: Number(updates.reviews ?? current.reviews),
         });
 
-        const updated = await prisma.$transaction(async (tx) => {
-          if (updates.manuscriptChapters) {
-            await tx.chapter.deleteMany({
-              where: {
-                bookId: existing.id,
-              },
-            });
-          }
-
-          return tx.book.update({
-            where: {
-              id: existing.id,
-            },
-            data: {
-              title: next.title,
-              authorDisplayName: next.author,
-              coverUrl: next.cover,
-              price: next.price,
-              ratingAverage: next.rating,
-              reviewCount: next.reviews,
-              description: next.description,
-              genre: next.genre,
-              featured: next.featured ?? false,
-              newRelease: next.new ?? false,
-              status: toBookStatus(next.status),
-              chapters: updates.manuscriptChapters
-                ? {
-                    create: updates.manuscriptChapters.map((chapter, index) => ({
-                      id: chapter.id,
-                      title: chapter.title,
-                      content: chapter.content,
-                      chapterNo: index + 1,
-                      isPreview: chapter.isPreview,
-                    })),
-                  }
-                : undefined,
-            },
-            include: {
-              chapters: {
-                orderBy: {
-                  chapterNo: 'asc',
-                },
+        const updated = await prisma.book.update({
+          where: {
+            id: existing.id,
+          },
+          data: {
+            title: next.title,
+            authorDisplayName: next.author,
+            coverUrl: next.cover,
+            price: next.price,
+            ratingAverage: next.rating,
+            reviewCount: next.reviews,
+            description: next.description,
+            genre: next.genre,
+            featured: next.featured ?? false,
+            newRelease: next.new ?? false,
+            status: toBookStatus(next.status),
+          },
+          include: {
+            chapters: {
+              orderBy: {
+                chapterNo: 'asc',
               },
             },
-          });
+          },
         });
-
         const mapped = mapDatabaseBook(updated);
         await mirrorBookToJson(mapped, 'update');
         return mapped;
