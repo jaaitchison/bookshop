@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
-import { updateManagedChapter } from "@/src/lib/writer-chapter-repository";
+import {
+  updateManagedChapter,
+  WriterChapterConflictError,
+} from "@/src/lib/writer-chapter-repository";
 import {
   getManagedChapterRevision,
   getManagedChapterRevisions,
@@ -57,9 +60,12 @@ export async function POST(request: Request, context: RevisionContext) {
 
   try {
     const { id, chapterId } = await context.params;
-    const body = (await request.json()) as { revisionId?: unknown };
+    const body = (await request.json()) as { revisionId?: unknown; version?: unknown };
     if (typeof body.revisionId !== "string" || !body.revisionId) {
       return NextResponse.json({ error: "A revision ID is required." }, { status: 400 });
+    }
+    if (!Number.isInteger(body.version) || Number(body.version) < 1) {
+      return NextResponse.json({ error: "A valid chapter version is required." }, { status: 400 });
     }
 
     const revision = await getManagedChapterRevision(
@@ -76,6 +82,7 @@ export async function POST(request: Request, context: RevisionContext) {
       title: revision.title,
       content: revision.content,
       isPreview: revision.isPreview,
+      expectedVersion: Number(body.version),
     });
     if (!chapter) {
       return NextResponse.json({ error: "Chapter or book not found." }, { status: 404 });
@@ -83,6 +90,12 @@ export async function POST(request: Request, context: RevisionContext) {
 
     return NextResponse.json({ chapter });
   } catch (error) {
+    if (error instanceof WriterChapterConflictError) {
+      return NextResponse.json(
+        { error: error.message, conflict: true, currentVersion: error.currentVersion },
+        { status: 409 },
+      );
+    }
     if (isPermissionError(error)) {
       return NextResponse.json({ error: "You do not have permission to manage this book." }, { status: 403 });
     }

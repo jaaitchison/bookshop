@@ -187,6 +187,7 @@ async function main() {
           chapterNo: 99,
           id: "replacement-id",
           bookId: foreignBook.id,
+          version: 1,
         },
       ),
       chapterContext(ownedBook.id, firstId),
@@ -300,7 +301,7 @@ async function main() {
       requestForToken(
         adminSession.token,
         "PUT",
-        { title: "Admin Revised" },
+        { title: "Admin Revised", version: 1 },
       ),
       chapterContext(
         ownedBook.id,

@@ -8,6 +8,7 @@ export type ManagedChapter = {
   content: string;
   chapterNo: number;
   isPreview: boolean;
+  version: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -31,6 +32,7 @@ function mapChapter(chapter: {
   content: string;
   chapterNo: number;
   isPreview: boolean;
+  version: number;
   createdAt: Date;
   updatedAt: Date;
 }): ManagedChapter {
@@ -41,6 +43,7 @@ function mapChapter(chapter: {
     content: chapter.content,
     chapterNo: chapter.chapterNo,
     isPreview: chapter.isPreview,
+    version: chapter.version,
     createdAt: chapter.createdAt.toISOString(),
     updatedAt: chapter.updatedAt.toISOString(),
   };
@@ -169,6 +172,7 @@ export async function updateManagedChapter(
     title?: string;
     content?: string;
     isPreview?: boolean;
+    expectedVersion?: number;
   },
 ): Promise<ManagedChapter | null> {
   const prisma = requirePrisma();
@@ -214,12 +218,22 @@ export async function updateManagedChapter(
   }
 
   const updated = await prisma.$transaction(async (tx) => {
-    const saved = await tx.chapter.update({
-      where: {
-        id: existing.id,
-      },
-      data,
+    const expectedVersion = updates.expectedVersion ?? existing.version;
+    const result = await tx.chapter.updateMany({
+      where: { id: existing.id, version: expectedVersion },
+      data: { ...data, version: { increment: 1 } },
     });
+
+    if (result.count !== 1) {
+      const current = await tx.chapter.findUnique({
+        where: { id: existing.id },
+        select: { version: true },
+      });
+      throw new WriterChapterConflictError(current?.version ?? expectedVersion);
+    }
+
+    const saved = await tx.chapter.findUnique({ where: { id: existing.id } });
+    if (!saved) throw new Error("Chapter disappeared during update.");
 
     await tx.chapterRevision.create({
       data: {
@@ -386,4 +400,11 @@ export async function deleteManagedChapter(
   });
 
   return true;
+}
+
+export class WriterChapterConflictError extends Error {
+  constructor(public readonly currentVersion: number) {
+    super("This chapter was updated in another session. Reload the latest version before saving again.");
+    this.name = "WriterChapterConflictError";
+  }
 }

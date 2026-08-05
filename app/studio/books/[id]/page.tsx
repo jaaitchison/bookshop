@@ -35,6 +35,7 @@ type Chapter = {
   content: string;
   chapterNo: number;
   isPreview: boolean;
+  version: number;
 };
 
 type ChapterRevision = {
@@ -115,6 +116,7 @@ export default function WriterBookEditorPage() {
   const [chapterError, setChapterError] = useState<string | null>(null);
   const [bookSaving, setBookSaving] = useState(false);
   const [chapterSaving, setChapterSaving] = useState(false);
+  const [chapterConflict, setChapterConflict] = useState(false);
   const [chapterPreviewOpen, setChapterPreviewOpen] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
@@ -182,6 +184,7 @@ export default function WriterBookEditorPage() {
     setChapterRevisions([]);
     setSelectedRevisionId(null);
     setRevisionError(null);
+    setChapterConflict(false);
   };
   const selectedChapterStatistics = useMemo(
     () =>
@@ -726,6 +729,7 @@ export default function WriterBookEditorPage() {
 
     setChapterSaving(true);
     setChapterError(null);
+    setChapterConflict(false);
 
     try {
       const response = await fetch(
@@ -740,6 +744,7 @@ export default function WriterBookEditorPage() {
             title: chapter.title,
             content: chapter.content,
             isPreview: chapter.isPreview,
+            version: chapter.version,
           }),
         },
       );
@@ -747,6 +752,7 @@ export default function WriterBookEditorPage() {
       const payload = (await response.json()) as {
         chapter?: Chapter;
         error?: string;
+        conflict?: boolean;
       };
 
       if (requestId !== chapterSaveRequestRef.current) {
@@ -754,6 +760,9 @@ export default function WriterBookEditorPage() {
       }
 
       if (!response.ok || !payload.chapter) {
+        if (response.status === 409 && payload.conflict) {
+          setChapterConflict(true);
+        }
         setChapterError(
           payload.error ?? "Unable to save chapter.",
         );
@@ -843,12 +852,23 @@ export default function WriterBookEditorPage() {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ revisionId: selectedRevision.id }),
+          body: JSON.stringify({
+            revisionId: selectedRevision.id,
+            version: selectedChapter.version,
+          }),
         },
       );
-      const payload = (await response.json()) as { chapter?: Chapter; error?: string };
+      const payload = (await response.json()) as {
+        chapter?: Chapter;
+        error?: string;
+        conflict?: boolean;
+      };
 
       if (!response.ok || !payload.chapter) {
+        if (response.status === 409 && payload.conflict) {
+          setChapterConflict(true);
+          setChapterError(payload.error ?? "A newer chapter version is available.");
+        }
         setRevisionError(payload.error ?? "Unable to restore revision.");
         return;
       }
@@ -862,11 +882,50 @@ export default function WriterBookEditorPage() {
         ...current,
         [payload.chapter!.id]: snapshotChapter(payload.chapter!),
       }));
+      setChapterConflict(false);
       await loadRevisionHistory(payload.chapter.id);
     } catch {
       setRevisionError("Unable to restore revision.");
     } finally {
       setRevisionRestoring(false);
+    }
+  };
+
+  const reloadChapterAfterConflict = async () => {
+    if (!selectedChapter) return;
+
+    if (
+      selectedChapterIsDirty &&
+      !window.confirm("Reload the latest saved chapter and discard your local edits?")
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/studio/books/${bookId}/chapters`, {
+        credentials: "include",
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as { chapters?: Chapter[]; error?: string };
+      const latest = payload.chapters?.find((chapter) => chapter.id === selectedChapter.id);
+
+      if (!response.ok || !latest) {
+        setChapterError(payload.error ?? "Unable to reload the latest chapter.");
+        return;
+      }
+
+      setChapters((current) =>
+        current.map((chapter) => chapter.id === latest.id ? latest : chapter),
+      );
+      setChapterBaselines((current) => ({
+        ...current,
+        [latest.id]: snapshotChapter(latest),
+      }));
+      setChapterConflict(false);
+      setChapterError(null);
+      if (revisionHistoryOpen) void loadRevisionHistory(latest.id);
+    } catch {
+      setChapterError("Unable to reload the latest chapter.");
     }
   };
 
@@ -1718,7 +1777,24 @@ export default function WriterBookEditorPage() {
                   </section>
                 ) : null}
 
-                {chapterError ? (
+                {chapterError && chapterConflict ? (
+                  <div
+                    data-testid="chapter-conflict"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100"
+                  >
+                    <div>
+                      <p className="font-semibold">A newer chapter version is already saved.</p>
+                      <p className="mt-1">{chapterError}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void reloadChapterAfterConflict()}
+                      className="bookshop-button-secondary px-3 py-2 text-sm"
+                    >
+                      Reload latest version
+                    </button>
+                  </div>
+                ) : chapterError ? (
                   <p className="text-sm font-medium text-rose-700 dark:text-rose-300">
                     {chapterError}
                   </p>

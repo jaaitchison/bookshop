@@ -4,6 +4,7 @@ import { userHasRole } from "@/src/lib/role-authorization";
 import {
   deleteManagedChapter,
   updateManagedChapter,
+  WriterChapterConflictError,
 } from "@/src/lib/writer-chapter-repository";
 
 async function requireWriterOrAdmin(request: Request) {
@@ -61,7 +62,15 @@ export async function PUT(
       chapterNo?: unknown;
       id?: unknown;
       bookId?: unknown;
+      version?: unknown;
     };
+
+    if (!Number.isInteger(body.version) || Number(body.version) < 1) {
+      return NextResponse.json(
+        { error: "A valid chapter version is required." },
+        { status: 400 },
+      );
+    }
 
     const chapter = await updateManagedChapter(
       session.userId,
@@ -80,6 +89,7 @@ export async function PUT(
           typeof body.isPreview === "boolean"
             ? body.isPreview
             : undefined,
+        expectedVersion: Number(body.version),
       },
     );
 
@@ -92,6 +102,13 @@ export async function PUT(
 
     return NextResponse.json({ chapter });
   } catch (error) {
+    if (error instanceof WriterChapterConflictError) {
+      return NextResponse.json(
+        { error: error.message, conflict: true, currentVersion: error.currentVersion },
+        { status: 409 },
+      );
+    }
+
     if (permissionError(error)) {
       return NextResponse.json(
         { error: "You do not have permission to manage this book." },
