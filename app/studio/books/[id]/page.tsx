@@ -47,6 +47,16 @@ type ChapterRevision = {
   isPreview: boolean;
   createdAt: string;
 };
+type StudioBookFile = {
+  id: string;
+  fileType: "MANUSCRIPT" | "SAMPLE";
+  format: "PDF" | "EPUB";
+  originalName: string;
+  sizeBytes: number;
+  isPublic: boolean;
+  fileUrl: string;
+  updatedAt: string;
+};
 type BookEditableSnapshot = {
   title: string;
   description: string;
@@ -120,6 +130,9 @@ export default function WriterBookEditorPage() {
   const [chapterPreviewOpen, setChapterPreviewOpen] = useState(false);
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
+  const [bookFiles, setBookFiles] = useState<StudioBookFile[]>([]);
+  const [bookFileUploading, setBookFileUploading] = useState<StudioBookFile["fileType"] | null>(null);
+  const [bookFileError, setBookFileError] = useState<string | null>(null);
   const [revisionHistoryOpen, setRevisionHistoryOpen] = useState(false);
   const [chapterRevisions, setChapterRevisions] = useState<ChapterRevision[]>([]);
   const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(null);
@@ -146,6 +159,35 @@ export default function WriterBookEditorPage() {
     () => chapterRevisions.find((revision) => revision.id === selectedRevisionId) ?? null,
     [chapterRevisions, selectedRevisionId],
   );
+  const manuscriptFile = bookFiles.find((file) => file.fileType === "MANUSCRIPT") ?? null;
+  const sampleFile = bookFiles.find((file) => file.fileType === "SAMPLE") ?? null;
+
+  useEffect(() => {
+    let active = true;
+
+    const loadBookFiles = async () => {
+      try {
+        const response = await fetch(`/api/studio/books/${bookId}/manuscript`, {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as { files?: StudioBookFile[]; error?: string };
+        if (!active) return;
+        if (!response.ok || !payload.files) {
+          setBookFileError(payload.error ?? "Unable to load book files.");
+          return;
+        }
+        setBookFiles(payload.files);
+      } catch {
+        if (active) setBookFileError("Unable to load book files.");
+      }
+    };
+
+    void loadBookFiles();
+    return () => {
+      active = false;
+    };
+  }, [bookId]);
 
   const loadRevisionHistory = useCallback(async (chapterId: string) => {
     setRevisionLoading(true);
@@ -606,6 +648,55 @@ export default function WriterBookEditorPage() {
       setCoverError("Unable to remove cover image.");
     } finally {
       setCoverUploading(false);
+    }
+  };
+
+  const uploadBookFile = async (fileType: StudioBookFile["fileType"], file: File) => {
+    setBookFileUploading(fileType);
+    setBookFileError(null);
+    try {
+      const formData = new FormData();
+      formData.set("fileType", fileType);
+      formData.set("file", file);
+      const response = await fetch(`/api/studio/books/${bookId}/manuscript`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const payload = (await response.json()) as { file?: StudioBookFile; error?: string };
+      if (!response.ok || !payload.file) {
+        setBookFileError(payload.error ?? "Unable to upload book file.");
+        return;
+      }
+      setBookFiles((current) => [
+        ...current.filter((entry) => entry.fileType !== fileType),
+        payload.file!,
+      ]);
+    } catch {
+      setBookFileError("Unable to upload book file.");
+    } finally {
+      setBookFileUploading(null);
+    }
+  };
+
+  const removeBookFile = async (fileType: StudioBookFile["fileType"]) => {
+    setBookFileUploading(fileType);
+    setBookFileError(null);
+    try {
+      const response = await fetch(
+        `/api/studio/books/${bookId}/manuscript?fileType=${fileType}`,
+        { method: "DELETE", credentials: "include" },
+      );
+      const payload = (await response.json()) as { removed?: boolean; error?: string };
+      if (!response.ok || !payload.removed) {
+        setBookFileError(payload.error ?? "Unable to remove book file.");
+        return;
+      }
+      setBookFiles((current) => current.filter((entry) => entry.fileType !== fileType));
+    } catch {
+      setBookFileError("Unable to remove book file.");
+    } finally {
+      setBookFileUploading(null);
     }
   };
 
@@ -1317,6 +1408,59 @@ export default function WriterBookEditorPage() {
               />
             </label>
           </div>
+
+          <section className="grid gap-4 rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-5" aria-labelledby="book-files-heading">
+            <div>
+              <h2 id="book-files-heading" className="text-sm font-semibold text-[var(--bookshop-text)]">Manuscript and sample files</h2>
+              <p className="mt-1 text-xs text-[var(--bookshop-muted)]">Private PDF or EPUB storage, up to 25 MB per file. Reader downloads require a library entitlement.</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {([
+                { type: "MANUSCRIPT" as const, label: "Manuscript", file: manuscriptFile },
+                { type: "SAMPLE" as const, label: "Sample", file: sampleFile },
+              ]).map((item) => (
+                <div key={item.type} className="rounded-xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-4">
+                  <p className="text-sm font-semibold text-[var(--bookshop-text)]">{item.label}</p>
+                  {item.file ? (
+                    <p className="mt-2 break-all text-xs text-[var(--bookshop-muted)]">
+                      {item.file.originalName} · {item.file.format} · {(item.file.sizeBytes / 1024).toFixed(1)} KB
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-[var(--bookshop-muted)]">No {item.label.toLowerCase()} uploaded.</p>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <label className="bookshop-button-secondary cursor-pointer px-3 py-2 text-xs">
+                      {item.file ? `Replace ${item.label.toLowerCase()}` : `Upload ${item.label.toLowerCase()}`}
+                      <input
+                        className="sr-only"
+                        type="file"
+                        aria-label={`Upload ${item.label.toLowerCase()}`}
+                        accept="application/pdf,application/epub+zip,.pdf,.epub"
+                        disabled={bookFileUploading !== null}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (file) void uploadBookFile(item.type, file);
+                        }}
+                      />
+                    </label>
+                    {item.file ? (
+                      <button
+                        type="button"
+                        className="bookshop-button-quiet px-3 py-2 text-xs disabled:opacity-60"
+                        disabled={bookFileUploading !== null}
+                        onClick={() => void removeBookFile(item.type)}
+                      >
+                        Remove {item.label.toLowerCase()}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {bookFileUploading ? <p className="text-sm text-[var(--bookshop-muted)]">Saving {bookFileUploading.toLowerCase()}...</p> : null}
+            {bookFileError ? <p role="alert" className="text-sm font-medium text-rose-700 dark:text-rose-300">{bookFileError}</p> : null}
+          </section>
 
           <label className="grid gap-2">
             <span className="text-sm font-semibold text-[var(--bookshop-text)]">Description</span>

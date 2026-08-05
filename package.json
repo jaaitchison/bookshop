@@ -91,7 +91,7 @@
     "writer:verify-concurrency": "tsx prisma/verify-writer-concurrency.ts",
     "writer:test-concurrency": "playwright test tests/browser/writer-chapter-concurrency.spec.ts",
     "writer:verify": "npm run writer:verify-audit && npm run writer:verify-save-state && npm run writer:verify-unsaved && npm run writer:verify-chapter-autosave && npm run writer:verify-book-autosave && npm run writer:verify-statistics && npm run writer:verify-markdown && npm run writer:verify-cover && npm run writer:verify-revisions && npm run writer:test-revisions && npm run writer:verify-history && npm run writer:verify-concurrency",
-    "writer:test-browser": "playwright test tests/browser/writer-unsaved-protection.spec.ts tests/browser/writer-chapter-autosave.spec.ts tests/browser/writer-book-autosave.spec.ts tests/browser/writer-text-statistics.spec.ts tests/browser/writer-markdown.spec.ts tests/browser/writer-cover-upload.spec.ts tests/browser/writer-revision-history.spec.ts tests/browser/writer-chapter-concurrency.spec.ts tests/browser/writer-studio-flow.spec.ts",
+    "writer:test-browser": "playwright test tests/browser/writer-unsaved-protection.spec.ts tests/browser/writer-chapter-autosave.spec.ts tests/browser/writer-book-autosave.spec.ts tests/browser/writer-text-statistics.spec.ts tests/browser/writer-markdown.spec.ts tests/browser/writer-cover-upload.spec.ts tests/browser/writer-manuscript-upload.spec.ts tests/browser/writer-revision-history.spec.ts tests/browser/writer-chapter-concurrency.spec.ts tests/browser/writer-studio-flow.spec.ts",
     "phase8:verify": "tsx prisma/verify-phase-8-closeout.ts",
     "phase8:test": "npm run phase7:test && npm run phase8:verify && npm run writer:verify && npm run writer:test-browser && npm run lint && npm run build",
     "phase9:verify-infrastructure": "tsx prisma/verify-phase-9-1-infrastructure.ts",
@@ -99,7 +99,11 @@
     "phase9:verify-auth": "tsx prisma/verify-phase-9-2-rbac.ts",
     "phase9:test-auth": "npm run phase9:verify-auth && npm run auth:test-core && npm run auth:test-browser && npm run studio:verify-ownership",
     "phase9:verify-cover": "tsx prisma/verify-phase-9-3-cover-pipeline.ts",
-    "phase9:test-cover": "npm run phase9:verify-cover && npm run writer:verify-cover && npm run writer:test-cover"
+    "phase9:test-cover": "npm run phase9:verify-cover && npm run writer:verify-cover && npm run writer:test-cover",
+    "phase9:verify-files": "tsx prisma/verify-phase-9-4-private-files.ts",
+    "phase9:test-files-runtime": "tsx prisma/test-phase-9-4-private-files.ts",
+    "writer:test-files": "playwright test tests/browser/writer-manuscript-upload.spec.ts",
+    "phase9:test-files": "npm run phase9:verify-files && npm run phase9:test-files-runtime && npm run writer:test-files"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

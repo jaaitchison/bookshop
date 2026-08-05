@@ -32,6 +32,11 @@ enum BookFileType {
   SAMPLE
 }
 
+enum BookFileFormat {
+  PDF
+  EPUB
+}
+
 enum OrderStatus {
   PROCESSING
   PACKED
@@ -55,45 +60,45 @@ enum MfaMethod {
 }
 
 model User {
-  id                   String               @id @default(cuid())
-  email                String               @unique
-  passwordHash         String
-  name                 String
-  username             String               @unique
-  bio                  String               @default("")
-  avatar               String               @default("")
-  location             String               @default("")
-  joinedAt             DateTime             @default(now())
-  goals                String[]             @default([])
-  activeRole           RoleKey              @default(READER)
-  onboardingComplete   Boolean              @default(false)
-  connectedSocials     String[]             @default([])
-  mfaEnabled           Boolean              @default(false)
-  mfaMethod            MfaMethod            @default(NONE)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  username           String    @unique
+  bio                String    @default("")
+  avatar             String    @default("")
+  location           String    @default("")
+  joinedAt           DateTime  @default(now())
+  goals              String[]  @default([])
+  activeRole         RoleKey   @default(READER)
+  onboardingComplete Boolean   @default(false)
+  connectedSocials   String[]  @default([])
+  mfaEnabled         Boolean   @default(false)
+  mfaMethod          MfaMethod @default(NONE)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  roles                UserRoleAssignment[]
-  writerProfile        WriterProfile?
-  authoredBooks        Book[]               @relation("BookAuthor")
-  orders               Order[]
-  wishlistItems        WishlistItem[]
-  reviews              Review[]
-  readingProgress      ReadingProgress[]
-  sessions             AuthSession[]
-  chapterRevisions     ChapterRevision[]
-  cart                 Cart?
-  libraryItems         LibraryItem[]
+  roles            UserRoleAssignment[]
+  writerProfile    WriterProfile?
+  authoredBooks    Book[]               @relation("BookAuthor")
+  orders           Order[]
+  wishlistItems    WishlistItem[]
+  reviews          Review[]
+  readingProgress  ReadingProgress[]
+  sessions         AuthSession[]
+  chapterRevisions ChapterRevision[]
+  cart             Cart?
+  libraryItems     LibraryItem[]
 }
 
 model Role {
-  id          String               @id @default(cuid())
-  key         RoleKey              @unique
+  id          String   @id @default(cuid())
+  key         RoleKey  @unique
   name        String
-  description String               @default("")
-  createdAt   DateTime             @default(now())
+  description String   @default("")
+  createdAt   DateTime @default(now())
 
-  users       UserRoleAssignment[]
+  users UserRoleAssignment[]
 }
 
 model UserRoleAssignment {
@@ -101,60 +106,60 @@ model UserRoleAssignment {
   roleId     String
   assignedAt DateTime @default(now())
 
-  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role       Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
   @@index([roleId])
 }
 
 model WriterProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  penName        String?
-  biography      String   @default("")
-  website        String?
-  verified       Boolean  @default(false)
-  approvedAt     DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  penName    String?
+  biography  String    @default("")
+  website    String?
+  verified   Boolean   @default(false)
+  approvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Book {
-  id                String        @id @default(cuid())
-  slug              String        @unique
+  id                String         @id @default(cuid())
+  slug              String         @unique
   title             String
-  subtitle          String        @default("")
+  subtitle          String         @default("")
   authorDisplayName String
   authorId          String?
-  description       String        @default("")
-  genre             String        @default("Fiction")
-  coverUrl          String        @default("")
-  price             Decimal       @default(0) @db.Decimal(10, 2)
-  ratingAverage     Decimal       @default(0) @db.Decimal(3, 2)
-  reviewCount       Int           @default(0)
-  featured          Boolean       @default(false)
-  newRelease        Boolean       @default(false)
-  status            BookStatus    @default(DRAFT)
+  description       String         @default("")
+  genre             String         @default("Fiction")
+  coverUrl          String         @default("")
+  price             Decimal        @default(0) @db.Decimal(10, 2)
+  ratingAverage     Decimal        @default(0) @db.Decimal(3, 2)
+  reviewCount       Int            @default(0)
+  featured          Boolean        @default(false)
+  newRelease        Boolean        @default(false)
+  status            BookStatus     @default(DRAFT)
   visibility        BookVisibility @default(PRIVATE)
   publishedAt       DateTime?
   archivedAt        DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  author            User?         @relation("BookAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  chapters          Chapter[]
-  orderItems        OrderItem[]
-  wishlistItems     WishlistItem[]
-  reviews           Review[]
-  readingProgress   ReadingProgress[]
-  editions          BookEdition[]
-  files             BookFile[]
-  cover              BookCover?
-  cartItems          CartItem[]
-  libraryItems       LibraryItem[]
+  author          User?             @relation("BookAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  chapters        Chapter[]
+  orderItems      OrderItem[]
+  wishlistItems   WishlistItem[]
+  reviews         Review[]
+  readingProgress ReadingProgress[]
+  editions        BookEdition[]
+  files           BookFile[]
+  cover           BookCover?
+  cartItems       CartItem[]
+  libraryItems    LibraryItem[]
 
   @@index([authorId])
   @@index([status])
@@ -164,59 +169,59 @@ model Book {
 }
 
 model Chapter {
-  id          String   @id @default(cuid())
-  bookId      String
-  title       String
-  content     String
-  chapterNo   Int
-  isPreview   Boolean  @default(false)
-  version     Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  bookId    String
+  title     String
+  content   String
+  chapterNo Int
+  isPreview Boolean  @default(false)
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  progress    ReadingProgress[]
-  revisions   ChapterRevision[]
+  book      Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  progress  ReadingProgress[]
+  revisions ChapterRevision[]
 
   @@unique([bookId, chapterNo])
   @@index([bookId])
 }
 
 model Order {
-  id              String      @id @default(cuid())
-  userId          String
-  status          OrderStatus @default(PROCESSING)
-  total           Decimal     @db.Decimal(10, 2)
-  currency        String      @default("GBP")
-  stripeSessionId String?     @unique
-  stripePaymentId String?     @unique
-  shippingName    String
-  shippingEmail   String
-  shippingAddress String
-  shippingCity    String
+  id               String      @id @default(cuid())
+  userId           String
+  status           OrderStatus @default(PROCESSING)
+  total            Decimal     @db.Decimal(10, 2)
+  currency         String      @default("GBP")
+  stripeSessionId  String?     @unique
+  stripePaymentId  String?     @unique
+  shippingName     String
+  shippingEmail    String
+  shippingAddress  String
+  shippingCity     String
   shippingPostcode String
-  orderedAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  orderedAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
-  user            User        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  items           OrderItem[]
+  user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items OrderItem[]
 
   @@index([userId])
   @@index([status])
 }
 
 model OrderItem {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   orderId        String
   bookId         String?
   titleSnapshot  String
   authorSnapshot String
-  price          Decimal  @db.Decimal(10, 2)
-  quantity       Int      @default(1)
+  price          Decimal @db.Decimal(10, 2)
+  quantity       Int     @default(1)
 
-  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  book           Book?    @relation(fields: [bookId], references: [id], onDelete: SetNull)
-  libraryItems   LibraryItem[]
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  book         Book?         @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  libraryItems LibraryItem[]
 
   @@index([orderId])
   @@index([bookId])
@@ -228,8 +233,8 @@ model WishlistItem {
   bookId    String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@unique([userId, bookId])
   @@index([bookId])
@@ -246,8 +251,8 @@ model Review {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book             Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@unique([userId, bookId])
   @@index([bookId])
@@ -255,16 +260,16 @@ model Review {
 }
 
 model ReadingProgress {
-  id          String   @id @default(cuid())
-  userId      String
-  bookId      String
-  chapterId   String?
-  progress    Int      @default(0)
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String
+  bookId    String
+  chapterId String?
+  progress  Int      @default(0)
+  updatedAt DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  chapter     Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book    Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter Chapter? @relation(fields: [chapterId], references: [id], onDelete: SetNull)
 
   @@unique([userId, bookId])
   @@index([bookId])
@@ -272,18 +277,19 @@ model ReadingProgress {
 }
 
 model AuthSession {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
 }
+
 model StripeWebhookEvent {
   eventId     String   @id
   eventType   String   @default("")
@@ -293,15 +299,15 @@ model StripeWebhookEvent {
 }
 
 model LibraryItem {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   bookId      String
   orderItemId String?
-  acquiredAt  DateTime  @default(now())
+  acquiredAt  DateTime @default(now())
 
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  book        Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  orderItem   OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
 
   @@unique([userId, bookId])
   @@index([bookId])
@@ -315,26 +321,31 @@ model BookEdition {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  book      Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  files     BookFile[]
+  book  Book       @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  files BookFile[]
 
   @@index([bookId])
 }
 
 model BookFile {
-  id         String       @id @default(cuid())
-  bookId     String
-  editionId  String?
-  storageKey String       @default("")
-  fileUrl    String
-  fileType   BookFileType
-  isPublic   Boolean      @default(false)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id           String         @id @default(cuid())
+  bookId       String
+  editionId    String?
+  storageKey   String         @default("")
+  fileUrl      String
+  fileType     BookFileType
+  format       BookFileFormat
+  originalName String
+  contentType  String
+  sizeBytes    Int
+  isPublic     Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  book       Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  edition    BookEdition? @relation(fields: [editionId], references: [id], onDelete: SetNull)
+  book    Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  edition BookEdition? @relation(fields: [editionId], references: [id], onDelete: SetNull)
 
+  @@unique([bookId, fileType])
   @@index([bookId])
   @@index([editionId])
   @@index([fileType, isPublic])
@@ -349,7 +360,7 @@ model BookCover {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  book       Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 }
 
 model Cart {
@@ -358,8 +369,8 @@ model Cart {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     CartItem[]
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
 }
 
 model CartItem {
@@ -370,24 +381,24 @@ model CartItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, bookId])
   @@index([bookId])
 }
 
 model ChapterRevision {
-  id            String   @id @default(cuid())
-  chapterId     String
-  userId        String
-  title         String
-  content       String
-  isPreview     Boolean
-  createdAt     DateTime @default(now())
+  id        String   @id @default(cuid())
+  chapterId String
+  userId    String
+  title     String
+  content   String
+  isPreview Boolean
+  createdAt DateTime @default(now())
 
-  chapter       Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  chapter Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([chapterId, createdAt])
   @@index([userId])
