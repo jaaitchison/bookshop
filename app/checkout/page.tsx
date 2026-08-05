@@ -111,7 +111,7 @@ export default function CheckoutPage() {
         }
 
         setLastPurchasedBookId(items[0]?.book.id ?? null);
-        clearCart();
+        await clearCart();
         setSubmittedOrderId(`ORD-${Date.now().toString().slice(-6)}`);
         setFormValues(initialFormValues);
         router.push(payload.fallbackUrl);
@@ -292,7 +292,7 @@ export default function CheckoutPage() {
           </div>
 
           <button
-            onClick={clearCart}
+            onClick={() => void clearCart()}
             className="mt-8 text-sm font-medium text-violet-700 hover:underline dark:text-violet-300"
           >
             Clear cart

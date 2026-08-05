@@ -56,6 +56,8 @@ Convert the current visual shopping cart and checkout components into a secure s
 
 ### 10.1 — Server-Side Cart & Session Synchronization
 
+**Status: complete.** See `docs/SECTION-10-1-PERSISTENT-CART.md` for the implementation and verification record.
+
 - Replace the client-side mock store in `src/lib` with persistent server-side cart records linked to user sessions.
 - Implement `/api/cart` with add, quantity update, remove and server-side price verification.
 

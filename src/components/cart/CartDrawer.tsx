@@ -6,7 +6,19 @@ import Link from 'next/link';
 import { useCart } from '../../context/CartContext';
 
 export const CartDrawer: React.FC = () => {
-  const { items, isOpen, closeCart, removeItem, updateQuantity, subtotal, clearCart } = useCart();
+  const {
+    items,
+    isOpen,
+    closeCart,
+    removeItem,
+    updateQuantity,
+    subtotal,
+    clearCart,
+    isLoading,
+    isUpdating,
+    error,
+    clearError,
+  } = useCart();
 
   if (!isOpen) return null;
 
@@ -24,7 +36,21 @@ export const CartDrawer: React.FC = () => {
           </button>
         </div>
 
-        {items.length === 0 ? (
+        {error ? (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <p>{error}</p>
+            <div className="mt-3 flex gap-3">
+              <Link href="/auth" onClick={closeCart} className="font-semibold underline">Sign in</Link>
+              <button type="button" onClick={clearError} className="font-semibold underline">Dismiss</button>
+            </div>
+          </div>
+        ) : null}
+
+        {isLoading ? (
+          <div className="flex flex-1 items-center justify-center text-sm text-[var(--bookshop-muted)]">
+            Loading your saved cart...
+          </div>
+        ) : items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center text-center">
             <p className="text-lg font-medium text-[var(--bookshop-text)]">Your cart is empty.</p>
             <p className="mt-2 text-sm text-[var(--bookshop-muted)]">Add a few books to see them here.</p>
@@ -45,20 +71,22 @@ export const CartDrawer: React.FC = () => {
                     <div className="mt-2 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => updateQuantity(item.book.id, item.quantity - 1)}
+                          onClick={() => void updateQuantity(item.book.id, item.quantity - 1)}
+                          disabled={isUpdating}
                           className="h-7 w-7 rounded-full border border-[var(--bookshop-border)] text-sm text-[var(--bookshop-text)]"
                         >
                           −
                         </button>
                         <span className="text-sm font-medium text-[var(--bookshop-text)]">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.book.id, item.quantity + 1)}
+                          onClick={() => void updateQuantity(item.book.id, item.quantity + 1)}
+                          disabled={isUpdating}
                           className="h-7 w-7 rounded-full border border-[var(--bookshop-border)] text-sm text-[var(--bookshop-text)]"
                         >
                           +
                         </button>
                       </div>
-                      <button onClick={() => removeItem(item.book.id)} className="text-sm text-rose-600 dark:text-rose-300">
+                      <button disabled={isUpdating} onClick={() => void removeItem(item.book.id)} className="text-sm text-rose-600 disabled:opacity-60 dark:text-rose-300">
                         Remove
                       </button>
                     </div>
@@ -73,7 +101,7 @@ export const CartDrawer: React.FC = () => {
                 <span className="font-semibold text-[var(--bookshop-text)]">${subtotal.toFixed(2)}</span>
               </div>
               <div className="mt-4 flex gap-3">
-                <button onClick={clearCart} className="bookshop-button-quiet flex-1 px-4 py-3 text-sm">
+                <button disabled={isUpdating} onClick={() => void clearCart()} className="bookshop-button-quiet flex-1 px-4 py-3 text-sm disabled:opacity-60">
                   Clear cart
                 </button>
                 <Link href="/checkout" onClick={closeCart} className="bookshop-button-primary flex-1 px-4 py-3 text-center text-sm">

@@ -13,7 +13,7 @@ interface BookDetailProps {
 }
 
 export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) => {
-  const { addItem } = useCart();
+  const { addItem, isLoading: isCartLoading, isUpdating: isCartUpdating } = useCart();
   const { isAuthenticated, orders, hasRole } = useAccount();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
@@ -254,7 +254,11 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
             </div>
 
             <div className="flex flex-wrap gap-4">
-              <button onClick={() => addItem(book)} className="bookshop-button-primary px-6 py-3">
+              <button
+                onClick={() => void addItem(book)}
+                disabled={isCartLoading || isCartUpdating}
+                className="bookshop-button-primary px-6 py-3 disabled:cursor-wait disabled:opacity-70"
+              >
                 Add to cart
               </button>
               <button onClick={handleWishlistToggle} disabled={isUpdatingWishlist} className={`rounded-full border px-6 py-3 font-semibold transition ${isWishlisted ? 'border-amber-400 bg-amber-50 text-amber-700' : 'bookshop-button-quiet'}`}>

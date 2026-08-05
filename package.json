@@ -110,7 +110,11 @@
     "phase9:test-catalogue": "npm run phase9:verify-catalogue && npm run phase9:test-catalogue-runtime && npm run db:test-catalog-mutations && npm run phase9:test-catalogue-browser",
     "phase9:verify-closeout": "tsx prisma/verify-phase-9-closeout.ts",
     "phase9:verify": "npm run phase9:verify-infrastructure && npm run phase9:verify-auth && npm run phase9:verify-cover && npm run phase9:verify-files && npm run phase9:verify-catalogue && npm run phase9:verify-closeout",
-    "phase9:test": "npm run phase9:verify && npm run phase9:test-files-runtime && npm run phase9:test-catalogue-runtime && npm run db:test-catalog-mutations && npm run catalogue:verify-postgresql && npm run catalogue:verify-no-json && npm run auth:test-core && npm run auth:test-browser && npm run studio:verify-ownership && npm run studio:verify-update && npm run writer:verify && npm run writer:test-browser && npm run phase9:test-catalogue-browser && npm run lint && npm run build"
+    "phase9:test": "npm run phase9:verify && npm run phase9:test-files-runtime && npm run phase9:test-catalogue-runtime && npm run db:test-catalog-mutations && npm run catalogue:verify-postgresql && npm run catalogue:verify-no-json && npm run auth:test-core && npm run auth:test-browser && npm run studio:verify-ownership && npm run studio:verify-update && npm run writer:verify && npm run writer:test-browser && npm run phase9:test-catalogue-browser && npm run lint && npm run build",
+    "phase10:verify-cart": "tsx prisma/verify-phase-10-1-cart.ts",
+    "phase10:test-cart-runtime": "tsx prisma/test-phase-10-1-cart.ts",
+    "phase10:test-cart-browser": "playwright test tests/browser/persistent-cart.spec.ts",
+    "phase10:test-cart": "npm run phase10:verify-cart && npm run phase10:test-cart-runtime && npm run phase10:test-cart-browser"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
