@@ -1,8 +1,21 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import {
+  resolveWriterSaveState,
+  writerSaveStateLabel,
+} from "@/src/lib/writer-save-state";
+import {
+  getTextStatistics,
+} from "@/src/lib/writer-text-statistics";
+import {
+  applyMarkdownLinePrefix,
+  applyMarkdownWrap,
+  parseMarkdownBlocks,
+  stripInlineMarkdown,
+} from "@/src/lib/writer-markdown";
 
 type StudioBook = {
   id: string;
@@ -22,6 +35,63 @@ type Chapter = {
   chapterNo: number;
   isPreview: boolean;
 };
+type BookEditableSnapshot = {
+  title: string;
+  description: string;
+  genre: string;
+  coverUrl: string;
+  price: number;
+};
+
+type ChapterEditableSnapshot = {
+  title: string;
+  content: string;
+  isPreview: boolean;
+};
+
+function snapshotBook(book: StudioBook): BookEditableSnapshot {
+  return {
+    title: book.title,
+    description: book.description,
+    genre: book.genre,
+    coverUrl: book.coverUrl,
+    price: Number(book.price),
+  };
+}
+
+function snapshotChapter(
+  chapter: Chapter,
+): ChapterEditableSnapshot {
+  return {
+    title: chapter.title,
+    content: chapter.content,
+    isPreview: chapter.isPreview,
+  };
+}
+
+function sameBookSnapshot(
+  left: BookEditableSnapshot,
+  right: BookEditableSnapshot,
+): boolean {
+  return (
+    left.title === right.title &&
+    left.description === right.description &&
+    left.genre === right.genre &&
+    left.coverUrl === right.coverUrl &&
+    left.price === right.price
+  );
+}
+
+function sameChapterSnapshot(
+  left: ChapterEditableSnapshot,
+  right: ChapterEditableSnapshot,
+): boolean {
+  return (
+    left.title === right.title &&
+    left.content === right.content &&
+    left.isPreview === right.isPreview
+  );
+}
 
 export default function WriterBookEditorPage() {
   const params = useParams<{ id: string }>();
@@ -34,11 +104,217 @@ export default function WriterBookEditorPage() {
   const [chapterError, setChapterError] = useState<string | null>(null);
   const [bookSaving, setBookSaving] = useState(false);
   const [chapterSaving, setChapterSaving] = useState(false);
+  const [chapterPreviewOpen, setChapterPreviewOpen] = useState(false);
+  const [bookBaseline, setBookBaseline] =
+    useState<BookEditableSnapshot | null>(null);
+  const [chapterBaselines, setChapterBaselines] =
+    useState<Record<string, ChapterEditableSnapshot>>({});
+  const chapterAutosaveTimerRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chapterSaveRequestRef = useRef(0);
+  const bookAutosaveTimerRef =
+    useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bookSaveRequestRef = useRef(0);
+  const chapterContentRef = useRef<HTMLTextAreaElement | null>(null);
 
   const selectedChapter = useMemo(
     () => chapters.find((chapter) => chapter.id === selectedChapterId) ?? null,
     [chapters, selectedChapterId],
   );
+  const selectedChapterStatistics = useMemo(
+    () =>
+      getTextStatistics(
+        selectedChapter?.content ?? "",
+      ),
+    [selectedChapter?.content],
+  );
+
+  const manuscriptStatistics = useMemo(() => {
+    const combinedContent = chapters
+      .map((chapter) => chapter.content)
+      .join("\n\n");
+
+    return {
+      ...getTextStatistics(combinedContent),
+      chapters: chapters.length,
+    };
+  }, [chapters]);
+  const selectedChapterPreviewBlocks = useMemo(
+    () =>
+      parseMarkdownBlocks(
+        selectedChapter?.content ?? "",
+      ),
+    [selectedChapter?.content],
+  );
+
+  const updateSelectedChapterContent = (
+    nextContent: string,
+  ) => {
+    if (!selectedChapter) {
+      return;
+    }
+
+    setChapters((current) =>
+      current.map((chapter) =>
+        chapter.id === selectedChapter.id
+          ? {
+              ...chapter,
+              content: nextContent,
+            }
+          : chapter,
+      ),
+    );
+  };
+
+  const applyInlineMarkdown = (
+    before: string,
+    after = before,
+  ) => {
+    if (!selectedChapter || !chapterContentRef.current) {
+      return;
+    }
+
+    const textarea = chapterContentRef.current;
+    const result = applyMarkdownWrap(
+      selectedChapter.content,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      before,
+      after,
+    );
+
+    updateSelectedChapterContent(result.value);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(
+        result.selectionStart,
+        result.selectionEnd,
+      );
+    });
+  };
+
+  const applyLineMarkdown = (
+    prefix: string,
+  ) => {
+    if (!selectedChapter || !chapterContentRef.current) {
+      return;
+    }
+
+    const textarea = chapterContentRef.current;
+    const result = applyMarkdownLinePrefix(
+      selectedChapter.content,
+      textarea.selectionStart,
+      textarea.selectionEnd,
+      prefix,
+    );
+
+    updateSelectedChapterContent(result.value);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(
+        result.selectionStart,
+        result.selectionEnd,
+      );
+    });
+  };
+  const bookIsDirty = useMemo(() => {
+    if (!book || !bookBaseline) {
+      return false;
+    }
+
+    return !sameBookSnapshot(
+      snapshotBook(book),
+      bookBaseline,
+    );
+  }, [book, bookBaseline]);
+
+  const selectedChapterIsDirty = useMemo(() => {
+    if (!selectedChapter) {
+      return false;
+    }
+
+    const baseline =
+      chapterBaselines[selectedChapter.id];
+
+    if (!baseline) {
+      return false;
+    }
+
+    return !sameChapterSnapshot(
+      snapshotChapter(selectedChapter),
+      baseline,
+    );
+  }, [selectedChapter, chapterBaselines]);
+
+  const bookSaveState = resolveWriterSaveState({
+    isDirty: bookIsDirty,
+    isSaving: bookSaving,
+    hasError: Boolean(bookError),
+  });
+
+  const chapterSaveState = resolveWriterSaveState({
+    isDirty: selectedChapterIsDirty,
+    isSaving: chapterSaving,
+    hasError: Boolean(chapterError),
+  });
+  const hasUnsavedChanges =
+    bookIsDirty || selectedChapterIsDirty;
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return;
+    }
+
+    const handleBeforeUnload = (
+      event: BeforeUnloadEvent,
+    ) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener(
+      "beforeunload",
+      handleBeforeUnload,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "beforeunload",
+        handleBeforeUnload,
+      );
+    };
+  }, [hasUnsavedChanges]);
+
+  const confirmUnsavedChanges = (
+    message: string,
+  ): boolean => {
+    if (!hasUnsavedChanges) {
+      return true;
+    }
+
+    return window.confirm(message);
+  };
+
+  const selectChapterSafely = (
+    nextChapterId: string,
+  ) => {
+    if (nextChapterId === selectedChapterId) {
+      return;
+    }
+
+    if (
+      selectedChapterIsDirty &&
+      !window.confirm(
+        "This chapter has unsaved changes. Switch chapters and discard those changes?",
+      )
+    ) {
+      return;
+    }
+
+    setSelectedChapterId(nextChapterId);
+  };
 
   useEffect(() => {
     let active = true;
@@ -85,7 +361,16 @@ export default function WriterBookEditorPage() {
         }
 
         setBook(ownedBook);
+        setBookBaseline(snapshotBook(ownedBook));
         setChapters(nextChapters);
+        setChapterBaselines(
+          Object.fromEntries(
+            nextChapters.map((chapter) => [
+              chapter.id,
+              snapshotChapter(chapter),
+            ]),
+          ),
+        );
         setSelectedChapterId(nextChapters[0]?.id ?? null);
       } catch (error) {
         if (!active) {
@@ -107,27 +392,28 @@ export default function WriterBookEditorPage() {
     };
   }, [bookId]);
 
-  const saveBook = async (event: FormEvent) => {
-    event.preventDefault();
-
-    if (!book) return;
+  const persistBook = useCallback(async (
+    bookToSave: StudioBook,
+  ): Promise<boolean> => {
+    const requestId = bookSaveRequestRef.current + 1;
+    bookSaveRequestRef.current = requestId;
 
     setBookSaving(true);
     setBookError(null);
 
     try {
-      const response = await fetch(`/api/books/${book.id}`, {
+      const response = await fetch(`/api/books/${bookToSave.id}`, {
         method: "PUT",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          title: book.title,
-          description: book.description,
-          genre: book.genre,
-          cover: book.coverUrl,
-          price: Number(book.price),
+          title: bookToSave.title,
+          description: bookToSave.description,
+          genre: bookToSave.genre,
+          cover: bookToSave.coverUrl,
+          price: Number(bookToSave.price),
         }),
       });
 
@@ -135,26 +421,82 @@ export default function WriterBookEditorPage() {
         error?: string;
       };
 
-      if (!response.ok) {
-        setBookError(payload.error ?? "Unable to save book metadata.");
-        return;
+      if (requestId !== bookSaveRequestRef.current) {
+        return false;
       }
 
-      setBook((current) =>
-        current
-          ? {
-              ...current,
-              ...payload,
-            }
-          : current,
-      );
+      if (!response.ok) {
+        setBookError(
+          payload.error ?? "Unable to save book metadata.",
+        );
+        return false;
+      }
+
+      const savedBook = {
+        ...bookToSave,
+        ...payload,
+      };
+
+      setBook(savedBook);
+      setBookBaseline(snapshotBook(savedBook));
+
+      return true;
     } catch {
-      setBookError("Unable to save book metadata.");
+      if (requestId === bookSaveRequestRef.current) {
+        setBookError("Unable to save book metadata.");
+      }
+
+      return false;
     } finally {
-      setBookSaving(false);
+      if (requestId === bookSaveRequestRef.current) {
+        setBookSaving(false);
+      }
     }
+  }, []);
+
+  const saveBook = async (event: FormEvent) => {
+    event.preventDefault();
+
+    if (!book) {
+      return;
+    }
+
+    if (bookAutosaveTimerRef.current) {
+      clearTimeout(bookAutosaveTimerRef.current);
+      bookAutosaveTimerRef.current = null;
+    }
+
+    await persistBook(book);
   };
 
+  useEffect(() => {
+    if (
+      !book ||
+      !bookIsDirty ||
+      bookSaving ||
+      bookError
+    ) {
+      return;
+    }
+
+    bookAutosaveTimerRef.current = setTimeout(() => {
+      bookAutosaveTimerRef.current = null;
+      void persistBook(book);
+    }, 1200);
+
+    return () => {
+      if (bookAutosaveTimerRef.current) {
+        clearTimeout(bookAutosaveTimerRef.current);
+        bookAutosaveTimerRef.current = null;
+      }
+    };
+  }, [
+    book,
+    bookIsDirty,
+    bookSaving,
+    bookError,
+    persistBook,
+  ]);
   const changeStatus = async (
     status: StudioBook["status"],
   ) => {
@@ -224,21 +566,32 @@ export default function WriterBookEditorPage() {
       }
 
       setChapters((current) => [...current, payload.chapter!]);
+      setChapterBaselines((current) => ({
+        ...current,
+        [payload.chapter!.id]: snapshotChapter(payload.chapter!),
+      }));
       setSelectedChapterId(payload.chapter.id);
     } catch {
       setChapterError("Unable to create chapter.");
     }
   };
 
-  const saveChapter = async () => {
-    if (!book || !selectedChapter) return;
+  const persistChapter = useCallback(async (
+    chapter: Chapter,
+  ): Promise<boolean> => {
+    if (!book) {
+      return false;
+    }
+
+    const requestId = chapterSaveRequestRef.current + 1;
+    chapterSaveRequestRef.current = requestId;
 
     setChapterSaving(true);
     setChapterError(null);
 
     try {
       const response = await fetch(
-        `/api/studio/books/${book.id}/chapters/${selectedChapter.id}`,
+        `/api/studio/books/${book.id}/chapters/${chapter.id}`,
         {
           method: "PUT",
           credentials: "include",
@@ -246,9 +599,9 @@ export default function WriterBookEditorPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            title: selectedChapter.title,
-            content: selectedChapter.content,
-            isPreview: selectedChapter.isPreview,
+            title: chapter.title,
+            content: chapter.content,
+            isPreview: chapter.isPreview,
           }),
         },
       );
@@ -258,23 +611,87 @@ export default function WriterBookEditorPage() {
         error?: string;
       };
 
+      if (requestId !== chapterSaveRequestRef.current) {
+        return false;
+      }
+
       if (!response.ok || !payload.chapter) {
-        setChapterError(payload.error ?? "Unable to save chapter.");
-        return;
+        setChapterError(
+          payload.error ?? "Unable to save chapter.",
+        );
+        return false;
       }
 
       setChapters((current) =>
-        current.map((chapter) =>
-          chapter.id === payload.chapter!.id ? payload.chapter! : chapter,
+        current.map((currentChapter) =>
+          currentChapter.id === payload.chapter!.id
+            ? payload.chapter!
+            : currentChapter,
         ),
       );
+
+      setChapterBaselines((current) => ({
+        ...current,
+        [payload.chapter!.id]: snapshotChapter(
+          payload.chapter!,
+        ),
+      }));
+
+      return true;
     } catch {
-      setChapterError("Unable to save chapter.");
+      if (requestId === chapterSaveRequestRef.current) {
+        setChapterError("Unable to save chapter.");
+      }
+
+      return false;
     } finally {
-      setChapterSaving(false);
+      if (requestId === chapterSaveRequestRef.current) {
+        setChapterSaving(false);
+      }
     }
+  }, [book]);
+
+  const saveChapter = async () => {
+    if (!selectedChapter) {
+      return;
+    }
+
+    if (chapterAutosaveTimerRef.current) {
+      clearTimeout(chapterAutosaveTimerRef.current);
+      chapterAutosaveTimerRef.current = null;
+    }
+
+    await persistChapter(selectedChapter);
   };
 
+  useEffect(() => {
+    if (
+      !selectedChapter ||
+      !selectedChapterIsDirty ||
+      chapterSaving ||
+      chapterError
+    ) {
+      return;
+    }
+
+    chapterAutosaveTimerRef.current = setTimeout(() => {
+      chapterAutosaveTimerRef.current = null;
+      void persistChapter(selectedChapter);
+    }, 1200);
+
+    return () => {
+      if (chapterAutosaveTimerRef.current) {
+        clearTimeout(chapterAutosaveTimerRef.current);
+        chapterAutosaveTimerRef.current = null;
+      }
+    };
+  }, [
+    selectedChapter,
+    selectedChapterIsDirty,
+    chapterSaving,
+    chapterError,
+    persistChapter,
+  ]);
   const moveChapter = async (chapterId: string, direction: -1 | 1) => {
     if (!book) return;
 
@@ -350,6 +767,11 @@ export default function WriterBookEditorPage() {
       );
 
       setChapters(remaining);
+      setChapterBaselines((current) => {
+        const next = { ...current };
+        delete next[selectedChapter.id];
+        return next;
+      });
       setSelectedChapterId(remaining[0]?.id ?? null);
     } catch {
       setChapterError("Unable to delete chapter.");
@@ -399,32 +821,134 @@ export default function WriterBookEditorPage() {
               Status: <span className="font-semibold capitalize">{book.status}</span>
             </p>
           </div>
-          <Link href="/studio" className="bookshop-button-quiet px-4 py-2 text-sm">
+          <Link
+            href="/studio"
+            onClick={(event) => {
+              if (
+                !confirmUnsavedChanges(
+                  "You have unsaved changes. Leave the editor and discard them?",
+                )
+              ) {
+                event.preventDefault();
+              }
+            }}
+            className="bookshop-button-quiet px-4 py-2 text-sm"
+          >
             Back to Studio
           </Link>
         </div>
 
+        <section
+          data-testid="manuscript-statistics"
+          className="bookshop-card rounded-3xl p-5"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--bookshop-text)]">
+                Manuscript statistics
+              </h2>
+              <p className="text-sm text-[var(--bookshop-muted)]">
+                Live counts from the chapters currently loaded in Writer Studio.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+              <div>
+                <span className="block text-xs uppercase tracking-wide text-[var(--bookshop-muted)]">
+                  Chapters
+                </span>
+                <strong data-testid="manuscript-chapter-count">
+                  {manuscriptStatistics.chapters}
+                </strong>
+              </div>
+              <div>
+                <span className="block text-xs uppercase tracking-wide text-[var(--bookshop-muted)]">
+                  Words
+                </span>
+                <strong data-testid="manuscript-word-count">
+                  {manuscriptStatistics.words.toLocaleString()}
+                </strong>
+              </div>
+              <div>
+                <span className="block text-xs uppercase tracking-wide text-[var(--bookshop-muted)]">
+                  Characters
+                </span>
+                <strong data-testid="manuscript-character-count">
+                  {manuscriptStatistics.characters.toLocaleString()}
+                </strong>
+              </div>
+              <div>
+                <span className="block text-xs uppercase tracking-wide text-[var(--bookshop-muted)]">
+                  Read time
+                </span>
+                <strong data-testid="manuscript-reading-time">
+                  {manuscriptStatistics.estimatedReadingMinutes} min
+                </strong>
+              </div>
+            </div>
+          </div>
+        </section>
         <form
           onSubmit={saveBook}
           className="bookshop-card grid gap-5 rounded-3xl p-6"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">
-                Book details
-              </h2>
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">
+                  Book details
+                </h2>
+                <span
+                  data-testid="book-save-state"
+                  className="bookshop-badge bookshop-badge-neutral normal-case tracking-normal"
+                >
+                  {writerSaveStateLabel(bookSaveState)}
+                </span>
+                {hasUnsavedChanges ? (
+                  <span
+                    data-testid="unsaved-change-guard"
+                    className="text-xs font-medium text-amber-700 dark:text-amber-300"
+                  >
+                    Leaving this editor will require confirmation.
+                  </span>
+                ) : null}
+              </div>
               <p className="text-sm text-[var(--bookshop-muted)]">
-                Save metadata separately from chapters.
+                Metadata autosaves after a short pause. Publishing status remains explicit.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => void changeStatus("draft")} className="bookshop-button-secondary px-3 py-2 text-sm">
+              <button type="button" onClick={() => {
+                  if (
+                    confirmUnsavedChanges(
+                      "You have unsaved changes. Change publishing status and discard those unsaved edits?",
+                    )
+                  ) {
+                    void changeStatus("draft");
+                  }
+                }} className="bookshop-button-secondary px-3 py-2 text-sm">
                 Draft
               </button>
-              <button type="button" onClick={() => void changeStatus("published")} className="bookshop-button-primary px-3 py-2 text-sm">
+              <button type="button" onClick={() => {
+                  if (
+                    confirmUnsavedChanges(
+                      "You have unsaved changes. Change publishing status and discard those unsaved edits?",
+                    )
+                  ) {
+                    void changeStatus("published");
+                  }
+                }} className="bookshop-button-primary px-3 py-2 text-sm">
                 Publish
               </button>
-              <button type="button" onClick={() => void changeStatus("archived")} className="bookshop-button-quiet px-3 py-2 text-sm">
+              <button type="button" onClick={() => {
+                  if (
+                    confirmUnsavedChanges(
+                      "You have unsaved changes. Change publishing status and discard those unsaved edits?",
+                    )
+                  ) {
+                    void changeStatus("archived");
+                  }
+                }} className="bookshop-button-quiet px-3 py-2 text-sm">
                 Archive
               </button>
             </div>
@@ -510,7 +1034,7 @@ export default function WriterBookEditorPage() {
 
           <div>
             <button
-              disabled={bookSaving}
+              disabled={bookSaving || !bookIsDirty}
               type="submit"
               className="bookshop-button-primary px-5 py-2.5 text-sm disabled:opacity-60"
             >
@@ -557,7 +1081,7 @@ export default function WriterBookEditorPage() {
                 >
                   <button
                     type="button"
-                    onClick={() => setSelectedChapterId(chapter.id)}
+                    onClick={() => selectChapterSafely(chapter.id)}
                     className="w-full text-left"
                   >
                     <span className="text-xs text-[var(--bookshop-muted)]">
@@ -601,11 +1125,20 @@ export default function WriterBookEditorPage() {
               <div className="grid gap-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-lg font-semibold text-[var(--bookshop-text)]">
-                      Chapter {selectedChapter.chapterNo}
-                    </h2>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-lg font-semibold text-[var(--bookshop-text)]">
+                        Chapter {selectedChapter.chapterNo}
+                      </h2>
+                      <span
+                        data-testid="chapter-save-state"
+                        className="bookshop-badge bookshop-badge-neutral normal-case tracking-normal"
+                      >
+                        {writerSaveStateLabel(chapterSaveState)}
+                      </span>
+                    </div>
                     <p className="text-xs text-[var(--bookshop-muted)]">
                       ID remains stable when this chapter is saved or reordered.
+                      Unsaved chapter edits autosave after a short pause.
                     </p>
                   </div>
                   <button
@@ -653,12 +1186,178 @@ export default function WriterBookEditorPage() {
                   Allow this chapter as a public preview
                 </label>
 
+                <div
+                  data-testid="chapter-statistics"
+                  className="grid grid-cols-2 gap-3 rounded-2xl bg-[var(--bookshop-surface-muted)] p-4 text-sm sm:grid-cols-4"
+                >
+                  <div>
+                    <span className="block text-xs uppercase tracking-wide text-[var(--bookshop-muted)]">
+                      Words
+                    </span>
+                    <strong data-testid="chapter-word-count">
+                      {selectedChapterStatistics.words.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="block text-xs uppercase tracking-wide text-[var(--bookshop-muted)]">
+                      Characters
+                    </span>
+                    <strong data-testid="chapter-character-count">
+                      {selectedChapterStatistics.characters.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="block text-xs uppercase tracking-wide text-[var(--bookshop-muted)]">
+                      No spaces
+                    </span>
+                    <strong data-testid="chapter-character-no-spaces">
+                      {selectedChapterStatistics.charactersWithoutSpaces.toLocaleString()}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="block text-xs uppercase tracking-wide text-[var(--bookshop-muted)]">
+                      Read time
+                    </span>
+                    <strong data-testid="chapter-reading-time">
+                      {selectedChapterStatistics.estimatedReadingMinutes} min
+                    </strong>
+                  </div>
+                </div>
+                <div className="grid gap-3">
+                  <div
+                    data-testid="markdown-toolbar"
+                    className="flex flex-wrap gap-2"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => applyLineMarkdown("# ")}
+                      className="bookshop-button-quiet px-3 py-2 text-xs"
+                    >
+                      Heading
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyInlineMarkdown("**")}
+                      className="bookshop-button-quiet px-3 py-2 text-xs"
+                    >
+                      Bold
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyInlineMarkdown("*")}
+                      className="bookshop-button-quiet px-3 py-2 text-xs"
+                    >
+                      Italic
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyLineMarkdown("- ")}
+                      className="bookshop-button-quiet px-3 py-2 text-xs"
+                    >
+                      Bullet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyLineMarkdown("> ")}
+                      className="bookshop-button-quiet px-3 py-2 text-xs"
+                    >
+                      Quote
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setChapterPreviewOpen((current) => !current)
+                      }
+                      className="bookshop-button-quiet px-3 py-2 text-xs"
+                    >
+                      {chapterPreviewOpen ? "Hide preview" : "Show preview"}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-[var(--bookshop-muted)]">
+                    Markdown source is stored directly in this chapter. Supported preview formatting includes headings, bold, italic, bullets and blockquotes.
+                  </p>
+                </div>
+
+                {chapterPreviewOpen ? (
+                  <section
+                    data-testid="markdown-preview"
+                    className="grid gap-3 rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-5"
+                  >
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--bookshop-muted)]">
+                      Chapter preview
+                    </h3>
+
+                    {selectedChapterPreviewBlocks.length > 0 ? (
+                      <div className="grid gap-3 text-[var(--bookshop-text)]">
+                        {selectedChapterPreviewBlocks.map((block, index) => {
+                          const text = stripInlineMarkdown(block.text);
+
+                          if (block.type === "heading") {
+                            const className =
+                              block.level === 1
+                                ? "text-2xl font-bold"
+                                : block.level === 2
+                                  ? "text-xl font-bold"
+                                  : "text-lg font-semibold";
+
+                            return (
+                              <div
+                                key={`${block.type}-${index}`}
+                                className={className}
+                              >
+                                {text}
+                              </div>
+                            );
+                          }
+
+                          if (block.type === "bullet") {
+                            return (
+                              <div
+                                key={`${block.type}-${index}`}
+                                className="flex gap-2"
+                              >
+                                <span aria-hidden="true">-</span>
+                                <span>{text}</span>
+                              </div>
+                            );
+                          }
+
+                          if (block.type === "quote") {
+                            return (
+                              <blockquote
+                                key={`${block.type}-${index}`}
+                                className="border-l-4 border-violet-400 pl-4 italic text-[var(--bookshop-muted)]"
+                              >
+                                {text}
+                              </blockquote>
+                            );
+                          }
+
+                          return (
+                            <p
+                              key={`${block.type}-${index}`}
+                              className="leading-7"
+                            >
+                              {text}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-[var(--bookshop-muted)]">
+                        Start writing to preview this chapter.
+                      </p>
+                    )}
+                  </section>
+                ) : null}
                 <label className="grid gap-2">
                   <span className="text-sm font-semibold text-[var(--bookshop-text)]">
                     Chapter content
                   </span>
                   <textarea
                     className="bookshop-input min-h-[28rem] font-mono text-sm leading-6"
+                    ref={chapterContentRef}
                     value={selectedChapter.content}
                     onChange={(event) =>
                       setChapters((current) =>
@@ -682,7 +1381,7 @@ export default function WriterBookEditorPage() {
                 <div>
                   <button
                     type="button"
-                    disabled={chapterSaving}
+                    disabled={chapterSaving || !selectedChapterIsDirty}
                     onClick={() => void saveChapter()}
                     className="bookshop-button-primary px-5 py-2.5 text-sm disabled:opacity-60"
                   >

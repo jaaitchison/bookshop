@@ -69,7 +69,19 @@
     "studio:test-browser": "playwright test tests/browser/writer-studio-flow.spec.ts",
     "studio:verify-browser-source": "tsx prisma/verify-writer-browser-test-source.ts",
     "phase7:verify": "tsx prisma/verify-phase-7-closeout.ts",
-    "phase7:test": "npm run phase7:verify && npm run catalogue:verify-postgresql && npm run catalogue:verify-no-json && npm run studio:verify-ownership && npm run studio:verify-books-api && npm run studio:verify-create && npm run studio:verify-update && npm run studio:verify-chapters && npm run studio:verify-editor-source && npm run studio:verify-browser-source && npm run studio:test-browser && npm run auth:test-core && npm run auth:test-browser && npm run lint && npm run build"
+    "phase7:test": "npm run phase7:verify && npm run catalogue:verify-postgresql && npm run catalogue:verify-no-json && npm run studio:verify-ownership && npm run studio:verify-books-api && npm run studio:verify-create && npm run studio:verify-update && npm run studio:verify-chapters && npm run studio:verify-editor-source && npm run studio:verify-browser-source && npm run studio:test-browser && npm run auth:test-core && npm run auth:test-browser && npm run lint && npm run build",
+    "writer:verify-audit": "tsx prisma/verify-phase-8-1-editor-audit.ts",
+    "writer:verify-save-state": "tsx prisma/verify-writer-dirty-save-state.ts",
+    "writer:verify-unsaved": "tsx prisma/verify-writer-unsaved-protection.ts",
+    "writer:test-unsaved-browser": "playwright test tests/browser/writer-unsaved-protection.spec.ts",
+    "writer:verify-chapter-autosave": "tsx prisma/verify-writer-chapter-autosave.ts",
+    "writer:test-chapter-autosave": "playwright test tests/browser/writer-chapter-autosave.spec.ts",
+    "writer:verify-book-autosave": "tsx prisma/verify-writer-book-autosave.ts",
+    "writer:test-book-autosave": "playwright test tests/browser/writer-book-autosave.spec.ts",
+    "writer:verify-statistics": "tsx prisma/verify-writer-text-statistics.ts",
+    "writer:test-statistics": "playwright test tests/browser/writer-text-statistics.spec.ts",
+    "writer:verify-markdown": "tsx prisma/verify-writer-markdown.ts",
+    "writer:test-markdown": "playwright test tests/browser/writer-markdown.spec.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
