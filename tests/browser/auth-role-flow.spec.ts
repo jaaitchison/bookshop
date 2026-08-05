@@ -132,7 +132,7 @@ async function assertNav(
 const roleCases: RoleExpectation[] = [
   {
     email: "reader@bookshop.local",
-    allowed: ["/library", "/checkout"],
+    allowed: ["/account", "/library", "/checkout"],
     denied: [
       { path: "/studio", role: "writer" },
       { path: "/admin", role: "admin" },
@@ -142,14 +142,14 @@ const roleCases: RoleExpectation[] = [
   },
   {
     email: "writer@bookshop.local",
-    allowed: ["/library", "/checkout", "/studio"],
+    allowed: ["/account", "/library", "/checkout", "/studio"],
     denied: [{ path: "/admin", role: "admin" }],
     visibleNav: ["Studio"],
     hiddenNav: ["Admin"],
   },
   {
     email: "admin@bookshop.local",
-    allowed: ["/library", "/checkout", "/studio", "/admin"],
+    allowed: ["/account", "/library", "/checkout", "/studio", "/admin"],
     denied: [],
     visibleNav: ["Studio", "Admin"],
     hiddenNav: [],
@@ -157,6 +157,17 @@ const roleCases: RoleExpectation[] = [
 ];
 
 test.describe("Section 5.11 real browser authentication", () => {
+  test("public routes stay public and account requires a session", async ({ page }) => {
+    await clearBrowserAuth(page);
+
+    for (const route of ["/", "/books", "/books/the-midnight-library", "/auth"]) {
+      await assertAllowed(page, route);
+    }
+
+    await page.goto("/account");
+    await expect(page).toHaveURL(/\/auth\?redirect=%2Faccount$/);
+  });
+
   for (const roleCase of roleCases) {
     test(`${roleCase.email} receives only its database-authorized routes`, async ({
       page,

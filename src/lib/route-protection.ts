@@ -1,11 +1,16 @@
 import type { AccountRole } from "@/src/types/account";
 
+function matchesRoute(pathname: string, route: string): boolean {
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
+
 export function isProtectedPath(pathname: string): boolean {
   return (
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/studio") ||
-    pathname.startsWith("/library") ||
-    pathname.startsWith("/checkout")
+    matchesRoute(pathname, "/admin") ||
+    matchesRoute(pathname, "/studio") ||
+    matchesRoute(pathname, "/library") ||
+    matchesRoute(pathname, "/account") ||
+    matchesRoute(pathname, "/checkout")
   );
 }
 
@@ -16,11 +21,11 @@ export function getRequiredRoleForPath(
     return null;
   }
 
-  if (pathname.startsWith("/admin")) {
+  if (matchesRoute(pathname, "/admin")) {
     return "admin";
   }
 
-  if (pathname.startsWith("/studio")) {
+  if (matchesRoute(pathname, "/studio")) {
     return "writer";
   }
 

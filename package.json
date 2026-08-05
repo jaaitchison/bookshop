@@ -95,7 +95,9 @@
     "phase8:verify": "tsx prisma/verify-phase-8-closeout.ts",
     "phase8:test": "npm run phase7:test && npm run phase8:verify && npm run writer:verify && npm run writer:test-browser && npm run lint && npm run build",
     "phase9:verify-infrastructure": "tsx prisma/verify-phase-9-1-infrastructure.ts",
-    "phase9:test-infrastructure": "npm run db:validate && npm run db:generate && npm run db:seed && npm run phase9:verify-infrastructure"
+    "phase9:test-infrastructure": "npm run db:validate && npm run db:generate && npm run db:seed && npm run phase9:verify-infrastructure",
+    "phase9:verify-auth": "tsx prisma/verify-phase-9-2-rbac.ts",
+    "phase9:test-auth": "npm run phase9:verify-auth && npm run auth:test-core && npm run auth:test-browser && npm run studio:verify-ownership"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

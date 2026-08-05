@@ -82,6 +82,7 @@ export const config = {
     "/admin/:path*",
     "/studio/:path*",
     "/library/:path*",
+    "/account/:path*",
     "/checkout/:path*",
   ],
 };

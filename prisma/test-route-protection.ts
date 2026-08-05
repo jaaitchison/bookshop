@@ -78,12 +78,15 @@ async function main() {
     console.log("1. Route policy");
 
     assert(isProtectedPath("/library"), "/library should be protected.");
+    assert(isProtectedPath("/account"), "/account should be protected.");
     assert(isProtectedPath("/checkout"), "/checkout should be protected.");
     assert(isProtectedPath("/studio"), "/studio should be protected.");
     assert(isProtectedPath("/admin"), "/admin should be protected.");
     assert(!isProtectedPath("/books"), "/books should remain public.");
+    assert(!isProtectedPath("/administrator"), "Route-prefix lookalikes should remain public.");
 
     assert(getRequiredRoleForPath("/library") === "reader", "Library role wrong.");
+    assert(getRequiredRoleForPath("/account") === "reader", "Account role wrong.");
     assert(getRequiredRoleForPath("/checkout/success") === "reader", "Checkout role wrong.");
     assert(getRequiredRoleForPath("/studio") === "writer", "Studio role wrong.");
     assert(getRequiredRoleForPath("/admin") === "admin", "Admin role wrong.");
