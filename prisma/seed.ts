@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, RoleKey } from "../src/generated/prisma/client";
+import { seedLegacyCatalog } from "./catalog-seed";
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -43,6 +44,10 @@ async function main() {
   }
 
   console.log("Seeded Reader, Writer and Administrator roles.");
+
+  const catalog = await seedLegacyCatalog(prisma);
+  console.log(`Seeded ${catalog.sourceCount} catalogue books from ${catalog.sourcePath}.`);
+  console.log(`Created: ${catalog.created}; updated: ${catalog.updated}; database total: ${catalog.databaseCount}.`);
 }
 
 main()

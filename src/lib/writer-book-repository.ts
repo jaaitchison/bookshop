@@ -41,7 +41,9 @@ function toClientStatus(
     case BookStatus.ARCHIVED:
       return "archived";
     case BookStatus.DRAFT:
-    default:
+    case BookStatus.IN_REVIEW:
+    case BookStatus.CHANGES_REQUESTED:
+    case BookStatus.APPROVED:
       return "draft";
   }
 }

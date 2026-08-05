@@ -93,7 +93,9 @@
     "writer:verify": "npm run writer:verify-audit && npm run writer:verify-save-state && npm run writer:verify-unsaved && npm run writer:verify-chapter-autosave && npm run writer:verify-book-autosave && npm run writer:verify-statistics && npm run writer:verify-markdown && npm run writer:verify-cover && npm run writer:verify-revisions && npm run writer:test-revisions && npm run writer:verify-history && npm run writer:verify-concurrency",
     "writer:test-browser": "playwright test tests/browser/writer-unsaved-protection.spec.ts tests/browser/writer-chapter-autosave.spec.ts tests/browser/writer-book-autosave.spec.ts tests/browser/writer-text-statistics.spec.ts tests/browser/writer-markdown.spec.ts tests/browser/writer-cover-upload.spec.ts tests/browser/writer-revision-history.spec.ts tests/browser/writer-chapter-concurrency.spec.ts tests/browser/writer-studio-flow.spec.ts",
     "phase8:verify": "tsx prisma/verify-phase-8-closeout.ts",
-    "phase8:test": "npm run phase7:test && npm run phase8:verify && npm run writer:verify && npm run writer:test-browser && npm run lint && npm run build"
+    "phase8:test": "npm run phase7:test && npm run phase8:verify && npm run writer:verify && npm run writer:test-browser && npm run lint && npm run build",
+    "phase9:verify-infrastructure": "tsx prisma/verify-phase-9-1-infrastructure.ts",
+    "phase9:test-infrastructure": "npm run db:validate && npm run db:generate && npm run db:seed && npm run phase9:verify-infrastructure"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

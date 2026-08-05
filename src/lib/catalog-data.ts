@@ -45,11 +45,13 @@ function fromBookStatus(
 ): NonNullable<Book["status"]> {
   switch (status) {
     case BookStatus.DRAFT:
+    case BookStatus.IN_REVIEW:
+    case BookStatus.CHANGES_REQUESTED:
+    case BookStatus.APPROVED:
       return "draft";
     case BookStatus.ARCHIVED:
       return "archived";
     case BookStatus.PUBLISHED:
-    default:
       return "published";
   }
 }
