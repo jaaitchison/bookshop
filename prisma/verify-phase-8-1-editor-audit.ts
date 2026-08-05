@@ -76,17 +76,17 @@ async function main() {
   console.log("3. Revision schema reality");
 
   assert(
-    !schema.includes("model ChapterRevision"),
-    "ChapterRevision already exists; Section 8.1 audit must be updated.",
-  );
-
-  assert(
     audit.includes("schema migration"),
     "Audit does not record the revision-history schema requirement.",
   );
 
+  assert(
+    schema.includes("model ChapterRevision"),
+    "The revision-history schema identified by the audit is missing.",
+  );
+
   console.log(
-    "   PASS - revision-history database work is correctly identified as future work.",
+    "   PASS - the audit requirement is recorded and the revision schema now exists.",
   );
 
   console.log("");

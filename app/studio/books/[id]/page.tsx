@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import {
   resolveWriterSaveState,
@@ -34,6 +35,16 @@ type Chapter = {
   content: string;
   chapterNo: number;
   isPreview: boolean;
+};
+
+type ChapterRevision = {
+  id: string;
+  chapterId: string;
+  userId: string;
+  title: string;
+  content: string;
+  isPreview: boolean;
+  createdAt: string;
 };
 type BookEditableSnapshot = {
   title: string;
@@ -105,6 +116,14 @@ export default function WriterBookEditorPage() {
   const [bookSaving, setBookSaving] = useState(false);
   const [chapterSaving, setChapterSaving] = useState(false);
   const [chapterPreviewOpen, setChapterPreviewOpen] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const [revisionHistoryOpen, setRevisionHistoryOpen] = useState(false);
+  const [chapterRevisions, setChapterRevisions] = useState<ChapterRevision[]>([]);
+  const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(null);
+  const [revisionLoading, setRevisionLoading] = useState(false);
+  const [revisionRestoring, setRevisionRestoring] = useState(false);
+  const [revisionError, setRevisionError] = useState<string | null>(null);
   const [bookBaseline, setBookBaseline] =
     useState<BookEditableSnapshot | null>(null);
   const [chapterBaselines, setChapterBaselines] =
@@ -121,6 +140,49 @@ export default function WriterBookEditorPage() {
     () => chapters.find((chapter) => chapter.id === selectedChapterId) ?? null,
     [chapters, selectedChapterId],
   );
+  const selectedRevision = useMemo(
+    () => chapterRevisions.find((revision) => revision.id === selectedRevisionId) ?? null,
+    [chapterRevisions, selectedRevisionId],
+  );
+
+  const loadRevisionHistory = useCallback(async (chapterId: string) => {
+    setRevisionLoading(true);
+    setRevisionError(null);
+
+    try {
+      const response = await fetch(
+        `/api/studio/books/${bookId}/chapters/${chapterId}/revisions`,
+        { credentials: "include", cache: "no-store" },
+      );
+      const payload = (await response.json()) as {
+        revisions?: ChapterRevision[];
+        error?: string;
+      };
+
+      if (!response.ok || !payload.revisions) {
+        setRevisionError(payload.error ?? "Unable to load revision history.");
+        return;
+      }
+
+      setChapterRevisions(payload.revisions);
+      setSelectedRevisionId((current) =>
+        payload.revisions!.some((revision) => revision.id === current)
+          ? current
+          : payload.revisions![0]?.id ?? null,
+      );
+    } catch {
+      setRevisionError("Unable to load revision history.");
+    } finally {
+      setRevisionLoading(false);
+    }
+  }, [bookId]);
+
+  const resetRevisionHistory = () => {
+    setRevisionHistoryOpen(false);
+    setChapterRevisions([]);
+    setSelectedRevisionId(null);
+    setRevisionError(null);
+  };
   const selectedChapterStatistics = useMemo(
     () =>
       getTextStatistics(
@@ -313,6 +375,7 @@ export default function WriterBookEditorPage() {
       return;
     }
 
+    resetRevisionHistory();
     setSelectedChapterId(nextChapterId);
   };
 
@@ -469,6 +532,80 @@ export default function WriterBookEditorPage() {
     await persistBook(book);
   };
 
+  const applyPersistedCover = (coverUrl: string) => {
+    setBook((current) => current ? { ...current, coverUrl } : current);
+    setBookBaseline((current) => current ? { ...current, coverUrl } : current);
+  };
+
+  const uploadCover = async (file: File) => {
+    if (!book) return;
+
+    if (bookAutosaveTimerRef.current) {
+      clearTimeout(bookAutosaveTimerRef.current);
+      bookAutosaveTimerRef.current = null;
+    }
+
+    bookSaveRequestRef.current += 1;
+    setCoverUploading(true);
+    setCoverError(null);
+
+    try {
+      const formData = new FormData();
+      formData.set("cover", file);
+
+      const response = await fetch(`/api/books/${book.id}/cover`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const payload = (await response.json()) as { coverUrl?: string; error?: string };
+
+      if (!response.ok || typeof payload.coverUrl !== "string") {
+        setCoverError(payload.error ?? "Unable to upload cover image.");
+        return;
+      }
+
+      applyPersistedCover(payload.coverUrl);
+    } catch {
+      setCoverError("Unable to upload cover image.");
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
+  const removeCover = async () => {
+    if (!book || !book.coverUrl) return;
+
+    if (bookAutosaveTimerRef.current) {
+      clearTimeout(bookAutosaveTimerRef.current);
+      bookAutosaveTimerRef.current = null;
+    }
+
+    bookSaveRequestRef.current += 1;
+    setCoverUploading(true);
+    setCoverError(null);
+
+    try {
+      const response = await fetch(`/api/books/${book.id}/cover`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const payload = (await response.json()) as { coverUrl?: string; error?: string };
+
+      if (!response.ok || payload.coverUrl !== "") {
+        setCoverError(payload.error ?? "Unable to remove cover image.");
+        return;
+      }
+
+      applyPersistedCover("");
+    } catch {
+      setCoverError("Unable to remove cover image.");
+    } finally {
+      setCoverUploading(false);
+    }
+  };
+
   useEffect(() => {
     if (
       !book ||
@@ -570,6 +707,7 @@ export default function WriterBookEditorPage() {
         ...current,
         [payload.chapter!.id]: snapshotChapter(payload.chapter!),
       }));
+      resetRevisionHistory();
       setSelectedChapterId(payload.chapter.id);
     } catch {
       setChapterError("Unable to create chapter.");
@@ -637,6 +775,10 @@ export default function WriterBookEditorPage() {
         ),
       }));
 
+      if (revisionHistoryOpen) {
+        void loadRevisionHistory(payload.chapter.id);
+      }
+
       return true;
     } catch {
       if (requestId === chapterSaveRequestRef.current) {
@@ -649,7 +791,7 @@ export default function WriterBookEditorPage() {
         setChapterSaving(false);
       }
     }
-  }, [book]);
+  }, [book, loadRevisionHistory, revisionHistoryOpen]);
 
   const saveChapter = async () => {
     if (!selectedChapter) {
@@ -662,6 +804,70 @@ export default function WriterBookEditorPage() {
     }
 
     await persistChapter(selectedChapter);
+  };
+
+  const toggleRevisionHistory = () => {
+    if (!selectedChapter) return;
+
+    const nextOpen = !revisionHistoryOpen;
+    setRevisionHistoryOpen(nextOpen);
+    if (nextOpen) void loadRevisionHistory(selectedChapter.id);
+  };
+
+  const restoreRevision = async () => {
+    if (!selectedChapter || !selectedRevision) return;
+
+    if (
+      selectedChapterIsDirty &&
+      !window.confirm(
+        "This chapter has unsaved changes. Restore the selected revision and discard those edits?",
+      )
+    ) {
+      return;
+    }
+
+    if (chapterAutosaveTimerRef.current) {
+      clearTimeout(chapterAutosaveTimerRef.current);
+      chapterAutosaveTimerRef.current = null;
+    }
+
+    chapterSaveRequestRef.current += 1;
+    setRevisionRestoring(true);
+    setRevisionError(null);
+    setChapterError(null);
+
+    try {
+      const response = await fetch(
+        `/api/studio/books/${bookId}/chapters/${selectedChapter.id}/revisions`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ revisionId: selectedRevision.id }),
+        },
+      );
+      const payload = (await response.json()) as { chapter?: Chapter; error?: string };
+
+      if (!response.ok || !payload.chapter) {
+        setRevisionError(payload.error ?? "Unable to restore revision.");
+        return;
+      }
+
+      setChapters((current) =>
+        current.map((chapter) =>
+          chapter.id === payload.chapter!.id ? payload.chapter! : chapter,
+        ),
+      );
+      setChapterBaselines((current) => ({
+        ...current,
+        [payload.chapter!.id]: snapshotChapter(payload.chapter!),
+      }));
+      await loadRevisionHistory(payload.chapter.id);
+    } catch {
+      setRevisionError("Unable to restore revision.");
+    } finally {
+      setRevisionRestoring(false);
+    }
   };
 
   useEffect(() => {
@@ -772,6 +978,7 @@ export default function WriterBookEditorPage() {
         delete next[selectedChapter.id];
         return next;
       });
+      resetRevisionHistory();
       setSelectedChapterId(remaining[0]?.id ?? null);
     } catch {
       setChapterError("Unable to delete chapter.");
@@ -981,18 +1188,57 @@ export default function WriterBookEditorPage() {
               />
             </label>
 
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold text-[var(--bookshop-text)]">Cover URL</span>
-              <input
-                className="bookshop-input"
-                value={book.coverUrl}
-                onChange={(event) =>
-                  setBook((current) =>
-                    current ? { ...current, coverUrl: event.target.value } : current,
-                  )
-                }
-              />
-            </label>
+            <section className="grid gap-3" aria-labelledby="cover-image-heading">
+              <span id="cover-image-heading" className="text-sm font-semibold text-[var(--bookshop-text)]">
+                Cover image
+              </span>
+              {book.coverUrl ? (
+                <div className="relative aspect-[2/3] w-32 overflow-hidden rounded-xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)]">
+                  <Image
+                    src={book.coverUrl}
+                    alt={`Cover preview for ${book.title}`}
+                    fill
+                    sizes="128px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="flex aspect-[2/3] w-32 items-center justify-center rounded-xl border border-dashed border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] px-3 text-center text-xs text-[var(--bookshop-muted)]">
+                  No cover uploaded
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <label className="bookshop-button-secondary cursor-pointer px-3 py-2 text-sm">
+                  {book.coverUrl ? "Replace cover" : "Upload cover"}
+                  <input
+                    className="sr-only"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={coverUploading}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      event.target.value = "";
+                      if (file) void uploadCover(file);
+                    }}
+                  />
+                </label>
+                {book.coverUrl ? (
+                  <button
+                    type="button"
+                    disabled={coverUploading}
+                    onClick={() => void removeCover()}
+                    className="bookshop-button-quiet px-3 py-2 text-sm disabled:opacity-60"
+                  >
+                    Remove cover
+                  </button>
+                ) : null}
+              </div>
+              <p className="text-xs text-[var(--bookshop-muted)]">
+                JPEG, PNG or WebP, up to 5 MB.
+              </p>
+              {coverUploading ? <p className="text-sm text-[var(--bookshop-muted)]">Uploading cover...</p> : null}
+              {coverError ? <p role="alert" className="text-sm font-medium text-rose-700 dark:text-rose-300">{coverError}</p> : null}
+            </section>
 
             <label className="grid gap-2">
               <span className="text-sm font-semibold text-[var(--bookshop-text)]">Price (Â£)</span>
@@ -1141,13 +1387,22 @@ export default function WriterBookEditorPage() {
                       Unsaved chapter edits autosave after a short pause.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void deleteChapter()}
-                    className="text-sm font-medium text-rose-700 hover:underline dark:text-rose-300"
-                  >
-                    Delete chapter
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={toggleRevisionHistory}
+                      className="bookshop-button-quiet px-3 py-2 text-sm"
+                    >
+                      {revisionHistoryOpen ? "Hide revision history" : "Show revision history"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void deleteChapter()}
+                      className="text-sm font-medium text-rose-700 hover:underline dark:text-rose-300"
+                    >
+                      Delete chapter
+                    </button>
+                  </div>
                 </div>
 
                 <label className="grid gap-2">
@@ -1371,6 +1626,97 @@ export default function WriterBookEditorPage() {
                     placeholder="Start writingâ€¦"
                   />
                 </label>
+
+                {revisionHistoryOpen ? (
+                  <section
+                    data-testid="revision-history"
+                    className="grid gap-4 rounded-2xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)] p-5"
+                  >
+                    <div>
+                      <h3 className="text-base font-semibold text-[var(--bookshop-text)]">
+                        Revision history
+                      </h3>
+                      <p className="text-xs text-[var(--bookshop-muted)]">
+                        Inspect saved versions and restore one without deleting later history.
+                      </p>
+                    </div>
+
+                    {revisionLoading ? (
+                      <p className="text-sm text-[var(--bookshop-muted)]">Loading revisions...</p>
+                    ) : chapterRevisions.length > 0 ? (
+                      <div className="grid gap-4 lg:grid-cols-[15rem_1fr]">
+                        <div className="grid content-start gap-2" aria-label="Saved revisions">
+                          {chapterRevisions.map((revision, index) => (
+                            <button
+                              key={revision.id}
+                              type="button"
+                              aria-label={`Inspect revision: ${revision.title}`}
+                              aria-pressed={selectedRevisionId === revision.id}
+                              onClick={() => setSelectedRevisionId(revision.id)}
+                              className={`rounded-xl border p-3 text-left text-sm transition ${
+                                selectedRevisionId === revision.id
+                                  ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30"
+                                  : "border-[var(--bookshop-border)] bg-[var(--bookshop-surface)]"
+                              }`}
+                            >
+                              <span className="block font-semibold text-[var(--bookshop-text)]">
+                                {index === 0 ? "Latest save" : revision.title}
+                              </span>
+                              <span className="mt-1 block text-xs text-[var(--bookshop-muted)]">
+                                {new Date(revision.createdAt).toLocaleString()}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {selectedRevision ? (
+                          <div data-testid="revision-comparison" className="grid gap-4">
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <article className="rounded-xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-4">
+                                <h4 className="text-sm font-semibold text-[var(--bookshop-text)]">Saved revision</h4>
+                                <p className="mt-2 text-sm font-medium text-[var(--bookshop-text)]">{selectedRevision.title}</p>
+                                <p className="mt-1 text-xs text-[var(--bookshop-muted)]">
+                                  Public preview: {selectedRevision.isPreview ? "Yes" : "No"}
+                                </p>
+                                <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs text-[var(--bookshop-muted)]">
+                                  {selectedRevision.content || "No content"}
+                                </pre>
+                              </article>
+                              <article className="rounded-xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-4">
+                                <h4 className="text-sm font-semibold text-[var(--bookshop-text)]">Current editor</h4>
+                                <p className="mt-2 text-sm font-medium text-[var(--bookshop-text)]">{selectedChapter.title}</p>
+                                <p className="mt-1 text-xs text-[var(--bookshop-muted)]">
+                                  Public preview: {selectedChapter.isPreview ? "Yes" : "No"}
+                                </p>
+                                <pre className="mt-3 max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs text-[var(--bookshop-muted)]">
+                                  {selectedChapter.content || "No content"}
+                                </pre>
+                              </article>
+                            </div>
+                            <div>
+                              <button
+                                type="button"
+                                disabled={revisionRestoring}
+                                onClick={() => void restoreRevision()}
+                                className="bookshop-button-secondary px-4 py-2 text-sm disabled:opacity-60"
+                              >
+                                {revisionRestoring ? "Restoring..." : "Restore this revision"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-[var(--bookshop-muted)]">No saved revisions yet.</p>
+                    )}
+
+                    {revisionError ? (
+                      <p role="alert" className="text-sm font-medium text-rose-700 dark:text-rose-300">
+                        {revisionError}
+                      </p>
+                    ) : null}
+                  </section>
+                ) : null}
 
                 {chapterError ? (
                   <p className="text-sm font-medium text-rose-700 dark:text-rose-300">

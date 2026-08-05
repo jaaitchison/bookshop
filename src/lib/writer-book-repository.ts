@@ -266,6 +266,26 @@ export async function canManageBook(
   return book.authorId === userId;
 }
 
+export async function getManagedBookCoverUrl(
+  userId: string,
+  bookIdOrSlug: string,
+): Promise<string | null> {
+  const prisma = requirePrisma();
+
+  if (!(await canManageBook(userId, bookIdOrSlug))) {
+    throw new Error("You do not have permission to manage this book.");
+  }
+
+  const book = await prisma.book.findFirst({
+    where: {
+      OR: [{ id: bookIdOrSlug }, { slug: bookIdOrSlug }],
+    },
+    select: { coverUrl: true },
+  });
+
+  return book?.coverUrl ?? null;
+}
+
 
 export function slugifyBookTitle(title: string): string {
   const slug = title

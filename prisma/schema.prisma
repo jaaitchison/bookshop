@@ -68,6 +68,7 @@ model User {
   reviews              Review[]
   readingProgress      ReadingProgress[]
   sessions             AuthSession[]
+  chapterRevisions     ChapterRevision[]
 }
 
 model Role {
@@ -151,6 +152,7 @@ model Chapter {
 
   book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   progress    ReadingProgress[]
+  revisions   ChapterRevision[]
 
   @@unique([bookId, chapterNo])
   @@index([bookId])
@@ -263,4 +265,20 @@ model StripeWebhookEvent {
   processedAt DateTime @default(now())
 
   @@index([processedAt])
+}
+
+model ChapterRevision {
+  id            String   @id @default(cuid())
+  chapterId     String
+  userId        String
+  title         String
+  content       String
+  isPreview     Boolean
+  createdAt     DateTime @default(now())
+
+  chapter       Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([chapterId, createdAt])
+  @@index([userId])
 }

@@ -134,14 +134,28 @@ export async function createManagedChapter(
     },
   });
 
-  const chapter = await prisma.chapter.create({
-    data: {
-      bookId: book.id,
-      title,
-      content: input.content ?? "",
-      chapterNo: (lastChapter?.chapterNo ?? 0) + 1,
-      isPreview: input.isPreview ?? false,
-    },
+  const chapter = await prisma.$transaction(async (tx) => {
+    const created = await tx.chapter.create({
+      data: {
+        bookId: book.id,
+        title,
+        content: input.content ?? "",
+        chapterNo: (lastChapter?.chapterNo ?? 0) + 1,
+        isPreview: input.isPreview ?? false,
+      },
+    });
+
+    await tx.chapterRevision.create({
+      data: {
+        chapterId: created.id,
+        userId,
+        title: created.title,
+        content: created.content,
+        isPreview: created.isPreview,
+      },
+    });
+
+    return created;
   });
 
   return mapChapter(chapter);
@@ -199,11 +213,25 @@ export async function updateManagedChapter(
     data.isPreview = updates.isPreview;
   }
 
-  const updated = await prisma.chapter.update({
-    where: {
-      id: existing.id,
-    },
-    data,
+  const updated = await prisma.$transaction(async (tx) => {
+    const saved = await tx.chapter.update({
+      where: {
+        id: existing.id,
+      },
+      data,
+    });
+
+    await tx.chapterRevision.create({
+      data: {
+        chapterId: saved.id,
+        userId,
+        title: saved.title,
+        content: saved.content,
+        isPreview: saved.isPreview,
+      },
+    });
+
+    return saved;
   });
 
   return mapChapter(updated);
