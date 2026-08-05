@@ -3,6 +3,7 @@ import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export const MAX_COVER_BYTES = 5 * 1024 * 1024;
+export const DEFAULT_COVER_URL = "/images/default-book-cover.svg";
 export const ACCEPTED_COVER_TYPES = [
   "image/jpeg",
   "image/png",
@@ -18,13 +19,14 @@ const TYPE_EXTENSION: Record<AcceptedCoverType, string> = {
 };
 
 export type StoredCover = {
+  storageKey: string;
   url: string;
   delete(): Promise<void>;
 };
 
 export interface CoverStorage {
   store(input: { bytes: Uint8Array; contentType: AcceptedCoverType }): Promise<StoredCover>;
-  remove(url: string): Promise<void>;
+  remove(storageKeyOrUrl: string): Promise<void>;
 }
 
 function isAcceptedCoverType(value: string): value is AcceptedCoverType {
@@ -90,6 +92,7 @@ class LocalCoverStorage implements CoverStorage {
     await writeFile(target, input.bytes, { flag: "wx" });
 
     return {
+      storageKey: filename,
       url: `${this.publicPrefix}${filename}`,
       delete: async () => {
         await unlink(target).catch((error: NodeJS.ErrnoException) => {
@@ -99,10 +102,10 @@ class LocalCoverStorage implements CoverStorage {
     };
   }
 
-  async remove(url: string): Promise<void> {
-    if (!url.startsWith(this.publicPrefix)) return;
-
-    const filename = url.slice(this.publicPrefix.length);
+  async remove(storageKeyOrUrl: string): Promise<void> {
+    const filename = storageKeyOrUrl.startsWith(this.publicPrefix)
+      ? storageKeyOrUrl.slice(this.publicPrefix.length)
+      : storageKeyOrUrl;
     if (!/^[0-9a-f-]+\.(?:jpg|png|webp)$/i.test(filename)) return;
 
     await unlink(path.join(process.cwd(), "public", "uploads", "covers", filename)).catch((error: NodeJS.ErrnoException) => {
@@ -113,4 +116,8 @@ class LocalCoverStorage implements CoverStorage {
 
 export function getCoverStorage(): CoverStorage {
   return new LocalCoverStorage();
+}
+
+export function coverUrlOrFallback(url: string | null | undefined): string {
+  return url?.trim() || DEFAULT_COVER_URL;
 }

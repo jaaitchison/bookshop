@@ -1,6 +1,7 @@
 import type { FilterOptions } from "@/src/data/books";
 import type { Book, BookChapter } from "@/src/types/book";
 import { BookStatus } from "@/src/generated/prisma/client";
+import { coverUrlOrFallback } from "@/src/lib/cover-storage";
 import { getPrismaClient } from "@/src/lib/prisma";
 
 function requirePrisma() {
@@ -94,7 +95,7 @@ function mapDatabaseBook(book: DatabaseBook): Book {
     id: book.slug || book.id,
     title: book.title,
     author: book.authorDisplayName,
-    cover: book.coverUrl,
+    cover: coverUrlOrFallback(book.coverUrl),
     price: Number(book.price.toString()),
     rating: Number(book.ratingAverage.toString()),
     reviews: book.reviewCount,

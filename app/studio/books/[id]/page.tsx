@@ -556,7 +556,7 @@ export default function WriterBookEditorPage() {
       const formData = new FormData();
       formData.set("cover", file);
 
-      const response = await fetch(`/api/books/${book.id}/cover`, {
+      const response = await fetch(`/api/studio/books/${book.id}/cover`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -589,7 +589,7 @@ export default function WriterBookEditorPage() {
     setCoverError(null);
 
     try {
-      const response = await fetch(`/api/books/${book.id}/cover`, {
+      const response = await fetch(`/api/studio/books/${book.id}/cover`, {
         method: "DELETE",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

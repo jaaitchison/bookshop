@@ -272,20 +272,68 @@ export async function getManagedBookCoverUrl(
   userId: string,
   bookIdOrSlug: string,
 ): Promise<string | null> {
+  const book = await getManagedBookCover(userId, bookIdOrSlug);
+  return book?.coverUrl ?? null;
+}
+
+export async function getManagedBookCover(
+  userId: string,
+  bookIdOrSlug: string,
+) {
   const prisma = requirePrisma();
 
   if (!(await canManageBook(userId, bookIdOrSlug))) {
     throw new Error("You do not have permission to manage this book.");
   }
 
-  const book = await prisma.book.findFirst({
-    where: {
-      OR: [{ id: bookIdOrSlug }, { slug: bookIdOrSlug }],
+  return prisma.book.findFirst({
+    where: { OR: [{ id: bookIdOrSlug }, { slug: bookIdOrSlug }] },
+    select: {
+      id: true,
+      coverUrl: true,
+      cover: { select: { storageKey: true, url: true, ratio: true } },
     },
-    select: { coverUrl: true },
   });
+}
 
-  return book?.coverUrl ?? null;
+export async function replaceManagedBookCover(
+  userId: string,
+  bookIdOrSlug: string,
+  input: { storageKey: string; url: string; ratio: string },
+) {
+  const prisma = requirePrisma();
+  const book = await getManagedBookCover(userId, bookIdOrSlug);
+  if (!book) return null;
+
+  return prisma.$transaction(async (tx) => {
+    await tx.book.update({
+      where: { id: book.id },
+      data: { coverUrl: input.url },
+    });
+
+    return tx.bookCover.upsert({
+      where: { bookId: book.id },
+      update: input,
+      create: { bookId: book.id, ...input },
+      select: { storageKey: true, url: true, ratio: true },
+    });
+  });
+}
+
+export async function removeManagedBookCover(
+  userId: string,
+  bookIdOrSlug: string,
+) {
+  const prisma = requirePrisma();
+  const book = await getManagedBookCover(userId, bookIdOrSlug);
+  if (!book) return null;
+
+  await prisma.$transaction([
+    prisma.book.update({ where: { id: book.id }, data: { coverUrl: "" } }),
+    prisma.bookCover.deleteMany({ where: { bookId: book.id } }),
+  ]);
+
+  return book;
 }
 
 

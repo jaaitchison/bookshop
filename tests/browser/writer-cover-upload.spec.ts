@@ -55,11 +55,15 @@ test("Section 8.8 uploads, replaces, validates and removes a cover", async ({ pa
 
     await page.getByLabel("Upload cover").setInputFiles({ name: "cover.png", mimeType: "image/png", buffer: PNG });
     await expect(page.getByAltText(`Cover preview for ${book.title}`)).toBeVisible();
-    const first = await prisma.book.findUnique({ where: { id: book.id } });
+    const first = await prisma.book.findUnique({ where: { id: book.id }, include: { cover: true } });
     expect(first?.coverUrl).toMatch(/^\/uploads\/covers\/[0-9a-f-]+\.png$/);
+    expect(first?.cover?.url).toBe(first?.coverUrl);
+    expect(first?.cover?.storageKey).toMatch(/^[0-9a-f-]+\.png$/);
+    expect(first?.cover?.ratio).toBe("2:3");
 
     await page.getByLabel("Replace cover").setInputFiles({ name: "replacement.png", mimeType: "image/png", buffer: PNG });
     await expect.poll(async () => (await prisma.book.findUnique({ where: { id: book.id } }))?.coverUrl).not.toBe(first?.coverUrl);
+    await expect.poll(async () => (await prisma.bookCover.findUnique({ where: { bookId: book.id } }))?.storageKey).not.toBe(first?.cover?.storageKey);
 
     await page.getByLabel("Replace cover").setInputFiles({ name: "fake.png", mimeType: "image/png", buffer: Buffer.from("not an image") });
     await expect(
@@ -69,9 +73,11 @@ test("Section 8.8 uploads, replaces, validates and removes a cover", async ({ pa
     await page.getByRole("button", { name: "Remove cover" }).click();
     await expect(page.getByText("No cover uploaded")).toBeVisible();
     await expect.poll(async () => (await prisma.book.findUnique({ where: { id: book.id } }))?.coverUrl).toBe("");
+    await expect.poll(async () => prisma.bookCover.findUnique({ where: { bookId: book.id } })).toBeNull();
   } finally {
-    const current = await prisma.book.findUnique({ where: { id: book.id } });
-    if (current?.coverUrl) await getCoverStorage().remove(current.coverUrl);
+    const current = await prisma.book.findUnique({ where: { id: book.id }, include: { cover: true } });
+    if (current?.cover) await getCoverStorage().remove(current.cover.storageKey);
+    else if (current?.coverUrl) await getCoverStorage().remove(current.coverUrl);
     await prisma.book.delete({ where: { id: book.id } });
     await prisma.$disconnect();
   }

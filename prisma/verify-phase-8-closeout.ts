@@ -46,7 +46,7 @@ async function main() {
   for (const marker of ["interface CoverStorage", "MAX_COVER_BYTES", "randomUUID", "detectedCoverType"]) {
     assert(coverStorage.includes(marker), `Cover foundation marker missing: ${marker}`);
   }
-  assert(await exists("app/api/books/[id]/cover/route.ts"), "Cover API route is missing.");
+  assert(await exists("app/api/studio/books/[id]/cover/route.ts"), "Cover API route is missing.");
   console.log("   PASS - validated cover upload, replacement and removal use a storage abstraction.");
 
   console.log("\n4. Append-only revisions and concurrency");

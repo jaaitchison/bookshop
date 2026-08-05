@@ -14,7 +14,7 @@ async function main() {
 
   const [storage, route, editor, repository] = await Promise.all([
     read("src", "lib", "cover-storage.ts"),
-    read("app", "api", "books", "[id]", "cover", "route.ts"),
+    read("app", "api", "studio", "books", "[id]", "cover", "route.ts"),
     read("app", "studio", "books", "[id]", "page.tsx"),
     read("src", "lib", "writer-book-repository.ts"),
   ]);
@@ -37,14 +37,14 @@ async function main() {
   console.log("   PASS - randomized local storage is isolated behind a replaceable interface.");
 
   console.log("\n3. Server authorization");
-  for (const marker of ["getRequestDatabaseSession", "userHasRole", "canManageBook", "getManagedBookCoverUrl"]) {
+  for (const marker of ["getRequestDatabaseSession", "userHasRole", "canManageBook", "getManagedBookCover"]) {
     assert(route.includes(marker), `Cover route authorization marker missing: ${marker}`);
   }
-  assert(repository.includes("getManagedBookCoverUrl"), "Trusted previous-cover lookup is missing.");
+  assert(repository.includes("getManagedBookCover"), "Trusted previous-cover lookup is missing.");
   console.log("   PASS - upload and removal use trusted owner/Admin authorization and server-derived state.");
 
   console.log("\n4. Upload lifecycle");
-  assert(route.includes("stored.delete()") && route.includes("storage.remove(previousUrl)") && route.includes('coverUrl: ""'), "Replacement, rollback or removal lifecycle is incomplete.");
+  assert(route.includes("stored.delete()") && route.includes("storage.remove(previousStorageReference)") && route.includes('coverUrl: ""'), "Replacement, rollback or removal lifecycle is incomplete.");
   console.log("   PASS - failed uploads roll back and managed replacements/removals are cleaned up.");
 
   console.log("\n5. Writer editor integration");
