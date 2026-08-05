@@ -23,7 +23,10 @@ async function main() {
   ]);
 
   console.log("1. Persistent version token");
-  assert(schema.includes("version     Int      @default(1)") && migration.includes('ADD COLUMN "version"'), "Chapter version schema or migration is missing.");
+  assert(
+    /^\s*version\s+Int\s+@default\(1\)\s*$/m.test(schema) && migration.includes('ADD COLUMN "version"'),
+    "Chapter version schema or migration is missing.",
+  );
   console.log("   PASS - every chapter has a persistent version token.");
 
   console.log("\n2. Atomic compare and increment");

@@ -28,3 +28,12 @@ export interface BookReview {
   comment: string;
   createdAt: string;
 }
+
+export interface FilterOptions {
+  search?: string;
+  genre?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minRating?: number;
+  sortBy?: 'featured' | 'price-asc' | 'price-desc' | 'rating' | 'reviews';
+}

@@ -4,9 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from '@/src/context/AccountContext';
-import { accountActivity, accountLibrary, getPersonalizedNotifications } from '@/src/data/account';
-import { mockBooks } from '@/src/data/books';
+import { accountActivity, getPersonalizedNotifications } from '@/src/data/account';
 import type { SocialProvider } from '@/src/types/account';
+import type { ReaderLibraryItem } from '@/src/types/library';
 
 type GoalOption = {
   id: 'reading' | 'writing' | 'both';
@@ -45,6 +45,7 @@ export default function AccountPage() {
     orders,
   } = useAccount();
   const [wishlistCount, setWishlistCount] = useState(0);
+  const [libraryItems, setLibraryItems] = useState<ReaderLibraryItem[]>([]);
 
   const toggleGoal = (goal: 'reading' | 'writing' | 'both') => {
     const nextGoals = profile.goals.includes(goal)
@@ -70,28 +71,25 @@ export default function AccountPage() {
     void loadWishlist();
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let active = true;
+    const loadLibraryCount = async () => {
+      try {
+        const response = await fetch('/api/library', { credentials: 'include', cache: 'no-store' });
+        const payload = (await response.json()) as { items?: ReaderLibraryItem[] };
+        if (active) setLibraryItems(response.ok ? (payload.items ?? []) : []);
+      } catch {
+        if (active) setLibraryItems([]);
+      }
+    };
+    void loadLibraryCount();
+    return () => { active = false; };
+  }, [isAuthenticated]);
+
   const resolvedOrders = orders;
 
   const notifications = useMemo(() => getPersonalizedNotifications(profile, resolvedOrders), [profile, resolvedOrders]);
-  const libraryItems = useMemo(() => {
-    const purchased = resolvedOrders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {
-      if (!acc[item.id]) {
-        const bookDetails = mockBooks.find((book) => book.id === item.id);
-        acc[item.id] = {
-          id: item.id,
-          title: item.title,
-          author: item.author,
-          cover: bookDetails?.cover ?? '/logo.jpg',
-          status: 'Purchased',
-          progress: `${item.quantity} copy${item.quantity === 1 ? '' : 'ies'} purchased`,
-        };
-      }
-      return acc;
-    }, {});
-
-    const orderedBooks = Object.values(purchased);
-    return orderedBooks.length > 0 ? orderedBooks : accountLibrary;
-  }, [resolvedOrders]);
   const readinessHighlights = useMemo(() => {
     const items: string[] = [];
 
@@ -436,7 +434,7 @@ export default function AccountPage() {
               <div className="mt-6 space-y-3">
                 <Link href="/library" className="bookshop-subcard flex items-center justify-between p-4 transition hover:border-[var(--bookshop-accent)] hover:bg-[var(--bookshop-accent-soft)]">
                   <span className="font-medium text-[var(--bookshop-text)]">My library</span>
-                  <span className="text-sm text-[var(--bookshop-muted)]">{libraryItems.length} saved items</span>
+                  <span className="text-sm text-[var(--bookshop-muted)]">{libraryItems.length} owned item{libraryItems.length === 1 ? '' : 's'}</span>
                 </Link>
                 <Link href="/books" className="bookshop-subcard flex items-center justify-between p-4 transition hover:border-[var(--bookshop-accent)] hover:bg-[var(--bookshop-accent-soft)]">
                   <span className="font-medium text-[var(--bookshop-text)]">Explore books</span>
@@ -482,15 +480,17 @@ export default function AccountPage() {
               <span className="text-sm text-[var(--bookshop-muted)]">Reader view</span>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {libraryItems.map((book) => (
-                <div key={book.id} className="bookshop-subcard p-4">
+              {libraryItems.length === 0 ? (
+                <p className="text-sm text-[var(--bookshop-muted)]">No owned books yet.</p>
+              ) : libraryItems.slice(0, 4).map((item) => (
+                <div key={item.id} className="bookshop-subcard p-4">
                   <div className="relative mb-3 h-32 overflow-hidden rounded-xl">
-                    <Image src={book.cover} alt={book.title} fill className="object-cover" />
+                    <Image src={item.book.cover} alt={item.book.title} fill className="object-cover" />
                   </div>
-                  <p className="font-semibold text-[var(--bookshop-text)]">{book.title}</p>
-                  <p className="text-sm text-[var(--bookshop-muted)]">{book.author}</p>
-                  <p className="mt-2 text-sm text-[var(--bookshop-accent)]">{book.status}</p>
-                  {book.progress ? <p className="text-sm text-[var(--bookshop-muted)]">{book.progress}</p> : null}
+                  <p className="font-semibold text-[var(--bookshop-text)]">{item.book.title}</p>
+                  <p className="text-sm text-[var(--bookshop-muted)]">{item.book.author}</p>
+                  <p className="mt-2 text-sm text-[var(--bookshop-accent)]">Owned</p>
+                  {item.progress !== null ? <p className="text-sm text-[var(--bookshop-muted)]">{item.progress}% complete</p> : null}
                 </div>
               ))}
             </div>

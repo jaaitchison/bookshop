@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import type { FilterOptions } from "@/src/data/books";
+import type { FilterOptions } from "@/src/types/book";
 import {
   filterCatalogBooks,
-  getCatalogBooks,
+  getAllCatalogBooksForManagement,
+  getCatalogGenres,
 } from "@/src/lib/catalog-data";
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
@@ -18,16 +19,20 @@ export async function GET(request: Request) {
 
     if (
       !session ||
-      !(await userHasRole(session.userId, "writer"))
+      !(await userHasRole(session.userId, "admin"))
     ) {
       return NextResponse.json(
-        { error: "Writer or admin access required." },
+        { error: "Admin access required." },
         { status: 403 },
       );
     }
 
-    const books = await getCatalogBooks();
+    const books = await getAllCatalogBooksForManagement();
     return NextResponse.json(books);
+  }
+
+  if (searchParams.get("facets") === "genres") {
+    return NextResponse.json({ genres: await getCatalogGenres() });
   }
 
   const filters: FilterOptions = {

@@ -1,4 +1,4 @@
-import { BookStatus, RoleKey } from "@/src/generated/prisma/client";
+import { BookStatus, BookVisibility, RoleKey } from "@/src/generated/prisma/client";
 import { getPrismaClient } from "@/src/lib/prisma";
 
 export type WriterOwnedBookSummary = {
@@ -519,6 +519,7 @@ export async function updateManagedBookMetadata(
     coverUrl?: string;
     price?: number;
     status?: BookStatus;
+    visibility?: BookVisibility;
     publishedAt?: Date | null;
     archivedAt?: Date | null;
   } = {};
@@ -568,18 +569,21 @@ export async function updateManagedBookMetadata(
     switch (updates.status) {
       case "draft":
         data.status = BookStatus.DRAFT;
+        data.visibility = BookVisibility.PRIVATE;
         data.publishedAt = null;
         data.archivedAt = null;
         break;
 
       case "published":
         data.status = BookStatus.PUBLISHED;
+        data.visibility = BookVisibility.PUBLIC;
         data.publishedAt = existing.publishedAt ?? now;
         data.archivedAt = null;
         break;
 
       case "archived":
         data.status = BookStatus.ARCHIVED;
+        data.visibility = BookVisibility.PRIVATE;
         data.archivedAt = now;
         break;
 

@@ -1,6 +1,5 @@
-import type { FilterOptions } from "@/src/data/books";
-import type { Book, BookChapter } from "@/src/types/book";
-import { BookStatus } from "@/src/generated/prisma/client";
+import type { Book, BookChapter, FilterOptions } from "@/src/types/book";
+import { BookStatus, BookVisibility } from "@/src/generated/prisma/client";
 import { coverUrlOrFallback } from "@/src/lib/cover-storage";
 import { getPrismaClient } from "@/src/lib/prisma";
 
@@ -57,6 +56,11 @@ function fromBookStatus(
   }
 }
 
+const publicCatalogueWhere = {
+  status: BookStatus.PUBLISHED,
+  visibility: BookVisibility.PUBLIC,
+} as const;
+
 type DatabaseBook = {
   id: string;
   slug: string;
@@ -112,8 +116,10 @@ export async function getCatalogBooks(): Promise<Book[]> {
   const prisma = requirePrisma();
 
   const books = await prisma.book.findMany({
+    where: publicCatalogueWhere,
     include: {
       chapters: {
+        where: { isPreview: true },
         orderBy: {
           chapterNo: "asc",
         },
@@ -125,6 +131,28 @@ export async function getCatalogBooks(): Promise<Book[]> {
   });
 
   return books.map(mapDatabaseBook);
+}
+
+export async function getAllCatalogBooksForManagement(): Promise<Book[]> {
+  const books = await requirePrisma().book.findMany({
+    include: {
+      chapters: { orderBy: { chapterNo: "asc" } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return books.map(mapDatabaseBook);
+}
+
+export async function getCatalogGenres(): Promise<string[]> {
+  const rows = await requirePrisma().book.findMany({
+    where: publicCatalogueWhere,
+    distinct: ["genre"],
+    select: { genre: true },
+    orderBy: { genre: "asc" },
+  });
+
+  return rows.map(({ genre }) => genre);
 }
 
 export async function getFeaturedBooks(): Promise<Book[]> {
@@ -156,6 +184,7 @@ export async function getBookById(
 
   const book = await prisma.book.findFirst({
     where: {
+      ...publicCatalogueWhere,
       OR: [
         { id },
         { slug: id },
@@ -163,6 +192,7 @@ export async function getBookById(
     },
     include: {
       chapters: {
+        where: { isPreview: true },
         orderBy: {
           chapterNo: "asc",
         },
@@ -275,6 +305,7 @@ export async function createCatalogBook(
       featured: newBook.featured ?? false,
       newRelease: newBook.new ?? false,
       status: toBookStatus(newBook.status),
+      visibility: newBook.status === "published" ? BookVisibility.PUBLIC : BookVisibility.PRIVATE,
       chapters: newBook.manuscriptChapters?.length
         ? {
             create: newBook.manuscriptChapters.map(
@@ -355,6 +386,7 @@ export async function updateCatalogBook(
       featured: next.featured ?? false,
       newRelease: next.new ?? false,
       status: toBookStatus(next.status),
+      visibility: next.status === "published" ? BookVisibility.PUBLIC : BookVisibility.PRIVATE,
     },
     include: {
       chapters: {
@@ -408,6 +440,7 @@ export async function seedCatalogBooks(
         featured: book.featured ?? false,
         newRelease: book.new ?? false,
         status: toBookStatus(book.status),
+        visibility: book.status === "published" ? BookVisibility.PUBLIC : BookVisibility.PRIVATE,
       },
       create: {
         id: book.id,
@@ -423,6 +456,7 @@ export async function seedCatalogBooks(
         featured: book.featured ?? false,
         newRelease: book.new ?? false,
         status: toBookStatus(book.status),
+        visibility: book.status === "published" ? BookVisibility.PUBLIC : BookVisibility.PRIVATE,
       },
     });
   }

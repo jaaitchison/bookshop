@@ -2,6 +2,8 @@
 
 ## Phase 9: Database Persistence, Real Auth & Media Storage Pipeline
 
+**Status: complete.** See `docs/PHASE-9-CLOSEOUT.md` for the implementation and verification record.
+
 ### Core objective
 
 Transition the Bookshop application from a local client prototype using mock catalogue data to a production-ready, database-backed architecture utilizing PostgreSQL, Prisma ORM, role-based authentication, and object-storage asset management.

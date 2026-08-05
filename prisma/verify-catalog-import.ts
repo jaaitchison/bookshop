@@ -28,7 +28,7 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString }),
 });
 
-const catalogPath = path.join(process.cwd(), "data", "catalog.json");
+const catalogPath = path.join(process.cwd(), "data", "archive", "legacy-catalog.json");
 
 async function main() {
   const source = JSON.parse(await readFile(catalogPath, "utf8")) as LegacyCatalogBook[];

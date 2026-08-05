@@ -183,15 +183,16 @@ async function main() {
 
     assert(
       row?.status === "PUBLISHED" &&
+        row.visibility === "PUBLIC" &&
         row.publishedAt !== null &&
         row.archivedAt === null,
-      "Publish transition timestamps are incorrect.",
+      "Publish transition visibility or timestamps are incorrect.",
     );
 
     const firstPublishedAt = row.publishedAt?.getTime();
 
     console.log(
-      "   PASS - Published status sets publishedAt server-side.",
+      "   PASS - Published status sets public visibility and publishedAt server-side.",
     );
 
     console.log("");
@@ -215,9 +216,10 @@ async function main() {
 
     assert(
       row?.status === "ARCHIVED" &&
+        row.visibility === "PRIVATE" &&
         row.archivedAt !== null &&
         row.publishedAt?.getTime() === firstPublishedAt,
-      "Archive transition timestamps are incorrect.",
+      "Archive transition visibility or timestamps are incorrect.",
     );
 
     console.log(
@@ -245,6 +247,7 @@ async function main() {
 
     assert(
       row?.status === "DRAFT" &&
+        row.visibility === "PRIVATE" &&
         row.publishedAt === null &&
         row.archivedAt === null,
       "Draft transition did not clear publishing timestamps.",

@@ -3,6 +3,7 @@ import {
   getBookById,
   getCatalogBooks,
 } from "../src/lib/catalog-data";
+import { BookStatus, BookVisibility } from "../src/generated/prisma/client";
 import { getPrismaClient } from "../src/lib/prisma";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -21,7 +22,9 @@ async function main() {
 
   console.log("1. Database catalogue");
 
-  const databaseCount = await prisma.book.count();
+  const databaseCount = await prisma.book.count({
+    where: { status: BookStatus.PUBLISHED, visibility: BookVisibility.PUBLIC },
+  });
   const catalogBooks = await getCatalogBooks();
 
   assert(
@@ -37,6 +40,7 @@ async function main() {
   console.log("2. Single-book lookup");
 
   const sample = await prisma.book.findFirst({
+    where: { status: BookStatus.PUBLISHED, visibility: BookVisibility.PUBLIC },
     orderBy: {
       createdAt: "asc",
     },
@@ -64,6 +68,8 @@ async function main() {
 
   const withChapter = await prisma.book.findFirst({
     where: {
+      status: BookStatus.PUBLISHED,
+      visibility: BookVisibility.PUBLIC,
       chapters: {
         some: {},
       },
@@ -78,8 +84,8 @@ async function main() {
 
     assert(
       mapped?.manuscriptChapters?.length ===
-        withChapter.chapters.length,
-      "PostgreSQL chapters were not mapped into catalogue Book shape.",
+        withChapter.chapters.filter((chapter) => chapter.isPreview).length,
+      "Public preview chapters were not mapped safely into catalogue Book shape.",
     );
   }
 

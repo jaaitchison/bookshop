@@ -2,130 +2,53 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { useAccount } from "@/src/context/AccountContext";
-import { accountLibrary } from '@/src/data/account';
-import { mockBooks } from '@/src/data/books';
+import { useEffect, useState } from 'react';
+import { useAccount } from '@/src/context/AccountContext';
+import type { ReaderLibraryItem } from '@/src/types/library';
 
 export default function LibraryPage() {
-  const { isAuthenticated, orders } = useAccount();
-  const [wishlistItems, setWishlistItems] = useState<string[]>([]);
-  const [readingProgressByBook, setReadingProgressByBook] =
-    useState<Record<string, number>>({});
-  useEffect(() => {
-    const loadWishlist = async () => {
-      try {
-        const response = await fetch('/api/wishlist');
-        const data = (await response.json()) as { items?: string[] };
-        setWishlistItems(data.items ?? []);
-      } catch {
-        setWishlistItems([]);
-      }
-    };
+  const { isAuthenticated, isAuthLoading } = useAccount();
+  const [items, setItems] = useState<ReaderLibraryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    void loadWishlist();
-  }, []);
   useEffect(() => {
+    if (isAuthLoading) return;
+    if (!isAuthenticated) return;
+
     let active = true;
-
-    const loadReadingProgress = async () => {
+    const loadLibrary = async () => {
       try {
-        const response = await fetch('/api/reading-progress', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-
-        if (!response.ok) {
-          if (active) {
-            setReadingProgressByBook({});
-          }
+        const response = await fetch('/api/library', { credentials: 'include', cache: 'no-store' });
+        const payload = (await response.json()) as { items?: ReaderLibraryItem[]; error?: string };
+        if (!active) return;
+        if (!response.ok || !payload.items) {
+          setError(payload.error ?? 'Unable to load your library.');
+          setItems([]);
           return;
         }
-
-        const data = (await response.json()) as {
-          items?: Array<{
-            bookId: string;
-            progress: number;
-          }>;
-        };
-
-        if (!active) {
-          return;
-        }
-
-        const progressByBook = (data.items ?? []).reduce<
-          Record<string, number>
-        >((acc, item) => {
-          acc[item.bookId] = item.progress;
-          return acc;
-        }, {});
-
-        setReadingProgressByBook(progressByBook);
+        setItems(payload.items);
+        setError(null);
       } catch {
-        if (active) {
-          setReadingProgressByBook({});
-        }
+        if (active) setError('Unable to load your library.');
+      } finally {
+        if (active) setLoading(false);
       }
     };
+    void loadLibrary();
+    return () => { active = false; };
+  }, [isAuthenticated, isAuthLoading]);
 
-    void loadReadingProgress();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const resolvedOrders = orders;
-
-  const libraryItems = useMemo(() => {
-    const purchased = resolvedOrders.flatMap((order) => order.items).reduce<Record<string, typeof accountLibrary[number]>>((acc, item) => {
-      if (!acc[item.id]) {
-        const bookDetails = mockBooks.find((book) => book.id === item.id);
-        acc[item.id] = {
-          id: item.id,
-          title: item.title,
-          author: item.author,
-          cover: bookDetails?.cover ?? '/logo.jpg',
-          status: 'Purchased',
-          progress: `${item.quantity} copy${item.quantity === 1 ? '' : 'ies'} purchased`,
-        };
-      }
-      return acc;
-    }, {});
-
-    const wishlistBooks = wishlistItems
-      .map((bookId) => mockBooks.find((book) => book.id === bookId))
-      .filter((book): book is (typeof mockBooks)[number] => !!book)
-      .map((book) => ({
-        id: book.id,
-        title: book.title,
-        author: book.author,
-        cover: book.cover,
-        status: 'Wishlist',
-        progress: 'Saved for later',
-      }));
-
-    const purchasedBooks = Object.values(purchased);
-    return purchasedBooks.length > 0 ? purchasedBooks : accountLibrary.concat(wishlistBooks);
-  }, [resolvedOrders, wishlistItems]);
+  if (isAuthLoading || (isAuthenticated && loading)) {
+    return <main className="min-h-screen bg-[var(--bookshop-bg)] py-16 text-center text-[var(--bookshop-muted)]">Loading your library...</main>;
+  }
 
   if (!isAuthenticated) {
     return (
       <main className="min-h-screen bg-[var(--bookshop-bg)] py-8">
-        <div className="mx-auto w-11/12 rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 text-center shadow-sm sm:w-10/12 sm:px-10 lg:w-4/5 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-violet-700">Reader access</p>
-          <h2 className="mt-4 text-3xl font-semibold text-slate-900">Sign in to see your library</h2>
-          <p className="mt-4 text-slate-600">
-            Once authenticated, this view will show your saved books, current reading progress, and personalized recommendations.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/auth" className="bookshop-button-primary px-5 py-2.5 text-sm">
-              Sign in to continue
-            </Link>
-            <Link href="/books" className="bookshop-button-quiet px-5 py-2.5 text-sm">
-              Browse the catalog
-            </Link>
-          </div>
+        <div className="mx-auto w-11/12 rounded-3xl border border-slate-200 bg-white px-8 py-10 text-center shadow-sm sm:w-10/12 lg:w-4/5">
+          <h2 className="text-3xl font-semibold text-slate-900">Sign in to see your library</h2>
+          <Link href="/auth" className="bookshop-button-primary mt-6 inline-flex px-5 py-2.5 text-sm">Sign in to continue</Link>
         </div>
       </main>
     );
@@ -134,37 +57,43 @@ export default function LibraryPage() {
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)]">
       <div className="mx-auto w-11/12 py-8 sm:w-10/12 lg:w-4/5">
-        <div className="mb-6 flex justify-end">
-          <Link href="/account" className="text-sm font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-300">
-            Back to account dashboard
-          </Link>
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <p className="text-sm text-[var(--bookshop-muted)]">{items.length} database-backed library item{items.length === 1 ? '' : 's'}</p>
+          <Link href="/account" className="text-sm font-semibold text-emerald-700">Back to account dashboard</Link>
         </div>
 
+        {error ? <p role="alert" className="rounded-2xl bg-rose-50 p-4 text-rose-700">{error}</p> : null}
+        {!error && items.length === 0 ? (
+          <div className="rounded-3xl border border-slate-200 bg-white px-8 py-12 text-center shadow-sm">
+            <h2 className="text-2xl font-semibold text-slate-900">Your library is empty</h2>
+            <p className="mt-3 text-slate-600">Purchased books will appear here after their LibraryItem entitlement is granted.</p>
+            <Link href="/books" className="bookshop-button-primary mt-6 inline-flex px-5 py-2.5 text-sm">Browse books</Link>
+          </div>
+        ) : null}
+
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {libraryItems.map((book) => (
-            <div key={book.id} className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
-              <div className="relative mb-5 h-48 overflow-hidden rounded-[1.25rem]">
-                <Image src={book.cover} alt={book.title} fill className="object-cover" />
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{book.status}</p>
-                <h2 className="text-xl font-semibold text-slate-900">{book.title}</h2>
-                <p className="text-sm text-slate-600">{book.author}</p>
-                {book.progress ? <p className="text-sm text-slate-500">{book.progress}</p> : null}
-                {readingProgressByBook[book.id] !== undefined ? (
-                  <p className="text-sm text-violet-700">Reading progress: {readingProgressByBook[book.id]}%</p>
-                ) : null}
-                <div className="pt-2">
-                  <Link
-                    href={`/books/${book.id}`}
-                    className="bookshop-button-quiet px-3 py-1 text-xs"
-                  >
-                    {readingProgressByBook[book.id] !== undefined ? 'Continue reading' : 'Start reading'}
-                  </Link>
+          {items.map((item) => {
+            const download = item.files.find((file) => file.fileType === 'MANUSCRIPT') ?? item.files[0];
+            return (
+              <article key={item.id} className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm">
+                <div className="relative mb-5 h-48 overflow-hidden rounded-[1.25rem]">
+                  <Image src={item.book.cover} alt={item.book.title} fill className="object-cover" />
                 </div>
-              </div>
-            </div>
-          ))}
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Owned</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-900">{item.book.title}</h2>
+                <p className="mt-1 text-sm text-slate-600">{item.book.author}</p>
+                {item.progress !== null ? <p className="mt-2 text-sm text-violet-700">Reading progress: {item.progress}%</p> : null}
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <Link href={`/books/${item.book.slug}`} className="bookshop-button-quiet px-3 py-2 text-xs">View book</Link>
+                  {download ? (
+                    <a href={download.fileUrl} className="bookshop-button-primary px-3 py-2 text-xs">
+                      Download {download.format}
+                    </a>
+                  ) : null}
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </main>

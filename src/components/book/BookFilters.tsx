@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { GENRES } from '../../data/books';
-import type { FilterOptions } from '../../data/books';
+import type { FilterOptions } from '../../types/book';
 
 interface BookFiltersProps {
+  genres: string[];
   onFiltersChange: (filters: FilterOptions) => void;
 }
 
-export const BookFilters: React.FC<BookFiltersProps> = ({ onFiltersChange }) => {
+export const BookFilters: React.FC<BookFiltersProps> = ({ genres, onFiltersChange }) => {
   const [search, setSearch] = React.useState('');
   const [genre, setGenre] = React.useState('all');
   const [minPrice, setMinPrice] = React.useState('');
@@ -72,7 +72,7 @@ export const BookFilters: React.FC<BookFiltersProps> = ({ onFiltersChange }) => 
           className="w-full rounded-2xl border border-[var(--bookshop-border)] bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-400"
         >
           <option value="all">All Genres</option>
-          {GENRES.map((g) => (
+          {genres.map((g) => (
             <option key={g} value={g}>
               {g}
             </option>

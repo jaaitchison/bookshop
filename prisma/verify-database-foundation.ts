@@ -5,7 +5,7 @@ import { RoleKey } from "../src/generated/prisma/client";
 import { getPrismaClient } from "../src/lib/prisma";
 import { getCatalogBooks } from "../src/lib/catalog-data";
 
-const catalogPath = path.join(process.cwd(), "data", "catalog.json");
+const catalogPath = path.join(process.cwd(), "data", "archive", "legacy-catalog.json");
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) {
@@ -83,7 +83,7 @@ async function main() {
   console.log(`   PASS - Runtime catalogue returned ${runtimeBooks.length} books.`);
 
   console.log("");
-  console.log("6. JSON fallback readiness");
+  console.log("6. Archived seed-source readiness");
   await access(catalogPath);
   const rawCatalog = await readFile(catalogPath, "utf8");
   const jsonCatalog = JSON.parse(rawCatalog) as unknown;
@@ -91,17 +91,17 @@ async function main() {
   assert(Array.isArray(jsonCatalog), "data/catalog.json is not an array.");
   assert(jsonCatalog.length > 0, "data/catalog.json contains no books.");
 
-  console.log(`   PASS - JSON fallback contains ${jsonCatalog.length} books.`);
+  console.log(`   PASS - archived one-time seed source contains ${jsonCatalog.length} books.`);
 
   console.log("");
-  console.log("7. Catalogue count comparison");
+  console.log("7. Public catalogue and archived seed comparison");
   if (runtimeBooks.length === jsonCatalog.length && bookCount === jsonCatalog.length) {
-    console.log(`   PASS - PostgreSQL, runtime catalogue and JSON all contain ${bookCount} books.`);
+    console.log(`   PASS - PostgreSQL, public runtime catalogue and archived seed all contain ${bookCount} books.`);
   } else {
     console.log("   WARNING - Catalogue counts differ:");
     console.log(`   PostgreSQL: ${bookCount}`);
     console.log(`   Runtime: ${runtimeBooks.length}`);
-    console.log(`   JSON: ${jsonCatalog.length}`);
+    console.log(`   Archived seed: ${jsonCatalog.length}`);
     console.log("   This is allowed after future database-only content is added, but review it now.");
   }
 
