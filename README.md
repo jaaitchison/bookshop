@@ -2,6 +2,8 @@
 
 Bookshop is a Next.js publishing platform prototype with reader accounts, Stripe checkout, and purchase-based library entitlements.
 
+The implementation trajectory is documented in [the project roadmap](docs/PROJECT-ROADMAP.md).
+
 ## Getting Started
 
 First, run the development server:
