@@ -81,17 +81,14 @@ async function main() {
     "utf8",
   );
 
-  assert(
-    success.includes("await refreshOrders()"),
-    "Checkout success does not refresh PostgreSQL-backed order state.",
-  );
+  assert(success.includes("/api/checkout/status"), "Checkout success does not read PostgreSQL-backed payment state.");
   assert(
     !success.includes("localStorage"),
     "Checkout success still depends on localStorage.",
   );
 
   console.log(
-    "PASS - browser order cache is gone and live order state refreshes from PostgreSQL APIs.",
+    "PASS - browser order cache is gone and payment success uses PostgreSQL-backed status.",
   );
   console.log("");
   console.log("SECTION 6.7 PASSED.");

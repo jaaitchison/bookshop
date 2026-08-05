@@ -97,7 +97,7 @@ async function main() {
   console.log("   PASS - order data is no longer stored in localStorage.");
 
   console.log("");
-  console.log("6. Checkout success uses server-backed orders");
+  console.log("6. Checkout success uses server-backed payment status");
 
   const checkoutSuccessPath = path.join(
     process.cwd(),
@@ -125,11 +125,12 @@ async function main() {
     "Checkout success still stores order data in localStorage.",
   );
   assert(
-    checkoutSource.includes("refreshOrders"),
-    "Checkout success does not refresh server-backed orders.",
+    checkoutSource.includes("/api/checkout/status"),
+    "Checkout success does not read server-backed payment status.",
   );
+  assert(!source.includes("placeOrder"), "AccountContext still exposes browser-authored order creation.");
 
-  console.log("   PASS - checkout success refreshes server-backed orders without localStorage.");
+  console.log("   PASS - checkout success reads server payment state and cannot author orders.");
 
   console.log("");
   console.log("SECTION 5.7 PASSED.");

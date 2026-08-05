@@ -46,6 +46,13 @@ enum OrderStatus {
   REFUNDED
 }
 
+enum PaymentAttemptStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
 enum ReviewStatus {
   PENDING
   PUBLISHED
@@ -89,6 +96,7 @@ model User {
   chapterRevisions ChapterRevision[]
   cart             Cart?
   libraryItems     LibraryItem[]
+  paymentAttempts  PaymentAttempt[]
 }
 
 model Role {
@@ -149,17 +157,18 @@ model Book {
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
-  author          User?             @relation("BookAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  chapters        Chapter[]
-  orderItems      OrderItem[]
-  wishlistItems   WishlistItem[]
-  reviews         Review[]
-  readingProgress ReadingProgress[]
-  editions        BookEdition[]
-  files           BookFile[]
-  cover           BookCover?
-  cartItems       CartItem[]
-  libraryItems    LibraryItem[]
+  author              User?                @relation("BookAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  chapters            Chapter[]
+  orderItems          OrderItem[]
+  wishlistItems       WishlistItem[]
+  reviews             Review[]
+  readingProgress     ReadingProgress[]
+  editions            BookEdition[]
+  files               BookFile[]
+  cover               BookCover?
+  cartItems           CartItem[]
+  libraryItems        LibraryItem[]
+  paymentAttemptItems PaymentAttemptItem[]
 
   @@index([authorId])
   @@index([status])
@@ -291,11 +300,15 @@ model AuthSession {
 }
 
 model StripeWebhookEvent {
-  eventId     String   @id
-  eventType   String   @default("")
-  processedAt DateTime @default(now())
+  eventId          String   @id
+  eventType        String   @default("")
+  paymentAttemptId String?
+  processedAt      DateTime @default(now())
+
+  paymentAttempt PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
 
   @@index([processedAt])
+  @@index([paymentAttemptId])
 }
 
 model LibraryItem {
@@ -369,8 +382,9 @@ model Cart {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items CartItem[]
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           CartItem[]
+  paymentAttempts PaymentAttempt[]
 }
 
 model CartItem {
@@ -385,6 +399,49 @@ model CartItem {
   book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, bookId])
+  @@index([bookId])
+}
+
+model PaymentAttempt {
+  id                    String               @id @default(cuid())
+  userId                String
+  cartId                String?
+  stripePaymentIntentId String?              @unique
+  status                PaymentAttemptStatus @default(PENDING)
+  amountCents           Int
+  currency              String               @default("usd")
+  shippingName          String
+  shippingEmail         String
+  shippingAddress       String
+  shippingCity          String
+  shippingPostcode      String
+  failureMessage        String               @default("")
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  user   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cart   Cart?                @relation(fields: [cartId], references: [id], onDelete: SetNull)
+  items  PaymentAttemptItem[]
+  events StripeWebhookEvent[]
+
+  @@index([userId, createdAt])
+  @@index([cartId])
+  @@index([status])
+}
+
+model PaymentAttemptItem {
+  id               String @id @default(cuid())
+  paymentAttemptId String
+  bookId           String
+  titleSnapshot    String
+  authorSnapshot   String
+  priceCents       Int
+  quantity         Int
+
+  paymentAttempt PaymentAttempt @relation(fields: [paymentAttemptId], references: [id], onDelete: Cascade)
+  book           Book           @relation(fields: [bookId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentAttemptId, bookId])
   @@index([bookId])
 }
 

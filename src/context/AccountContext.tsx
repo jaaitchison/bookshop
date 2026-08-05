@@ -4,7 +4,6 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import type {
   AccountGoal,
   AccountOrder,
-  AccountOrderItem,
   AccountProfile,
   AccountRole,
 } from "@/src/types/account";
@@ -39,17 +38,6 @@ interface AccountContextValue {
   signOut: () => Promise<void>;
   orders: AccountOrder[];
   refreshOrders: () => Promise<boolean>;
-  placeOrder: (input: {
-    items: AccountOrderItem[];
-    total: number;
-    shipping: {
-      name: string;
-      email: string;
-      address: string;
-      city: string;
-      zip: string;
-    };
-  }) => Promise<boolean>;
 }
 
 const createBaseProfile = (): AccountProfile => ({
@@ -511,69 +499,6 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const placeOrder = async (input: {
-    items: AccountOrderItem[];
-    total: number;
-    shipping: {
-      name: string;
-      email: string;
-      address: string;
-      city: string;
-      zip: string;
-    };
-  }): Promise<boolean> => {
-    if (!isAuthenticated || !profile.id) {
-      setAuthError("Please sign in before placing an order.");
-      return false;
-    }
-
-    const order: AccountOrder = {
-      id: `order-${Date.now()}`,
-      orderedAt: new Date().toISOString(),
-      total: Number(input.total),
-      status: "Processing",
-      items: input.items,
-      shippingName: input.shipping.name,
-      shippingEmail: input.shipping.email,
-      shippingAddress: input.shipping.address,
-      shippingCity: input.shipping.city,
-      shippingZip: input.shipping.zip,
-    };
-
-
-    try {
-      const response = await fetch(ACCOUNT_API_URL, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: "place-order",
-          profileId: profile.id,
-          order,
-        }),
-      });
-
-      if (!response.ok) {
-        await refreshOrders();
-        return false;
-      }
-
-      const payload = (await response.json()) as {
-        orders?: AccountOrder[];
-      };
-
-      if (Array.isArray(payload.orders)) {
-        setOrders(payload.orders);
-      }
-
-      return true;    } catch {
-      await refreshOrders();
-      return false;
-    }
-  };
-
   return (
     <AccountContext.Provider
       value={{
@@ -594,7 +519,6 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
         signOut,
         orders,
         refreshOrders,
-        placeOrder,
       }}
     >
       {children}

@@ -63,6 +63,8 @@ Convert the current visual shopping cart and checkout components into a secure s
 
 ### 10.2 — Payment Gateway Integration (Stripe Webhooks)
 
+**Status: complete.** See `docs/SECTION-10-2-PAYMENT-INTENTS.md` for the implementation and verification record.
+
 - Build `/api/checkout` using Stripe PaymentIntents.
 - Recalculate all prices server-side; never trust browser-submitted prices.
 - Add `/api/webhooks/stripe` for `payment_intent.succeeded` events.

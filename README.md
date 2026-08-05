@@ -35,7 +35,7 @@ Add the Stripe variables from [`.env.example`](C:/coding/bookshop/.env.example) 
 For local webhook testing, run:
 
 ```bash
-stripe listen --forward-to localhost:3000/api/stripe/webhook
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
 Then copy the reported webhook signing secret (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`.
