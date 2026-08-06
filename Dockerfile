@@ -8,7 +8,9 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ARG DATABASE_URL=postgresql://build:build@localhost:5432/bookshop_build
 ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV DATABASE_URL=$DATABASE_URL
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN npm run db:generate && npm run build
