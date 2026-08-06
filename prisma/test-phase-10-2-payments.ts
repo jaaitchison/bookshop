@@ -70,7 +70,7 @@ async function main() {
       visibility: "PUBLIC",
     },
   });
-  await prisma.cart.create({
+  const cart = await prisma.cart.create({
     data: {
       userId: user.id,
       items: { create: { bookId: book.id, quantity: 2 } },
@@ -124,6 +124,7 @@ async function main() {
           city: "London",
           postcode: "SW1A 1AA",
         },
+        digitalContentConsent: true,
       },
     ));
     const initialized = await response.json() as {
@@ -145,6 +146,7 @@ async function main() {
       include: { items: true },
     });
     assert(attempt?.items[0]?.bookId === book.id && attempt.items[0].priceCents === 1025, "Server payment snapshot is incorrect.");
+    assert(attempt.digitalContentConsentAt && attempt.termsVersion === "2026-08-06" && attempt.refundPolicyVersion === "2026-08-06", "Digital-content consent evidence is missing.");
     console.log("   PASS - Stripe amount and snapshot use only current PostgreSQL cart data.");
 
     console.log("\n3. Signed success webhook and exact verification");
@@ -158,7 +160,7 @@ async function main() {
           object: "payment_intent",
           amount: 2050,
           amount_received: 2050,
-          currency: "usd",
+          currency: "gbp",
           metadata,
         },
       },
@@ -170,22 +172,25 @@ async function main() {
     }));
     assert(invalidSignature.status === 400, "Invalid webhook signature was accepted.");
     const webhook = await postStripeWebhook(signedWebhookRequest(succeededEvent, process.env.STRIPE_WEBHOOK_SECRET));
-    const webhookPayload = await webhook.json() as { duplicate?: boolean; fulfillmentPending?: boolean };
-    assert(webhook.status === 200 && webhookPayload.fulfillmentPending, "Signed success webhook was not processed.");
+    const webhookPayload = await webhook.json() as { duplicate?: boolean; fulfillmentPending?: boolean; orderId?: string };
+    assert(webhook.status === 200 && webhookPayload.fulfillmentPending === false && webhookPayload.orderId, "Signed success webhook was not processed.");
     const succeededAttempt = await prisma.paymentAttempt.findUnique({ where: { id: attempt.id } });
     assert(succeededAttempt?.status === "SUCCEEDED", "Verified PaymentIntent did not mark its attempt succeeded.");
     console.log("   PASS - raw-body signature, identity, amount, currency and receipt amount are verified.");
 
-    console.log("\n4. Webhook idempotency and no premature fulfillment");
+    console.log("\n4. Webhook idempotency after fulfilment");
     const duplicate = await postStripeWebhook(signedWebhookRequest(succeededEvent, process.env.STRIPE_WEBHOOK_SECRET));
     const duplicatePayload = await duplicate.json() as { duplicate?: boolean };
     assert(duplicatePayload.duplicate === true, "Duplicate webhook delivery was not detected.");
     assert(await prisma.stripeWebhookEvent.count({ where: { eventId: eventIds[0] } }) === 1, "Duplicate webhook event row was created.");
-    assert(await prisma.order.count({ where: { userId: user.id } }) === 0, "Section 10.2 created an Order before fulfillment.");
-    assert(await prisma.libraryItem.count({ where: { userId: user.id } }) === 0, "Section 10.2 granted library access early.");
-    console.log("   PASS - duplicate delivery is idempotent and fulfillment remains reserved for Section 10.3.");
+    assert(await prisma.order.count({ where: { userId: user.id } }) === 1, "Verified payment did not create exactly one Order.");
+    assert(await prisma.libraryItem.count({ where: { userId: user.id } }) === 1, "Verified payment did not grant library access.");
+    console.log("   PASS - duplicate delivery leaves the Section 10.3 order and grant unchanged.");
 
     console.log("\n5. Tamper rejection and owner-scoped status");
+    await prisma.cartItem.create({
+      data: { cartId: cart.id, bookId: book.id, quantity: 2 },
+    });
     const secondResponse = await checkoutPost(authenticatedRequest(
       "http://localhost/api/checkout",
       "POST",
@@ -198,6 +203,7 @@ async function main() {
           city: "London",
           postcode: "SW1A 1AA",
         },
+        digitalContentConsent: true,
       },
     ));
     const second = await secondResponse.json() as { checkout: { paymentAttemptId: string; paymentIntentId: string } };
@@ -213,7 +219,7 @@ async function main() {
           object: "payment_intent",
           amount: 1,
           amount_received: 1,
-          currency: "usd",
+          currency: "gbp",
           metadata: { paymentAttemptId: secondAttempt.id, userId: user.id },
         },
       },
@@ -251,4 +257,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-

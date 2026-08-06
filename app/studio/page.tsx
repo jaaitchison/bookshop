@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { useAccount } from '@/src/context/AccountContext';
 import { getRecentActivities } from '@/src/data/studio';
 import WriterStatsPanel from '@/src/components/studio/WriterStatsPanel';
+import WriterSalesBreakdown from '@/src/components/studio/WriterSalesBreakdown';
 import WriterBooksList from '@/src/components/studio/WriterBooksList';
 import WriterActivityFeed from '@/src/components/studio/WriterActivityFeed';
 import DisplaySection from '@/src/components/layout/DisplaySection';
-import type { Book } from '@/src/types/book';
-import type { WriterBook } from '@/src/types/studio';
+import type { WriterBook, WriterSalesAnalytics } from '@/src/types/studio';
 type WriterStudioApiBook = {
   id: string;
   title: string;
@@ -18,11 +18,29 @@ type WriterStudioApiBook = {
   rating: number;
   reviews: number;
   status: WriterBook['status'];
+  moderationReason: string;
+};
+
+const STATUS_LABELS: Record<WriterBook['status'], string> = {
+  draft: 'Draft in progress',
+  in_review: 'Awaiting Admin review',
+  changes_requested: 'Changes requested',
+  approved: 'Approved',
+  published: 'Published',
+  archived: 'Archived',
+};
+
+const EMPTY_SALES: WriterSalesAnalytics = {
+  currency: 'GBP',
+  totalBooksSold: 0,
+  totalRevenue: 0,
+  books: [],
 };
 
 export default function WriterStudioPage() {
   const { isAuthenticated, hasRole } = useAccount();
   const [books, setBooks] = useState<WriterBook[]>([]);
+  const [sales, setSales] = useState<WriterSalesAnalytics>(EMPTY_SALES);
   const activities = getRecentActivities();
 
   useEffect(() => {
@@ -32,35 +50,49 @@ export default function WriterStudioPage() {
 
     const loadBooks = async () => {
       try {
-        const response = await fetch('/api/studio/books', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
+        const [booksResponse, salesResponse] = await Promise.all([
+          fetch('/api/studio/books', {
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+          fetch('/api/studio/sales', {
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+        ]);
 
-        if (!response.ok) {
-          throw new Error('Unable to load Writer books.');
+        if (!booksResponse.ok || !salesResponse.ok) {
+          throw new Error('Unable to load Writer Studio data.');
         }
 
-        const data = (await response.json()) as {
+        const data = (await booksResponse.json()) as {
           books?: WriterStudioApiBook[];
         };
+        const salesData = (await salesResponse.json()) as {
+          sales?: WriterSalesAnalytics;
+        };
+        const nextSales = salesData.sales ?? EMPTY_SALES;
+        const salesByBook = new Map(nextSales.books.map((book) => [book.bookId, book.booksSold]));
 
-        const normalizedBooks = (data.books ?? []).map((book, index) => ({
+        const normalizedBooks = (data.books ?? []).map((book) => ({
           id: book.id,
           title: book.title,
           genre: book.genre,
-          publishedDate: book.status === 'published' ? 'Published' : book.status === 'archived' ? 'Archived' : 'Draft in progress',
-          views: 1200 + index * 260 + (book.rating > 0 ? 150 : 0),
-          sales: 40 + index * 12 + (book.status === 'published' ? 20 : 0),
+          publishedDate: STATUS_LABELS[book.status],
+          views: 0,
+          sales: salesByBook.get(book.id) ?? 0,
           rating: book.rating,
           reviews: book.reviews,
           status: book.status,
           cover: book.coverUrl,
+          moderationReason: book.moderationReason,
         }));
 
         setBooks(normalizedBooks);
+        setSales(nextSales);
       } catch {
         setBooks([]);
+        setSales(EMPTY_SALES);
       }
     };
 
@@ -68,21 +100,18 @@ export default function WriterStudioPage() {
   }, [hasRole, isAuthenticated]);
 
   const stats = useMemo(() => {
-    const totalViews = books.reduce((sum, book) => sum + book.views, 0);
-    const totalSales = books.reduce((sum, book) => sum + book.sales, 0);
     const avgRating = books.length > 0
       ? books.reduce((sum, book) => sum + book.rating, 0) / books.length
       : 0;
 
     return {
       totalBooks: books.length,
-      totalViews,
-      totalSales,
+      publishedBooks: sales.books.length,
+      totalBooksSold: sales.totalBooksSold,
+      totalRevenue: sales.totalRevenue,
       avgRating,
-      viewsGrowth: 23.5,
-      salesGrowth: 18.2,
     };
-  }, [books]);
+  }, [books, sales]);
 
   const handleStatusChange = async (bookId: string, status: WriterBook['status']) => {
     try {
@@ -96,24 +125,13 @@ export default function WriterStudioPage() {
         throw new Error('Unable to update book status.');
       }
 
-      const updatedBook = (await response.json()) as Book;
+      const updatedBook = (await response.json()) as WriterStudioApiBook;
       setBooks((currentBooks) => currentBooks.map((book) => (book.id === updatedBook.id ? {
         ...book,
-        status: (updatedBook.status ?? 'published') as WriterBook['status'],
-        publishedDate: updatedBook.status === 'published' ? 'Published today' : updatedBook.status === 'archived' ? 'Archived' : 'Draft in progress',
+        status: updatedBook.status ?? 'draft',
+        publishedDate: STATUS_LABELS[updatedBook.status ?? 'draft'],
+        moderationReason: updatedBook.moderationReason ?? book.moderationReason,
       } : book)));
-    } catch {
-      setBooks((currentBooks) => currentBooks);
-    }
-  };
-
-  const handleDelete = async (bookId: string) => {
-    try {
-      const response = await fetch(`/api/books/${bookId}`, { method: 'DELETE' });
-      if (!response.ok) {
-        throw new Error('Unable to delete book.');
-      }
-      setBooks((currentBooks) => currentBooks.filter((book) => book.id !== bookId));
     } catch {
       setBooks((currentBooks) => currentBooks);
     }
@@ -125,7 +143,7 @@ export default function WriterStudioPage() {
         <div className="mx-auto w-11/12 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
           <DisplaySection
             title="Creator access required"
-            description="Writer Back Office is available to accounts with writer access."
+            description="Back of House is available to accounts with Writer access."
           >
             <div className="py-4 text-center">
               <p className="mx-auto max-w-2xl text-[var(--bookshop-muted)]">
@@ -151,25 +169,34 @@ export default function WriterStudioPage() {
       <div className="mx-auto w-11/12 space-y-8 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
         <DisplaySection
           title="Publishing overview"
-          description="A summary of your books, readership, sales and ratings."
+          description="A live summary of your published catalogue and completed sales."
         >
           <WriterStatsPanel stats={stats} />
+        </DisplaySection>
+
+        <DisplaySection
+          title="Sales by published book"
+          description="Completed, non-refunded order items for books owned by your Writer account."
+        >
+          <WriterSalesBreakdown sales={sales} />
         </DisplaySection>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
           <DisplaySection
             title="My books"
-            description="Review your catalogue and update the publishing status of each title."
+            description="Develop your catalogue, submit completed books for Admin review and respond to feedback."
           >
             <div className="mb-5 flex justify-end">
               <select className="bookshop-input max-w-48">
                 <option>All books</option>
                 <option>Published</option>
                 <option>Drafts</option>
+                <option>In review</option>
+                <option>Changes requested</option>
                 <option>Archived</option>
               </select>
             </div>
-            <WriterBooksList books={books} onStatusChange={handleStatusChange} onDelete={handleDelete} />
+            <WriterBooksList books={books} onStatusChange={handleStatusChange} />
           </DisplaySection>
 
           <DisplaySection
@@ -182,7 +209,7 @@ export default function WriterStudioPage() {
 
         <DisplaySection
           title="Quick actions"
-          description="Common Writer Back Office tasks."
+          description="Common Back of House tasks."
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Link

@@ -1,4 +1,9 @@
-import { BookStatus, BookVisibility, RoleKey } from "@/src/generated/prisma/client";
+import {
+  BookStatus,
+  BookVisibility,
+  PublishingAuditAction,
+  RoleKey,
+} from "@/src/generated/prisma/client";
 import { getPrismaClient } from "@/src/lib/prisma";
 
 export type WriterOwnedBookSummary = {
@@ -13,7 +18,10 @@ export type WriterOwnedBookSummary = {
   price: number;
   rating: number;
   reviews: number;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "in_review" | "changes_requested" | "approved" | "published" | "archived";
+  moderationReason: string;
+  submittedAt: string | null;
+  reviewedAt: string | null;
   publishedAt: string | null;
   archivedAt: string | null;
   createdAt: string;
@@ -40,10 +48,13 @@ function toClientStatus(
       return "published";
     case BookStatus.ARCHIVED:
       return "archived";
-    case BookStatus.DRAFT:
     case BookStatus.IN_REVIEW:
+      return "in_review";
     case BookStatus.CHANGES_REQUESTED:
+      return "changes_requested";
     case BookStatus.APPROVED:
+      return "approved";
+    case BookStatus.DRAFT:
       return "draft";
   }
 }
@@ -63,8 +74,11 @@ function mapBook(book: {
   status: BookStatus;
   publishedAt: Date | null;
   archivedAt: Date | null;
+  submittedAt: Date | null;
+  reviewedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  publishingAuditLogs?: Array<{ reason: string }>;
 }): WriterOwnedBookSummary {
   if (!book.authorId) {
     throw new Error(
@@ -87,6 +101,9 @@ function mapBook(book: {
     status: toClientStatus(book.status),
     publishedAt: book.publishedAt?.toISOString() ?? null,
     archivedAt: book.archivedAt?.toISOString() ?? null,
+    submittedAt: book.submittedAt?.toISOString() ?? null,
+    reviewedAt: book.reviewedAt?.toISOString() ?? null,
+    moderationReason: book.publishingAuditLogs?.[0]?.reason ?? "",
     createdAt: book.createdAt.toISOString(),
     updatedAt: book.updatedAt.toISOString(),
   };
@@ -177,6 +194,14 @@ export async function getWriterOwnedBooks(
     orderBy: {
       updatedAt: "desc",
     },
+    include: {
+      publishingAuditLogs: {
+        where: { action: PublishingAuditAction.CHANGES_REQUESTED },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { reason: true },
+      },
+    },
   });
 
   return books.map(mapBook);
@@ -197,6 +222,14 @@ export async function getAllWriterOwnedBooks(): Promise<
     orderBy: {
       updatedAt: "desc",
     },
+    include: {
+      publishingAuditLogs: {
+        where: { action: PublishingAuditAction.CHANGES_REQUESTED },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { reason: true },
+      },
+    },
   });
 
   return books.map(mapBook);
@@ -214,6 +247,14 @@ export async function getWriterOwnedBook(
         { id: bookIdOrSlug },
         { slug: bookIdOrSlug },
       ],
+    },
+    include: {
+      publishingAuditLogs: {
+        where: { action: PublishingAuditAction.CHANGES_REQUESTED },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { reason: true },
+      },
     },
   });
 
@@ -431,7 +472,7 @@ export type WriterBookMetadataUpdate = {
   genre?: string;
   coverUrl?: string;
   price?: number;
-  status?: "draft" | "published" | "archived";
+  status?: "draft" | "in_review" | "archived";
 };
 
 export type ManagedBookSummary = {
@@ -446,7 +487,10 @@ export type ManagedBookSummary = {
   price: number;
   rating: number;
   reviews: number;
-  status: "draft" | "published" | "archived";
+  status: WriterOwnedBookSummary["status"];
+  moderationReason: string;
+  submittedAt: string | null;
+  reviewedAt: string | null;
   publishedAt: string | null;
   archivedAt: string | null;
   updatedAt: string;
@@ -467,7 +511,10 @@ function mapManagedBook(book: {
   status: BookStatus;
   publishedAt: Date | null;
   archivedAt: Date | null;
+  submittedAt: Date | null;
+  reviewedAt: Date | null;
   updatedAt: Date;
+  publishingAuditLogs?: Array<{ reason: string }>;
 }): ManagedBookSummary {
   return {
     id: book.id,
@@ -484,6 +531,9 @@ function mapManagedBook(book: {
     status: toClientStatus(book.status),
     publishedAt: book.publishedAt?.toISOString() ?? null,
     archivedAt: book.archivedAt?.toISOString() ?? null,
+    submittedAt: book.submittedAt?.toISOString() ?? null,
+    reviewedAt: book.reviewedAt?.toISOString() ?? null,
+    moderationReason: book.publishingAuditLogs?.[0]?.reason ?? "",
     updatedAt: book.updatedAt.toISOString(),
   };
 }
@@ -518,10 +568,6 @@ export async function updateManagedBookMetadata(
     genre?: string;
     coverUrl?: string;
     price?: number;
-    status?: BookStatus;
-    visibility?: BookVisibility;
-    publishedAt?: Date | null;
-    archivedAt?: Date | null;
   } = {};
 
   if (updates.title !== undefined) {
@@ -563,41 +609,83 @@ export async function updateManagedBookMetadata(
     data.price = updates.price;
   }
 
-  if (updates.status !== undefined) {
-    const now = new Date();
-
-    switch (updates.status) {
-      case "draft":
-        data.status = BookStatus.DRAFT;
-        data.visibility = BookVisibility.PRIVATE;
-        data.publishedAt = null;
-        data.archivedAt = null;
-        break;
-
-      case "published":
-        data.status = BookStatus.PUBLISHED;
-        data.visibility = BookVisibility.PUBLIC;
-        data.publishedAt = existing.publishedAt ?? now;
-        data.archivedAt = null;
-        break;
-
-      case "archived":
-        data.status = BookStatus.ARCHIVED;
-        data.visibility = BookVisibility.PRIVATE;
-        data.archivedAt = now;
-        break;
-
-      default:
-        throw new Error("Invalid publishing status.");
-    }
-  }
-
   const updated = await prisma.book.update({
     where: {
       id: existing.id,
     },
     data,
   });
+  if (updates.status !== undefined) {
+    return transitionWriterBookStatus(userId, existing.id, updates.status);
+  }
+  return mapManagedBook(updated);
+}
 
+export async function transitionWriterBookStatus(
+  userId: string,
+  bookIdOrSlug: string,
+  requestedStatus: "draft" | "in_review" | "archived",
+): Promise<ManagedBookSummary> {
+  const prisma = requirePrisma();
+  const existing = await prisma.book.findFirst({
+    where: { OR: [{ id: bookIdOrSlug }, { slug: bookIdOrSlug }] },
+  });
+  if (!existing) throw new Error("Book not found.");
+  if (!(await canManageBook(userId, existing.id))) {
+    throw new Error("You do not have permission to manage this book.");
+  }
+
+  if (requestedStatus === "draft") {
+    if (existing.status !== BookStatus.DRAFT) {
+      throw new Error("A reviewed book cannot be returned to Draft through this route.");
+    }
+    return mapManagedBook(existing);
+  }
+
+  const now = new Date();
+  const target = requestedStatus === "in_review" ? BookStatus.IN_REVIEW : BookStatus.ARCHIVED;
+  if (existing.status === target) return mapManagedBook(existing);
+  if (
+    requestedStatus === "in_review" &&
+    existing.status !== BookStatus.DRAFT &&
+    existing.status !== BookStatus.CHANGES_REQUESTED
+  ) {
+    throw new Error("Only Draft or Changes Requested books can be submitted for review.");
+  }
+  if (requestedStatus === "archived" && existing.status === BookStatus.IN_REVIEW) {
+    throw new Error("A book awaiting review must be handled by an Admin.");
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const book = await tx.book.update({
+      where: { id: existing.id },
+      data: requestedStatus === "in_review"
+        ? {
+            status: BookStatus.IN_REVIEW,
+            visibility: BookVisibility.PRIVATE,
+            submittedAt: now,
+            reviewedAt: null,
+            archivedAt: null,
+          }
+        : {
+            status: BookStatus.ARCHIVED,
+            visibility: BookVisibility.PRIVATE,
+            reviewedAt: now,
+            archivedAt: now,
+          },
+    });
+    await tx.publishingAuditLog.create({
+      data: {
+        bookId: existing.id,
+        actorId: userId,
+        action: requestedStatus === "in_review"
+          ? PublishingAuditAction.SUBMITTED_FOR_REVIEW
+          : PublishingAuditAction.ARCHIVED,
+        fromStatus: existing.status,
+        toStatus: target,
+      },
+    });
+    return book;
+  });
   return mapManagedBook(updated);
 }

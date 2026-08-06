@@ -148,10 +148,27 @@ export async function getEntitledBookFile(userId: string, fileId: string) {
       book: { libraryItems: { some: { userId } } },
     },
     select: {
+      id: true,
       storageKey: true,
       originalName: true,
       contentType: true,
       sizeBytes: true,
+      format: true,
+      fileType: true,
+      fileUrl: true,
+      book: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          authorDisplayName: true,
+          readingProgress: {
+            where: { userId },
+            select: { progress: true },
+            take: 1,
+          },
+        },
+      },
     },
   });
 }

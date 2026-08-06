@@ -53,6 +53,20 @@ enum PaymentAttemptStatus {
   CANCELLED
 }
 
+enum OrderConfirmationStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+}
+
+enum PublishingAuditAction {
+  SUBMITTED_FOR_REVIEW
+  PUBLISHED
+  CHANGES_REQUESTED
+  ARCHIVED
+}
+
 enum ReviewStatus {
   PENDING
   PUBLISHED
@@ -97,6 +111,7 @@ model User {
   cart             Cart?
   libraryItems     LibraryItem[]
   paymentAttempts  PaymentAttempt[]
+  publishingAuditLogs PublishingAuditLog[] @relation("PublishingAuditActor")
 }
 
 model Role {
@@ -154,6 +169,8 @@ model Book {
   visibility        BookVisibility @default(PRIVATE)
   publishedAt       DateTime?
   archivedAt        DateTime?
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 
@@ -169,12 +186,31 @@ model Book {
   cartItems           CartItem[]
   libraryItems        LibraryItem[]
   paymentAttemptItems PaymentAttemptItem[]
+  publishingAuditLogs PublishingAuditLog[]
 
   @@index([authorId])
   @@index([status])
   @@index([visibility])
   @@index([genre])
   @@index([featured])
+}
+
+model PublishingAuditLog {
+  id         String                @id @default(cuid())
+  bookId     String
+  actorId    String
+  action     PublishingAuditAction
+  fromStatus BookStatus
+  toStatus   BookStatus
+  reason     String                @default("")
+  createdAt  DateTime              @default(now())
+
+  book  Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  actor User @relation("PublishingAuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([bookId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
 }
 
 model Chapter {
@@ -204,6 +240,7 @@ model Order {
   currency         String      @default("GBP")
   stripeSessionId  String?     @unique
   stripePaymentId  String?     @unique
+  paymentAttemptId String?     @unique
   shippingName     String
   shippingEmail    String
   shippingAddress  String
@@ -212,11 +249,31 @@ model Order {
   orderedAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
-  user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
-  items OrderItem[]
+  user            User               @relation(fields: [userId], references: [id], onDelete: Restrict)
+  paymentAttempt  PaymentAttempt?     @relation(fields: [paymentAttemptId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+  confirmation    OrderConfirmation?
 
   @@index([userId])
   @@index([status])
+}
+
+model OrderConfirmation {
+  id                String                  @id @default(cuid())
+  orderId           String                  @unique
+  recipient         String
+  status            OrderConfirmationStatus @default(PENDING)
+  provider          String                  @default("resend")
+  providerMessageId String                  @default("")
+  failureMessage    String                  @default("")
+  attemptCount      Int                     @default(0)
+  createdAt         DateTime                @default(now())
+  sentAt            DateTime?
+  updatedAt         DateTime                @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
 }
 
 model OrderItem {
@@ -409,12 +466,15 @@ model PaymentAttempt {
   stripePaymentIntentId String?              @unique
   status                PaymentAttemptStatus @default(PENDING)
   amountCents           Int
-  currency              String               @default("usd")
+  currency              String               @default("gbp")
   shippingName          String
   shippingEmail         String
   shippingAddress       String
   shippingCity          String
   shippingPostcode      String
+  digitalContentConsentAt DateTime?
+  termsVersion            String               @default("")
+  refundPolicyVersion     String               @default("")
   failureMessage        String               @default("")
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
@@ -423,6 +483,7 @@ model PaymentAttempt {
   cart   Cart?                @relation(fields: [cartId], references: [id], onDelete: SetNull)
   items  PaymentAttemptItem[]
   events StripeWebhookEvent[]
+  order  Order?
 
   @@index([userId, createdAt])
   @@index([cartId])

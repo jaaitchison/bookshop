@@ -3,8 +3,10 @@ import {
   BookVisibility,
   PaymentAttemptStatus,
 } from "@/src/generated/prisma/client";
+import { deliverOrderConfirmation } from "@/src/lib/order-confirmation-service";
 import { getPrismaClient } from "@/src/lib/prisma";
 import type { CheckoutShipping, PaymentAttemptState } from "@/src/types/checkout";
+import type { DigitalContentConsent } from "@/src/lib/legal-policy";
 
 const MINIMUM_PAYMENT_CENTS = 50;
 const MAXIMUM_PAYMENT_CENTS = 99_999_999;
@@ -77,6 +79,7 @@ function priceToCents(price: { toString(): string }) {
 export async function createPaymentAttemptForUser(
   userId: string,
   shipping: CheckoutShipping,
+  consent: DigitalContentConsent,
 ) {
   const prisma = requirePrisma();
   const cart = await prisma.cart.findUnique({
@@ -124,12 +127,15 @@ export async function createPaymentAttemptForUser(
       userId,
       cartId: cart.id,
       amountCents,
-      currency: "usd",
+      currency: "gbp",
       shippingName: shipping.name,
       shippingEmail: shipping.email,
       shippingAddress: shipping.address,
       shippingCity: shipping.city,
       shippingPostcode: shipping.postcode,
+      digitalContentConsentAt: consent.acceptedAt,
+      termsVersion: consent.termsVersion,
+      refundPolicyVersion: consent.refundPolicyVersion,
       items: { create: items },
     },
     include: { items: true },
@@ -174,6 +180,7 @@ export async function getPaymentAttemptForUserByIntent(
       failureMessage: true,
       createdAt: true,
       updatedAt: true,
+      order: { select: { id: true } },
     },
   });
 
@@ -184,6 +191,7 @@ export async function getPaymentAttemptForUserByIntent(
         amount: attempt.amountCents / 100,
         createdAt: attempt.createdAt.toISOString(),
         updatedAt: attempt.updatedAt.toISOString(),
+        orderId: attempt.order?.id ?? null,
       }
     : null;
 }
@@ -202,14 +210,6 @@ export async function recordSucceededPaymentIntent(
   paymentIntent: SucceededPaymentIntent,
 ) {
   const prisma = requirePrisma();
-  const existingEvent = await prisma.stripeWebhookEvent.findUnique({
-    where: { eventId },
-    select: { eventId: true, paymentAttemptId: true },
-  });
-  if (existingEvent) {
-    return { duplicate: true, paymentAttemptId: existingEvent.paymentAttemptId };
-  }
-
   const paymentAttemptId = paymentIntent.metadata.paymentAttemptId;
   const userId = paymentIntent.metadata.userId;
   if (!paymentAttemptId || !userId) {
@@ -219,36 +219,134 @@ export async function recordSucceededPaymentIntent(
     );
   }
 
-  const attempt = await prisma.paymentAttempt.findUnique({
-    where: { id: paymentAttemptId },
-  });
-  if (!attempt) {
-    throw new PaymentVerificationError("Payment attempt was not found.", "ATTEMPT_NOT_FOUND");
-  }
 
-  if (
-    attempt.userId !== userId ||
-    attempt.stripePaymentIntentId !== paymentIntent.id ||
-    attempt.amountCents !== paymentIntent.amount ||
-    attempt.amountCents !== paymentIntent.amount_received ||
-    attempt.currency !== paymentIntent.currency.toLowerCase()
-  ) {
-    throw new PaymentVerificationError(
-      "PaymentIntent does not match the server-owned payment attempt.",
-      "PAYMENT_MISMATCH",
+  const fulfil = () => prisma.$transaction(async (tx) => {
+    const existingEvent = await tx.stripeWebhookEvent.findUnique({
+      where: { eventId },
+      select: { paymentAttemptId: true },
+    });
+    const attempt = await tx.paymentAttempt.findUnique({
+      where: { id: paymentAttemptId },
+      include: { items: true, order: { select: { id: true } } },
+    });
+    if (!attempt) {
+      throw new PaymentVerificationError("Payment attempt was not found.", "ATTEMPT_NOT_FOUND");
+    }
+    if (
+      attempt.userId !== userId ||
+      attempt.stripePaymentIntentId !== paymentIntent.id ||
+      attempt.amountCents !== paymentIntent.amount ||
+      attempt.amountCents !== paymentIntent.amount_received ||
+      attempt.currency !== paymentIntent.currency.toLowerCase() ||
+      (existingEvent?.paymentAttemptId && existingEvent.paymentAttemptId !== attempt.id)
+    ) {
+      throw new PaymentVerificationError(
+        "PaymentIntent does not match the server-owned payment attempt.",
+        "PAYMENT_MISMATCH",
+      );
+    }
+
+    if (attempt.order) {
+      await tx.paymentAttempt.update({
+        where: { id: attempt.id },
+        data: { status: PaymentAttemptStatus.SUCCEEDED, failureMessage: "" },
+      });
+      if (!existingEvent) {
+        await tx.stripeWebhookEvent.create({
+          data: { eventId, eventType, paymentAttemptId: attempt.id },
+        });
+      }
+      return {
+        duplicate: true,
+        paymentAttemptId: attempt.id,
+        orderId: attempt.order.id,
+        libraryItemsGranted: 0,
+      };
+    }
+
+    const order = await tx.order.create({
+      data: {
+        userId: attempt.userId,
+        paymentAttemptId: attempt.id,
+        stripePaymentId: paymentIntent.id,
+        total: attempt.amountCents / 100,
+        currency: attempt.currency.toUpperCase(),
+        shippingName: attempt.shippingName,
+        shippingEmail: attempt.shippingEmail,
+        shippingAddress: attempt.shippingAddress,
+        shippingCity: attempt.shippingCity,
+        shippingPostcode: attempt.shippingPostcode,
+        items: {
+          create: attempt.items.map((item) => ({
+            bookId: item.bookId,
+            titleSnapshot: item.titleSnapshot,
+            authorSnapshot: item.authorSnapshot,
+            price: item.priceCents / 100,
+            quantity: item.quantity,
+          })),
+        },
+        confirmation: { create: { recipient: attempt.shippingEmail } },
+      },
+      include: { items: true },
+    });
+
+    const orderItemByBook = new Map(
+      order.items.flatMap((item) => item.bookId ? [[item.bookId, item.id] as const] : []),
     );
-  }
+    const libraryItems = attempt.items.flatMap((item) => {
+      const orderItemId = orderItemByBook.get(item.bookId);
+      return orderItemId
+        ? [{ userId: attempt.userId, bookId: item.bookId, orderItemId }]
+        : [];
+    });
+    const granted = await tx.libraryItem.createMany({
+      data: libraryItems,
+      skipDuplicates: true,
+    });
 
-  await prisma.$transaction([
-    prisma.paymentAttempt.update({
+    if (attempt.cartId) {
+      for (const purchased of attempt.items) {
+        const current = await tx.cartItem.findUnique({
+          where: { cartId_bookId: { cartId: attempt.cartId, bookId: purchased.bookId } },
+        });
+        if (!current) continue;
+        if (current.quantity <= purchased.quantity) {
+          await tx.cartItem.delete({ where: { id: current.id } });
+        } else {
+          await tx.cartItem.update({
+            where: { id: current.id },
+            data: { quantity: { decrement: purchased.quantity } },
+          });
+        }
+      }
+    }
+
+    await tx.paymentAttempt.update({
       where: { id: attempt.id },
       data: { status: PaymentAttemptStatus.SUCCEEDED, failureMessage: "" },
-    }),
-    prisma.stripeWebhookEvent.create({
-      data: { eventId, eventType, paymentAttemptId: attempt.id },
-    }),
-  ]);
+    });
+    if (!existingEvent) {
+      await tx.stripeWebhookEvent.create({
+        data: { eventId, eventType, paymentAttemptId: attempt.id },
+      });
+    }
 
-  return { duplicate: false, paymentAttemptId: attempt.id };
+    return {
+      duplicate: Boolean(existingEvent),
+      paymentAttemptId: attempt.id,
+      orderId: order.id,
+      libraryItemsGranted: granted.count,
+    };
+  });
+
+  let result;
+  try {
+    result = await fulfil();
+  } catch (error) {
+    if ((error as { code?: string }).code !== "P2002") throw error;
+    result = await fulfil();
+  }
+
+  const confirmation = await deliverOrderConfirmation(result.orderId).catch(() => ({ status: "failed" as const }));
+  return { ...result, confirmationStatus: confirmation.status };
 }
-

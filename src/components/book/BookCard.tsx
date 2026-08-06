@@ -2,6 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { Book } from '../../types/book';
+import { formatGbp } from '../../lib/currency';
 
 interface BookCardProps {
   book: Book;
@@ -30,7 +31,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book }) => {
           </h3>
           <p className="text-xs text-slate-600">{book.author}</p>
           <div className="flex items-center justify-between">
-            <span className="text-lg font-bold text-slate-900">${book.price.toFixed(2)}</span>
+            <span className="text-lg font-bold text-slate-900">{formatGbp(book.price)}</span>
             <div className="flex items-center gap-1 text-xs font-medium text-slate-600">
               <span className="text-amber-500">★</span>
               <span>{book.rating} ({book.reviews.toLocaleString()})</span>

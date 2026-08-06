@@ -3,12 +3,16 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAccount } from '@/src/context/AccountContext';
+import { useCart } from '@/src/context/CartContext';
 import type { PaymentAttemptState } from '@/src/types/checkout';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const paymentIntentId = searchParams.get('payment_intent');
   const redirectStatus = searchParams.get('redirect_status');
+  const { refreshOrders } = useAccount();
+  const { refreshCart } = useCart();
   const redirectedFailure = redirectStatus === 'failed' || redirectStatus === 'requires_payment_method';
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
     paymentIntentId && !redirectedFailure ? 'loading' : 'error',
@@ -34,7 +38,11 @@ function CheckoutSuccessContent() {
             { credentials: 'include', cache: 'no-store' },
           );
           const payload = await response.json() as {
-            attempt?: { status: PaymentAttemptState; failureMessage: string };
+            attempt?: {
+              status: PaymentAttemptState;
+              failureMessage: string;
+              orderId: string | null;
+            };
             error?: string;
           };
           if (!response.ok || !payload.attempt) {
@@ -42,9 +50,10 @@ function CheckoutSuccessContent() {
             setMessage(payload.error ?? 'We could not verify this payment attempt.');
             return;
           }
-          if (payload.attempt.status === 'SUCCEEDED') {
+          if (payload.attempt.status === 'SUCCEEDED' && payload.attempt.orderId) {
+            await Promise.all([refreshOrders(), refreshCart()]);
             setStatus('success');
-            setMessage('Your payment is verified. Secure order fulfillment will now continue on the server.');
+            setMessage('Your payment is verified, your order is recorded, and your books are ready in your library.');
             return;
           }
           if (payload.attempt.status === 'FAILED' || payload.attempt.status === 'CANCELLED') {
@@ -72,7 +81,7 @@ function CheckoutSuccessContent() {
     return () => {
       active = false;
     };
-  }, [paymentIntentId, redirectedFailure]);
+  }, [paymentIntentId, redirectedFailure, refreshCart, refreshOrders]);
 
   return (
     <main className="min-h-screen bg-[var(--bookshop-bg)] py-8">
@@ -94,6 +103,11 @@ function CheckoutSuccessContent() {
           <Link href="/account" className="bookshop-button-quiet px-5 py-2.5 text-sm">
             View account dashboard
           </Link>
+          {status === 'success' ? (
+            <Link href="/library" className="bookshop-button-primary px-5 py-2.5 text-sm">
+              Open your library
+            </Link>
+          ) : null}
         </div>
       </div>
     </main>

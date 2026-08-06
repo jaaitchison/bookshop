@@ -1,191 +1,162 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
+import type { CardioArea } from "./layout/CardioLogo";
+import ModeBadge from "./layout/ModeBadge";
 import { useAccount } from "../context/AccountContext";
 import { useCart } from "../context/CartContext";
 
-type SiteArea = "front" | "writer" | "admin";
+type RoleName = "reader" | "writer" | "admin";
+type LinkTone = "purple" | "amber" | "red";
 
-const navItems = [
+const primaryNavItems = [
+  { href: "/", label: "Home" },
   { href: "/books", label: "Books" },
   { href: "/library", label: "Library" },
-  { href: "/account", label: "Account" },
+  { href: "/account", label: "Accounts" },
 ] as const;
 
 const isActiveRoute = (pathname: string, href: string) =>
-  pathname === href || pathname.startsWith(`${href}/`);
+  href === "/"
+    ? pathname === "/"
+    : pathname === href || pathname.startsWith(`${href}/`);
 
-const getArea = (pathname: string): { label: string; area: SiteArea } => {
-  if (pathname.startsWith("/admin")) {
-    return { label: "Administration", area: "admin" };
-  }
+function getArea(pathname: string): CardioArea {
+  if (pathname.startsWith("/admin")) return "admin";
+  if (pathname.startsWith("/studio") || pathname.startsWith("/writer")) return "writer";
+  return "front";
+}
 
-  if (pathname.startsWith("/studio") || pathname.startsWith("/writer")) {
-    return { label: "Writers Back Office", area: "writer" };
-  }
+const getRoleLabel = (role: RoleName) =>
+  role === "admin" ? "Admin" : role === "writer" ? "Writer" : "Reader";
 
-  return { label: "Front of House", area: "front" };
-};
+function HeaderNavLink({
+  href,
+  label,
+  enabled,
+  pathname,
+  tone,
+  onClick,
+  className = "",
+}: {
+  href: string;
+  label: string;
+  enabled: boolean;
+  pathname: string;
+  tone: LinkTone;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={enabled ? href : `/auth?redirect=${encodeURIComponent(href)}`}
+      className={`bookshop-nav-link ${className}`.trim()}
+      data-tone={tone}
+      data-active={enabled && isActiveRoute(pathname, href)}
+      data-disabled={!enabled}
+      aria-current={enabled && isActiveRoute(pathname, href) ? "page" : undefined}
+      title={enabled ? undefined : `${label} requires an authorised account`}
+      onClick={onClick}
+    >
+      {label}
+    </Link>
+  );
+}
 
-const getAreaColour = (area: SiteArea) => {
-  if (area === "admin") return "text-red-500";
-  if (area === "writer") return "text-amber-500";
-  return "text-emerald-500";
-};
-
-const HeartbeatIcon = ({ area }: { area: SiteArea }) => (
-  <svg
-    viewBox="0 0 76 30"
-    className={`h-7 w-20 ${getAreaColour(area)}`}
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="3"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M2 16h13l5-10 7 19 8-16 6 7h33" opacity="0.22" />
-    <path d="M2 16h13l5-10 7 19 8-16 6 7h33" strokeDasharray="22 64">
-      <animate
-        attributeName="stroke-dashoffset"
-        from="86"
-        to="0"
-        dur="1.35s"
-        repeatCount="indefinite"
-      />
-    </path>
-  </svg>
-);
-
-const MobileNav: React.FC<{
+function MobileNav({
+  isOpen,
+  onClose,
+}: {
   isOpen: boolean;
   onClose: () => void;
-  area: { label: string; area: SiteArea };
-}> = ({ isOpen, onClose, area }) => {
-  const menuRef = useRef<HTMLDivElement>(null);
+}) {
+  const menuRef = useRef<HTMLElement>(null);
   const pathname = usePathname() || "/";
-  const { hasRole, isAuthenticated, profile, signOut } = useAccount();
+  const { hasRole, isAuthenticated, profile } = useAccount();
   const { count, openCart } = useCart();
+  const area = getArea(pathname);
+  const role = profile.activeRole as RoleName;
 
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) onClose();
     };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-40 lg:hidden">
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[60] xl:hidden">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <nav
         ref={menuRef}
-        className="fixed bottom-0 right-0 top-28 w-80 max-w-[88vw] overflow-y-auto border-l border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
+        className="absolute inset-y-0 right-0 flex w-80 max-w-[88vw] flex-col overflow-y-auto border-l border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
         aria-label="Mobile navigation"
       >
-        <div className="space-y-3 p-5">
-          <div className="mb-4 flex items-center gap-3 border-b border-slate-200 pb-4 dark:border-slate-700">
-            <HeartbeatIcon area={area.area} />
-            <span className={`text-sm font-bold ${getAreaColour(area.area)}`}>{area.label}</span>
-          </div>
-
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="bookshop-nav-link flex w-full justify-between px-4 py-3"
-              data-active={isActiveRoute(pathname, item.href)}
-              onClick={onClose}
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          {hasRole("writer") ? (
-            <Link
-              href="/studio"
-              className="bookshop-nav-link flex w-full justify-between px-4 py-3"
-              data-active={pathname.startsWith("/studio")}
-              onClick={onClose}
-            >
-              Writer Studio
-            </Link>
-          ) : null}
-
-          {hasRole("admin") ? (
-            <Link
-              href="/admin"
-              className="bookshop-nav-link flex w-full justify-between px-4 py-3"
-              data-active={pathname.startsWith("/admin")}
-              onClick={onClose}
-            >
-              Administration
-            </Link>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => {
-              openCart();
-              onClose();
-            }}
-            className="bookshop-button-primary w-full px-4 py-3 text-sm"
-          >
-            Cart{count > 0 ? ` (${count})` : ""}
+        <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-700 dark:bg-slate-900">
+          <span className="font-bold text-slate-900 dark:text-white">Navigation</span>
+          <button type="button" onClick={onClose} aria-label="Close navigation" className="rounded-full border border-slate-300 px-3 py-2 dark:border-slate-600">
+            ×
           </button>
+        </div>
 
-          {!isAuthenticated ? (
-            <Link
-              href="/auth"
-              className="bookshop-button-quiet flex w-full justify-center px-4 py-3 text-sm"
-              onClick={onClose}
+        <div className="space-y-5 p-5">
+          <ModeBadge area={area} />
+
+          {isAuthenticated ? (
+            <div className="space-y-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm dark:border-slate-700 dark:bg-slate-800">
+              <p className="font-semibold text-slate-900 dark:text-white">{profile.name || profile.username}</p>
+              <p className="text-slate-600 dark:text-slate-300">Role: <strong>{getRoleLabel(role)}</strong></p>
+              <p className="text-slate-600 dark:text-slate-300">Status: <strong>Active / Logged In</strong></p>
+            </div>
+          ) : null}
+
+          <div className="grid gap-3">
+            {primaryNavItems.map((item) => (
+              <HeaderNavLink key={item.href} {...item} enabled pathname={pathname} tone="purple" onClick={onClose} className="w-full" />
+            ))}
+            <HeaderNavLink href="/studio" label="Studio" enabled={hasRole("writer")} pathname={pathname} tone="amber" onClick={onClose} className="w-full" />
+            <HeaderNavLink href="/admin" label="Admin" enabled={hasRole("admin")} pathname={pathname} tone="red" onClick={onClose} className="w-full" />
+            <button
+              type="button"
+              onClick={() => {
+                openCart();
+                onClose();
+              }}
+              className="bookshop-nav-link w-full"
+              data-tone="purple"
             >
-              Sign in
-            </Link>
-          ) : (
-            <>
-              <div className="rounded-2xl border border-slate-200 p-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">
-                Signed in as <strong>{profile.username}</strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  void signOut();
-                  onClose();
-                }}
-                className="bookshop-button-quiet w-full px-4 py-3 text-sm"
-              >
-                Sign out
-              </button>
-            </>
-          )}
+              Cart{count > 0 ? ` (${count})` : ""}
+            </button>
+            {!isAuthenticated ? (
+              <Link href="/auth" onClick={onClose} className="bookshop-button-quiet flex w-full justify-center px-4 py-3 text-sm">
+                Sign in
+              </Link>
+            ) : null}
+          </div>
         </div>
       </nav>
     </div>
   );
-};
+}
 
 export const TopHeader: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname() || "/";
   const { count, openCart } = useCart();
   const { hasRole } = useAccount();
-  const currentArea = getArea(pathname);
+  const area = getArea(pathname);
 
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-        <div className="mx-auto flex w-11/12 items-center py-3 sm:w-10/12 lg:w-4/5">
+        <div className="mx-auto flex w-11/12 items-center py-3 sm:w-10/12 lg:w-11/12 2xl:w-4/5">
           <Link href="/" className="flex shrink-0 items-center" aria-label="Book Shop home">
             <Image
               src="/logo.jpg"
@@ -197,84 +168,39 @@ export const TopHeader: React.FC = () => {
             />
           </Link>
 
-          <Link
-            href="/"
-            className="ml-5 shrink-0 text-3xl font-black tracking-tight text-slate-900 sm:ml-8 sm:text-4xl lg:ml-10 lg:text-5xl dark:text-white"
-          >
+          <Link href="/" className="ml-5 hidden shrink-0 text-3xl font-black tracking-tight text-slate-900 sm:block sm:text-4xl lg:ml-8 2xl:ml-10 2xl:text-5xl dark:text-white">
             Book Shop
           </Link>
 
-          <nav className="ml-auto hidden items-center gap-2 lg:flex" aria-label="Main navigation">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="bookshop-nav-link"
-                data-active={isActiveRoute(pathname, item.href)}
-              >
-                {item.label}
-              </Link>
+          <nav className="ml-auto hidden items-center gap-1.5 xl:flex" aria-label="Main navigation">
+            {primaryNavItems.map((item) => (
+              <HeaderNavLink key={item.href} {...item} enabled pathname={pathname} tone="purple" />
             ))}
-
-            {hasRole("writer") ? (
-              <Link
-                href="/studio"
-                className="bookshop-nav-link"
-                data-active={pathname.startsWith("/studio")}
-              >
-                Studio
-              </Link>
-            ) : null}
-
-            {hasRole("admin") ? (
-              <Link
-                href="/admin"
-                className="bookshop-nav-link"
-                data-active={pathname.startsWith("/admin")}
-              >
-                Admin
-              </Link>
-            ) : null}
-
-            <button type="button" onClick={openCart} className="bookshop-button-primary px-4 py-2 text-sm">
-              Cart
-              {count > 0 ? (
-                <span className="ml-2 rounded-full bg-slate-900 px-2 py-0.5 text-xs text-white dark:bg-white dark:text-slate-900">
-                  {count}
-                </span>
-              ) : null}
+            <HeaderNavLink href="/studio" label="Studio" enabled={hasRole("writer")} pathname={pathname} tone="amber" />
+            <HeaderNavLink href="/admin" label="Admin" enabled={hasRole("admin")} pathname={pathname} tone="red" />
+            <span className="bookshop-nav-separator" aria-hidden="true" />
+            <button type="button" onClick={openCart} className="bookshop-nav-link" data-tone="purple">
+              Cart{count > 0 ? ` (${count})` : ""}
             </button>
-
-            <div className="ml-3 flex items-center gap-2 border-l border-slate-300 pl-4 dark:border-slate-600">
-              <HeartbeatIcon area={currentArea.area} />
-              <span className={`whitespace-nowrap text-sm font-bold ${getAreaColour(currentArea.area)}`}>
-                {currentArea.label}
-              </span>
-            </div>
+            <span className="bookshop-nav-separator" aria-hidden="true" />
+            <ModeBadge area={area} />
           </nav>
 
-          <div className="ml-auto flex items-center gap-3 lg:hidden">
-            <HeartbeatIcon area={currentArea.area} />
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen((open) => !open)}
-              aria-label="Toggle navigation"
-              aria-expanded={mobileMenuOpen}
-              className="rounded-full border border-slate-300 p-3 dark:border-slate-600"
-            >
-              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            aria-label="Toggle navigation"
+            aria-expanded={mobileMenuOpen}
+            className="ml-auto rounded-full border border-slate-300 p-3 xl:hidden dark:border-slate-600"
+          >
+            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
         </div>
       </header>
 
-      <MobileNav
-        isOpen={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        area={currentArea}
-      />
+      <MobileNav isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </>
   );
 };

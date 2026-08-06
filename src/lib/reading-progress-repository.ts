@@ -59,7 +59,7 @@ export async function upsertReadingProgressForUser(input: {
     );
   }
 
-  const [user, book] = await Promise.all([
+  const [user, entitlement] = await Promise.all([
     prisma.user.findUnique({
       where: {
         id: input.userId,
@@ -68,9 +68,9 @@ export async function upsertReadingProgressForUser(input: {
         id: true,
       },
     }),
-    prisma.book.findUnique({
+    prisma.libraryItem.findUnique({
       where: {
-        id: input.bookId,
+        userId_bookId: { userId: input.userId, bookId: input.bookId },
       },
       select: {
         id: true,
@@ -82,8 +82,8 @@ export async function upsertReadingProgressForUser(input: {
     throw new Error("Reading-progress user does not exist.");
   }
 
-  if (!book) {
-    throw new Error("Reading-progress book does not exist.");
+  if (!entitlement) {
+    throw new Error("Reading progress requires this book in your library.");
   }
 
   if (input.chapterId) {

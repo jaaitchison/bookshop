@@ -10,6 +10,7 @@ import { MAX_BOOK_FILE_BYTES, validateBookFileUpload } from "@/src/lib/book-file
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
 import { canManageBook } from "@/src/lib/writer-book-repository";
+import { enforceRequestRateLimit } from "@/src/lib/request-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -35,6 +36,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const rateLimited = enforceRequestRateLimit(request, "upload:book-file", { limit: 20, windowMs: 60 * 60_000 });
+  if (rateLimited) return rateLimited;
   const { id } = await context.params;
   const authorization = await authorize(request, id);
   if ("error" in authorization) {

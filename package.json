@@ -119,20 +119,46 @@
     "phase10:test-payments-runtime": "tsx prisma/test-phase-10-2-payments.ts",
     "phase10:test-payments-browser": "playwright test tests/browser/payment-intent-flow.spec.ts",
     "phase10:test-payments": "npm run phase10:verify-payments && npm run phase10:test-payments-runtime && npm run phase10:test-payments-browser",
-    "phase10:test": "npm run phase10:test-cart && npm run phase10:test-payments && npm run lint && npm run build"
+    "phase10:verify-fulfilment": "tsx prisma/verify-phase-10-3-fulfilment.ts",
+    "phase10:test-fulfilment-runtime": "tsx prisma/test-phase-10-3-fulfilment.ts",
+    "phase10:test-fulfilment-browser": "playwright test tests/browser/payment-intent-flow.spec.ts",
+    "phase10:test-fulfilment": "npm run phase10:verify-fulfilment && npm run phase10:test-fulfilment-runtime && npm run phase10:test-fulfilment-browser",
+    "phase10:test": "npm run phase10:test-cart && npm run phase10:test-payments && npm run phase10:test-fulfilment && npm run ui:verify-role-localisation && npm run writer:test-sales && npm run lint && npm run build",
+    "writer:test-sales": "tsx prisma/test-writer-sales-analytics.ts",
+    "ui:verify-role-localisation": "tsx prisma/verify-role-ui-localisation.ts",
+    "phase11:verify-reader": "tsx prisma/verify-phase-11-1-reader-library.ts",
+    "phase11:test-reader-runtime": "tsx prisma/test-phase-11-1-reader-library.ts",
+    "phase11:test-reader-browser": "playwright test tests/browser/reader-library-viewer.spec.ts",
+    "phase11:test-reader": "npm run phase11:verify-reader && npm run phase11:test-reader-runtime && npm run phase11:test-reader-browser",
+    "phase11:verify-moderation": "tsx prisma/verify-phase-11-2-publishing-moderation.ts",
+    "phase11:test-moderation-runtime": "tsx prisma/test-phase-11-2-publishing-moderation.ts",
+    "phase11:test-moderation-browser": "playwright test tests/browser/publishing-moderation.spec.ts",
+    "phase11:test-moderation": "npm run phase11:verify-moderation && npm run phase11:test-moderation-runtime && npm run phase11:test-moderation-browser",
+    "phase11:test": "npm run phase11:test-reader && npm run phase11:test-moderation && npm run studio:test-browser && npm run lint && npm run build",
+    "phase12:verify-security": "tsx prisma/verify-phase-12-1-security-hardening.ts",
+    "phase12:test-hardening-runtime": "tsx prisma/test-phase-12-1-security-hardening.ts",
+    "phase12:test-security": "npm run phase12:verify-security && npm run phase12:test-hardening-runtime && npm run auth:test-roles && npm run phase10:test-payments-runtime && npm run phase9:test-files-runtime && npm run phase11:test-reader-runtime",
+    "phase12:verify-deployment": "tsx prisma/verify-phase-12-2-deployment.ts",
+    "phase12:test-deployment-runtime": "tsx prisma/test-phase-12-2-deployment.ts",
+    "phase12:test-deployment": "npm run phase12:verify-deployment && npm run phase12:test-deployment-runtime && npm run phase9:test-files-runtime",
+    "phase12:test": "npm run phase12:test-security && npm run phase12:test-deployment && npm run lint && npm run build",
+    "phase12:preflight": "tsx prisma/production-preflight.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1105.0",
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@stripe/react-stripe-js": "^6.8.0",
     "@stripe/stripe-js": "^9.13.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
+    "epubjs": "^0.3.93",
     "next": "^16.3.0",
     "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "stripe": "^22.4.0"
+    "stripe": "^22.4.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -147,6 +173,10 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@xmldom/xmldom": "0.8.13",
+    "js-yaml": "4.3.1"
   },
   "type": "module"
 }

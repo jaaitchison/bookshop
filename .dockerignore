@@ -1,0 +1,11 @@
+.git
+.github
+.next
+node_modules
+.env*
+!.env.example
+test-results
+playwright-report
+storage/private
+public/uploads/covers
+npm-debug.log*

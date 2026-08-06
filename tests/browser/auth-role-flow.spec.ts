@@ -11,8 +11,9 @@ type RoleExpectation = {
     path: string;
     role: "reader" | "writer" | "admin";
   }>;
-  visibleNav: string[];
-  hiddenNav: string[];
+  enabledNav: string[];
+  inactiveNav: string[];
+  badge: "Reader" | "Writer" | "Admin";
 };
 
 function readLocalEnvValue(name: string): string | undefined {
@@ -107,25 +108,26 @@ async function assertDenied(
 
 async function assertNav(
   page: Page,
-  visible: string[],
-  hidden: string[],
+  enabled: string[],
+  inactive: string[],
+  badge: RoleExpectation["badge"],
 ) {
   await page.goto("/account");
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
 
-  for (const label of visible) {
-    await expect(
-      page
-        .getByRole("navigation", { name: "Main navigation" })
-        .getByRole("link", { name: label, exact: true }),
-    ).toBeVisible();
+  await expect(page.getByLabel("Current account summary").getByText(badge, { exact: true })).toBeVisible();
+
+  for (const label of enabled) {
+    const link = navigation.getByRole("link", { name: label, exact: true }).first();
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("data-disabled", "false");
   }
 
-  for (const label of hidden) {
-    await expect(
-      page
-        .getByRole("navigation", { name: "Main navigation" })
-        .getByRole("link", { name: label, exact: true }),
-    ).toHaveCount(0);
+  for (const label of inactive) {
+    const link = navigation.getByRole("link", { name: label, exact: true }).first();
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute("data-disabled", "true");
+    await expect(link).toHaveAttribute("href", /\/auth\?redirect=/);
   }
 }
 
@@ -137,22 +139,25 @@ const roleCases: RoleExpectation[] = [
       { path: "/studio", role: "writer" },
       { path: "/admin", role: "admin" },
     ],
-    visibleNav: [],
-    hiddenNav: ["Studio", "Admin"],
+    enabledNav: [],
+    inactiveNav: ["Studio", "Admin"],
+    badge: "Reader",
   },
   {
     email: "writer@bookshop.local",
     allowed: ["/account", "/library", "/checkout", "/studio"],
     denied: [{ path: "/admin", role: "admin" }],
-    visibleNav: ["Studio"],
-    hiddenNav: ["Admin"],
+    enabledNav: ["Studio"],
+    inactiveNav: ["Admin"],
+    badge: "Writer",
   },
   {
     email: "admin@bookshop.local",
     allowed: ["/account", "/library", "/checkout", "/studio", "/admin"],
     denied: [],
-    visibleNav: ["Studio", "Admin"],
-    hiddenNav: [],
+    enabledNav: ["Studio", "Admin"],
+    inactiveNav: [],
+    badge: "Admin",
   },
 ];
 
@@ -184,8 +189,9 @@ test.describe("Section 5.11 real browser authentication", () => {
 
       await assertNav(
         page,
-        roleCase.visibleNav,
-        roleCase.hiddenNav,
+        roleCase.enabledNav,
+        roleCase.inactiveNav,
+        roleCase.badge,
       );
     });
   }
@@ -221,16 +227,11 @@ test.describe("Section 5.11 real browser authentication", () => {
     await signIn(page, "writer@bookshop.local");
     await assertAllowed(page, "/studio");
 
-    const result = await page.evaluate(async () => {
-      const response = await fetch("/api/auth/signout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      return response.ok;
-    });
-
-    expect(result).toBe(true);
+    await page.getByRole("button", { name: "Log out" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(
+      page.getByRole("button", { name: "Log out" }),
+    ).toHaveCount(0);
 
     await page.goto("/studio");
 

@@ -7,14 +7,16 @@ import type { WriterBook } from '@/src/types/studio';
 interface WriterBooksListProps {
   books: WriterBook[];
   onStatusChange?: (bookId: string, status: WriterBook['status']) => void | Promise<void>;
-  onDelete?: (bookId: string) => void | Promise<void>;
 }
 
-export default function WriterBooksList({ books, onStatusChange, onDelete }: WriterBooksListProps) {
+export default function WriterBooksList({ books, onStatusChange }: WriterBooksListProps) {
   const getStatusBadge = (status: WriterBook['status']) => {
     const statusConfig = {
       published: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200',
       draft: 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200',
+      in_review: 'bg-sky-100 text-sky-800 dark:bg-sky-950/30 dark:text-sky-200',
+      changes_requested: 'bg-rose-100 text-rose-800 dark:bg-rose-950/30 dark:text-rose-200',
+      approved: 'bg-violet-100 text-violet-800 dark:bg-violet-950/30 dark:text-violet-200',
       archived: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
     };
     return statusConfig[status];
@@ -33,10 +35,7 @@ export default function WriterBooksList({ books, onStatusChange, onDelete }: Wri
                 Genre
               </th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
-                Views
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
-                Sales
+                Books sold
               </th>
               <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Rating
@@ -63,16 +62,18 @@ export default function WriterBooksList({ books, onStatusChange, onDelete }: Wri
                     <p className="text-sm text-[var(--bookshop-muted)]">
                       {book.publishedDate}
                     </p>
+                    {book.status === 'changes_requested' && book.moderationReason ? (
+                      <p className="mt-2 max-w-md text-sm font-medium text-rose-700 dark:text-rose-300">
+                        Admin feedback: {book.moderationReason}
+                      </p>
+                    ) : null}
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-[var(--bookshop-muted)]">
                   {book.genre}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-[var(--bookshop-text)]">
-                  {book.views.toLocaleString()}
-                </td>
-                <td className="px-6 py-4 text-sm font-medium text-[var(--bookshop-text)]">
-                  {book.sales.toLocaleString()}
+                  {book.sales.toLocaleString('en-GB')}
                 </td>
                 <td className="px-6 py-4 text-sm">
                   {book.rating > 0 ? (
@@ -95,7 +96,7 @@ export default function WriterBooksList({ books, onStatusChange, onDelete }: Wri
                       book.status
                     )}`}
                   >
-                    {book.status.charAt(0).toUpperCase() + book.status.slice(1)}
+                    {book.status.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase())}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -106,30 +107,25 @@ export default function WriterBooksList({ books, onStatusChange, onDelete }: Wri
                     >
                       Edit
                     </Link>
-                    <button
-                      className="text-violet-700 hover:underline dark:text-violet-300"
-                      onClick={() => onStatusChange?.(book.id, 'published')}
-                    >
-                      Publish
-                    </button>
-                    <button
-                      className="text-amber-700 hover:underline dark:text-amber-300"
-                      onClick={() => onStatusChange?.(book.id, 'draft')}
-                    >
-                      Draft
-                    </button>
-                    <button
-                      className="text-[var(--bookshop-muted)] hover:underline"
-                      onClick={() => onStatusChange?.(book.id, 'archived')}
-                    >
-                      Archive
-                    </button>
-                    <button
-                      className="text-rose-700 hover:underline dark:text-rose-300"
-                      onClick={() => onDelete?.(book.id)}
-                    >
-                      Delete
-                    </button>
+                    {book.status === 'draft' || book.status === 'changes_requested' ? (
+                      <button
+                        className="text-violet-700 hover:underline dark:text-violet-300"
+                        onClick={() => onStatusChange?.(book.id, 'in_review')}
+                      >
+                        Submit for review
+                      </button>
+                    ) : null}
+                    {book.status === 'in_review' ? (
+                      <span className="font-medium text-sky-700 dark:text-sky-300">Awaiting Admin</span>
+                    ) : null}
+                    {book.status !== 'in_review' && book.status !== 'archived' ? (
+                      <button
+                        className="text-[var(--bookshop-muted)] hover:underline"
+                        onClick={() => onStatusChange?.(book.id, 'archived')}
+                      >
+                        Archive
+                      </button>
+                    ) : null}
                   </div>
                 </td>
               </tr>

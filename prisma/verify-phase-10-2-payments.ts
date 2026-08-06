@@ -40,6 +40,7 @@ async function main() {
   }
   assert(!checkoutRoute.includes("body.items") && !checkoutRoute.includes("body.total"), "Checkout accepts browser cart authority.");
   assert(repository.includes("BookStatus.PUBLISHED") && repository.includes("BookVisibility.PUBLIC"), "Checkout does not enforce purchasable books.");
+  assert(service.includes('currency: "gbp"') && repository.includes('currency: "gbp"'), "New payments are not denominated in GBP.");
   console.log("   PASS - amount and item snapshots are recalculated from the live persistent cart.");
 
   console.log("\n3. Signed and idempotent webhook");
@@ -49,7 +50,7 @@ async function main() {
   for (const marker of ["amount_received", "PAYMENT_MISMATCH", "stripeWebhookEvent.create", "PaymentAttemptStatus.SUCCEEDED"]) {
     assert(repository.includes(marker), `Payment verification marker missing: ${marker}`);
   }
-  assert(!webhook.includes("saveOrderForUser") && !webhook.includes("libraryItem"), "Section 10.2 performs premature fulfillment.");
+  assert(!webhook.includes("saveOrderForUser") && !webhook.includes("libraryItem.create"), "Webhook bypasses the trusted fulfilment repository.");
   console.log("   PASS - raw signatures, exact amounts and duplicate events are enforced before success state.");
 
   console.log("\n4. Stripe-hosted payment UI and safe status page");
@@ -62,7 +63,7 @@ async function main() {
   console.log("   PASS - card data stays in Stripe and browser callbacks cannot fulfill purchases.");
 
   console.log("\n5. Adversarial and browser coverage");
-  for (const marker of ["Forged title", "Invalid webhook signature", "Duplicate webhook delivery", "Tampered webhook amount", "premature fulfillment"]) {
+  for (const marker of ["Forged title", "Invalid webhook signature", "Duplicate webhook delivery", "Tampered webhook amount", "idempotency after fulfilment"]) {
     assert(runtimeTest.toLowerCase().includes(marker.toLowerCase()), `Runtime coverage marker missing: ${marker}`);
   }
   assert(browserTest.includes("Card number") && browserTest.includes("Stripe confirmed your payment"), "Payment browser coverage is incomplete.");

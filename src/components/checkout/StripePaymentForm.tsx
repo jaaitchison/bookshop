@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { formatGbp } from '@/src/lib/currency';
 
 interface StripePaymentFormProps {
   paymentIntentId: string;
@@ -13,7 +14,6 @@ interface StripePaymentFormProps {
 export function StripePaymentForm({
   paymentIntentId,
   amount,
-  currency,
 }: StripePaymentFormProps) {
   const router = useRouter();
   const stripe = useStripe();
@@ -70,12 +70,11 @@ export function StripePaymentForm({
       >
         {isConfirming
           ? 'Confirming secure payment...'
-          : `Pay ${new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount)}`}
+          : `Pay ${formatGbp(amount)}`}
       </button>
       <p className="text-xs leading-5 text-[var(--bookshop-muted)]">
-        Payment details are collected and tokenized by Stripe. Bookshop never receives or stores your card number.
+        Payment details are collected and tokenised by Stripe. Bookshop never receives or stores your card number.
       </p>
     </form>
   );
 }
-

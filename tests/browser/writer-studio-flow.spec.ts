@@ -105,7 +105,7 @@ test.describe("Section 7.9 Writer Studio real browser workflow", () => {
     await expect(page).toHaveURL(/\/studio\/books\/[^/]+$/);
 
     await expect(
-      page.getByText("Status:").locator(".."),
+      page.getByTestId("publishing-status"),
     ).toContainText("draft");
   });
 
@@ -238,7 +238,7 @@ test.describe("Section 7.9 Writer Studio real browser workflow", () => {
     await page.getByRole("button", { name: "Delete chapter" }).click();
   });
 
-  test("Writer publishes and archives through the browser", async ({ page }) => {
+  test("Writer submits for review and Admin publishes through the browser", async ({ page }) => {
     await signIn(page, "writer@bookshop.local");
     await page.goto("/studio");
 
@@ -267,19 +267,32 @@ test.describe("Section 7.9 Writer Studio real browser workflow", () => {
     await expect(bookDetailsForm).toBeVisible();
 
     await bookDetailsForm
-      .getByRole("button", { name: "Publish", exact: true })
+      .getByRole("button", { name: "Submit for review", exact: true })
       .click();
 
     await expect(
-      page.getByText("Status:").locator(".."),
-    ).toContainText("published");
+      page.getByTestId("publishing-status"),
+    ).toContainText("in_review");
+
+    await signIn(page, "admin@bookshop.local");
+    await page.goto("/admin");
+
+    const reviewCard = page.locator("article").filter({ hasText: updatedTitle });
+    await expect(reviewCard).toBeVisible();
+    await reviewCard.getByRole("button", { name: "Approve & publish" }).click();
+    await expect(page.getByText("The book is now published in the public catalogue.")).toBeVisible();
+
+    await signIn(page, "writer@bookshop.local");
+    await page.goto("/studio");
+    await page.getByRole("row").filter({ hasText: updatedTitle }).getByRole("link", { name: "Edit" }).click();
+    await expect(page.getByTestId("publishing-status")).toContainText("published");
 
     await bookDetailsForm
       .getByRole("button", { name: "Archive", exact: true })
       .click();
 
     await expect(
-      page.getByText("Status:").locator(".."),
+      page.getByTestId("publishing-status"),
     ).toContainText("archived");
   });
 

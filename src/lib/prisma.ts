@@ -1,5 +1,6 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/src/generated/prisma/client";
+import { validateServerEnvironment } from "@/src/lib/environment";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -11,6 +12,8 @@ export function getPrismaClient(): PrismaClient | null {
   if (!connectionString) {
     return null;
   }
+
+  validateServerEnvironment();
 
   if (globalForPrisma.prisma) {
     return globalForPrisma.prisma;

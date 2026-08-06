@@ -43,7 +43,7 @@ function emptyCart(): ShoppingCart {
     items: [],
     count: 0,
     subtotal: 0,
-    currency: "USD",
+    currency: "GBP",
     updatedAt: null,
   };
 }
@@ -87,7 +87,7 @@ function toShoppingCart(cart: CartWithItems): ShoppingCart {
     items,
     count: items.reduce((sum, item) => sum + item.quantity, 0),
     subtotal: roundCurrency(items.reduce((sum, item) => sum + item.lineTotal, 0)),
-    currency: "USD",
+    currency: "GBP",
     updatedAt: cart.updatedAt.toISOString(),
   };
 }

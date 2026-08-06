@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { AdminStats } from '@/src/types/admin';
+import { formatGbp } from '@/src/lib/currency';
 
 interface StatCardProps {
   title: string;
@@ -68,7 +69,7 @@ export const AdminStatsPanel: React.FC<{ stats: AdminStats }> = ({ stats }) => {
       />
       <StatCard
         title="Total Revenue"
-        value={`$${(stats.totalRevenue / 1000).toFixed(1)}k`}
+        value={formatGbp(stats.totalRevenue)}
         growth={stats.revenueGrowth}
         icon={
           <svg className="h-6 w-6 text-emerald-700 dark:text-emerald-300" fill="currentColor" viewBox="0 0 24 24">

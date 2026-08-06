@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { deleteObject, publicObjectUrl, putObject, usesS3ObjectStorage } from "@/src/lib/s3-object-storage";
 
 export const MAX_COVER_BYTES = 5 * 1024 * 1024;
 export const DEFAULT_COVER_URL = "/images/default-book-cover.svg";
@@ -114,8 +115,25 @@ class LocalCoverStorage implements CoverStorage {
   }
 }
 
+class S3CoverStorage implements CoverStorage {
+  async store(input: { bytes: Uint8Array; contentType: AcceptedCoverType }): Promise<StoredCover> {
+    const storageKey = `covers/${randomUUID()}.${TYPE_EXTENSION[input.contentType]}`;
+    await putObject(storageKey, input.bytes, input.contentType, "public");
+    return {
+      storageKey,
+      url: publicObjectUrl(storageKey),
+      delete: () => deleteObject(storageKey, "public"),
+    };
+  }
+
+  async remove(storageKeyOrUrl: string) {
+    const match = storageKeyOrUrl.match(/(?:^|\/)(covers\/[0-9a-f-]+\.(?:jpg|png|webp))$/i);
+    if (match) await deleteObject(match[1], "public");
+  }
+}
+
 export function getCoverStorage(): CoverStorage {
-  return new LocalCoverStorage();
+  return usesS3ObjectStorage() ? new S3CoverStorage() : new LocalCoverStorage();
 }
 
 export function coverUrlOrFallback(url: string | null | undefined): string {

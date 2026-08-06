@@ -13,6 +13,6 @@ export interface ShoppingCart {
   items: CartItem[];
   count: number;
   subtotal: number;
-  currency: "USD";
+  currency: "GBP";
   updatedAt: string | null;
 }

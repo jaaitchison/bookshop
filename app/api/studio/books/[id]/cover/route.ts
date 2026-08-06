@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCoverStorage, validateCoverUpload, type StoredCover } from "@/src/lib/cover-storage";
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
+import { enforceRequestRateLimit } from "@/src/lib/request-rate-limit";
 import {
   canManageBook,
   getManagedBookCover,
@@ -30,6 +31,8 @@ async function authorize(request: Request, id: string) {
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const rateLimited = enforceRequestRateLimit(request, "upload:cover", { limit: 30, windowMs: 60 * 60_000 });
+  if (rateLimited) return rateLimited;
   const { id } = await context.params;
   const authorization = await authorize(request, id);
   if ("error" in authorization) {

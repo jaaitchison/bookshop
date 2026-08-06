@@ -6,6 +6,11 @@ import { useEffect, useState } from 'react';
 import { useAccount } from '@/src/context/AccountContext';
 import type { ReaderLibraryItem } from '@/src/types/library';
 
+function formatBytes(value: number) {
+  if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export default function LibraryPage() {
   const { isAuthenticated, isAuthLoading } = useAccount();
   const [items, setItems] = useState<ReaderLibraryItem[]>([]);
@@ -66,14 +71,13 @@ export default function LibraryPage() {
         {!error && items.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white px-8 py-12 text-center shadow-sm">
             <h2 className="text-2xl font-semibold text-slate-900">Your library is empty</h2>
-            <p className="mt-3 text-slate-600">Purchased books will appear here after their LibraryItem entitlement is granted.</p>
+            <p className="mt-3 text-slate-600">Purchased books will appear here as soon as payment fulfilment grants access.</p>
             <Link href="/books" className="bookshop-button-primary mt-6 inline-flex px-5 py-2.5 text-sm">Browse books</Link>
           </div>
         ) : null}
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
-            const download = item.files.find((file) => file.fileType === 'MANUSCRIPT') ?? item.files[0];
             return (
               <article key={item.id} className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm">
                 <div className="relative mb-5 h-48 overflow-hidden rounded-[1.25rem]">
@@ -83,14 +87,28 @@ export default function LibraryPage() {
                 <h2 className="mt-2 text-xl font-semibold text-slate-900">{item.book.title}</h2>
                 <p className="mt-1 text-sm text-slate-600">{item.book.author}</p>
                 {item.progress !== null ? <p className="mt-2 text-sm text-violet-700">Reading progress: {item.progress}%</p> : null}
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <Link href={`/books/${item.book.slug}`} className="bookshop-button-quiet px-3 py-2 text-xs">View book</Link>
-                  {download ? (
-                    <a href={download.fileUrl} className="bookshop-button-primary px-3 py-2 text-xs">
-                      Download {download.format}
-                    </a>
-                  ) : null}
-                </div>
+                {item.files.length ? (
+                  <div className="mt-5 space-y-3">
+                    {item.files.map((file) => (
+                      <div key={file.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                        <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-200">
+                          {file.fileType === 'MANUSCRIPT' ? 'Full book' : 'Sample'} · {file.format} · {formatBytes(file.sizeBytes)}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Link href={`/library/read/${file.id}`} className="bookshop-button-primary px-3 py-2 text-xs">
+                            Read {file.format}
+                          </Link>
+                          <a href={file.fileUrl} className="bookshop-button-quiet px-3 py-2 text-xs">
+                            Download
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-5 rounded-2xl bg-amber-50 p-3 text-sm text-amber-800">The Writer has not supplied a readable file yet.</p>
+                )}
+                <Link href={`/books/${item.book.slug}`} className="mt-4 inline-flex text-sm font-semibold text-violet-700 hover:underline">View book details</Link>
               </article>
             );
           })}

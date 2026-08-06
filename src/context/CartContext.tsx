@@ -37,7 +37,7 @@ const EMPTY_CART: ShoppingCart = {
   items: [],
   count: 0,
   subtotal: 0,
-  currency: 'USD',
+  currency: 'GBP',
   updatedAt: null,
 };
 

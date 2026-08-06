@@ -9,6 +9,7 @@ import { useAccount } from '@/src/context/AccountContext';
 import { useCart } from '@/src/context/CartContext';
 import { StripePaymentForm } from '@/src/components/checkout/StripePaymentForm';
 import type { CheckoutInitialization } from '@/src/types/checkout';
+import { formatGbp } from '@/src/lib/currency';
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
@@ -29,6 +30,7 @@ export default function CheckoutPage() {
   const [checkout, setCheckout] = useState<CheckoutInitialization | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
+  const [digitalConsent, setDigitalConsent] = useState(false);
 
   const preparePayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -60,6 +62,7 @@ export default function CheckoutPage() {
             city: formValues.city,
             postcode: formValues.postcode,
           },
+          digitalContentConsent: digitalConsent,
         }),
       });
       const payload = await response.json() as {
@@ -162,10 +165,17 @@ export default function CheckoutPage() {
             ) : null}
 
             {!checkout ? (
+              <label className="flex items-start gap-3 rounded-[1.25rem] border border-[var(--bookshop-border)] p-4 text-sm leading-6 text-[var(--bookshop-muted)]">
+                <input type="checkbox" required checked={digitalConsent} onChange={(event) => setDigitalConsent(event.target.checked)} className="mt-1" />
+                <span>I agree to the <Link href="/terms" target="_blank">terms</Link> and <Link href="/refunds" target="_blank">refund policy</Link>, and request immediate supply of the digital books after payment.</span>
+              </label>
+            ) : null}
+
+            {!checkout ? (
               <div className="flex flex-wrap gap-3">
                 <button
                   type="submit"
-                  disabled={isPreparing || isCartLoading || isCartUpdating || items.length === 0}
+                  disabled={isPreparing || isCartLoading || isCartUpdating || items.length === 0 || !digitalConsent}
                   className="bookshop-button-primary px-6 py-3 disabled:cursor-wait disabled:opacity-70"
                 >
                   {isPreparing ? 'Checking cart and prices...' : 'Continue to Stripe payment'}
@@ -180,7 +190,7 @@ export default function CheckoutPage() {
           {checkout && stripePromise ? (
             <div className="mt-8 border-t border-[var(--bookshop-border)] pt-7">
               <div className="rounded-[1.25rem] bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
-                Server-verified payment amount: <strong>${checkout.amount.toFixed(2)}</strong>
+                Server-verified payment amount: <strong>{formatGbp(checkout.amount)}</strong>
               </div>
               <Elements
                 key={checkout.clientSecret}
@@ -211,7 +221,7 @@ export default function CheckoutPage() {
               items.map((item) => (
                 <div key={item.book.id} className="bookshop-subcard flex items-center justify-between gap-4 p-4 text-sm text-[var(--bookshop-text)]">
                   <span>{item.book.title} × {item.quantity}</span>
-                  <span>${item.lineTotal.toFixed(2)}</span>
+                  <span>{formatGbp(item.lineTotal)}</span>
                 </div>
               ))
             )}
@@ -220,7 +230,7 @@ export default function CheckoutPage() {
           <div className="mt-8 space-y-3 border-t border-[var(--bookshop-border)] pt-6 text-sm text-[var(--bookshop-muted)]">
             <div className="flex items-center justify-between">
               <span>Server cart subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{formatGbp(subtotal)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span>Delivery</span>
@@ -228,7 +238,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex items-center justify-between text-base font-semibold text-[var(--bookshop-text)]">
               <span>Displayed total</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>{formatGbp(subtotal)}</span>
             </div>
           </div>
 

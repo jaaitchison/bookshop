@@ -30,6 +30,12 @@ async function main() {
   assert(reader, "Reader development user is missing.");
   assert(writer, "Writer development user is missing.");
   assert(book, "No PostgreSQL book exists.");
+  const existingEntitlement = await prisma.libraryItem.findUnique({
+    where: { userId_bookId: { userId: reader.id, bookId: book.id } },
+  });
+  const testEntitlement = existingEntitlement ?? await prisma.libraryItem.create({
+    data: { userId: reader.id, bookId: book.id },
+  });
 
   console.log("");
   console.log("SECTION 6.9 PostgreSQL reading-progress verification");
@@ -42,7 +48,6 @@ async function main() {
         userId: { in: [reader.id, writer.id] },
       },
     });
-
     console.log("1. Create progress");
 
     const created = await upsertReadingProgressForUser({
@@ -120,6 +125,9 @@ async function main() {
         userId: { in: [reader.id, writer.id] },
       },
     });
+    if (!existingEntitlement) {
+      await prisma.libraryItem.delete({ where: { id: testEntitlement.id } });
+    }
 
     console.log("Temporary Section 6.9 reading progress cleaned up.");
   }

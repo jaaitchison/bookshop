@@ -3,11 +3,10 @@ import type { WriterStats, WriterBook, WriterActivity } from '@/src/types/studio
 export const getWriterStats = (): WriterStats => {
   return {
     totalBooks: 8,
-    totalViews: 45230,
-    totalSales: 3421,
+    publishedBooks: 6,
+    totalBooksSold: 3421,
+    totalRevenue: 42857.35,
     avgRating: 4.6,
-    viewsGrowth: 23.5,
-    salesGrowth: 18.2,
   };
 };
 
@@ -134,7 +133,7 @@ export const formatDate = (date: Date): string => {
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
 
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString('en-GB', {
     month: 'short',
     day: 'numeric',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,

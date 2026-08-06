@@ -12,8 +12,7 @@ export interface CheckoutInitialization {
   clientSecret: string;
   amount: number;
   amountCents: number;
-  currency: "usd";
+  currency: "gbp";
 }
 
 export type PaymentAttemptState = "PENDING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
-

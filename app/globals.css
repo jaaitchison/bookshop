@@ -222,22 +222,91 @@ tr th {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid color-mix(in srgb, var(--bookshop-accent) 20%, var(--bookshop-border));
-  background: var(--bookshop-surface);
-  color: var(--bookshop-accent);
+  border: 1px solid #d8b4fe;
+  background: #f3e8ff;
+  color: #581c87;
   border-radius: 9999px;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25rem;
   white-space: nowrap;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 
-.bookshop-nav-link:hover,
-.bookshop-nav-link[data-active="true"] {
+.bookshop-nav-link[data-tone="purple"] {
+  border-color: #d8b4fe;
+  background: #f3e8ff;
+  color: #581c87;
+}
+
+.bookshop-nav-link[data-tone="amber"] {
+  border-color: #fde68a;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.bookshop-nav-link[data-tone="red"] {
+  border-color: #fecaca;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.bookshop-nav-link[data-tone="purple"]:not([data-disabled="true"]):hover,
+.bookshop-nav-link[data-tone="purple"][data-active="true"] {
+  border-color: #6b21a8;
+  background: #6b21a8;
+  color: #f3e8ff;
+}
+
+.bookshop-nav-link[data-tone="amber"]:not([data-disabled="true"]):hover,
+.bookshop-nav-link[data-tone="amber"][data-active="true"] {
+  border-color: #d97706;
+  background: #d97706;
+  color: #fef3c7;
+}
+
+.bookshop-nav-link[data-tone="red"]:not([data-disabled="true"]):hover,
+.bookshop-nav-link[data-tone="red"][data-active="true"] {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #fee2e2;
+}
+
+.bookshop-nav-link[data-disabled="true"] {
+  cursor: not-allowed;
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #64748b;
+  transition: none;
+}
+
+.bookshop-nav-separator {
+  width: 1px;
+  height: 2rem;
+  flex: 0 0 1px;
+  margin-inline: 0.25rem;
+  background: var(--bookshop-border);
+}
+
+.bookshop-footer-link {
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.55rem;
+  color: var(--bookshop-muted);
+  text-underline-offset: 0.2rem;
+  transition: background-color 150ms ease, color 150ms ease, text-decoration-color 150ms ease;
+}
+
+.bookshop-footer-link:hover {
   background: var(--bookshop-accent-soft);
-  border-color: color-mix(in srgb, var(--bookshop-accent) 30%, var(--bookshop-border));
+  color: var(--bookshop-accent);
+  text-decoration: underline;
+}
+
+.bookshop-footer-link[data-active="true"] {
+  background: var(--bookshop-accent);
+  color: var(--bookshop-accent-soft);
+  font-weight: 700;
 }
 
 .bookshop-badge {

@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useAccount } from '../../context/AccountContext';
 import type { Book, BookChapter, BookReview } from '../../types/book';
+import { formatGbp } from '../../lib/currency';
 
 interface BookDetailProps {
   book: Book;
@@ -242,7 +243,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
-                <div className="text-3xl font-bold text-slate-900">${book.price.toFixed(2)}</div>
+                <div className="text-3xl font-bold text-slate-900">{formatGbp(book.price)}</div>
                 <div className="flex items-center gap-2 text-sm text-slate-600">
                   <span className="text-amber-500">ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</span>
                   <span className="font-semibold text-slate-900">{book.rating}</span>
@@ -282,7 +283,7 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-500">Shipping</p>
-                <p className="mt-1 font-semibold text-slate-900">Free over $25</p>
+                <p className="mt-1 font-semibold text-slate-900">Free over £25</p>
               </div>
             </div>
 

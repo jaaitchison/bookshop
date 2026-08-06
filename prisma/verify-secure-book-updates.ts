@@ -163,7 +163,7 @@ async function main() {
     );
 
     console.log("");
-    console.log("4. Publish transition");
+    console.log("4. Direct publish protection");
 
     const publishResponse = await PUT(
       requestForToken(writerSession.token, {
@@ -173,72 +173,8 @@ async function main() {
     );
 
     assert(
-      publishResponse.status === 200,
-      "Publish transition failed.",
-    );
-
-    row = await prisma.book.findUnique({
-      where: { id: draft.id },
-    });
-
-    assert(
-      row?.status === "PUBLISHED" &&
-        row.visibility === "PUBLIC" &&
-        row.publishedAt !== null &&
-        row.archivedAt === null,
-      "Publish transition visibility or timestamps are incorrect.",
-    );
-
-    const firstPublishedAt = row.publishedAt?.getTime();
-
-    console.log(
-      "   PASS - Published status sets public visibility and publishedAt server-side.",
-    );
-
-    console.log("");
-    console.log("5. Archive transition");
-
-    const archiveResponse = await PUT(
-      requestForToken(writerSession.token, {
-        status: "archived",
-      }),
-      contextFor(draft.id),
-    );
-
-    assert(
-      archiveResponse.status === 200,
-      "Archive transition failed.",
-    );
-
-    row = await prisma.book.findUnique({
-      where: { id: draft.id },
-    });
-
-    assert(
-      row?.status === "ARCHIVED" &&
-        row.visibility === "PRIVATE" &&
-        row.archivedAt !== null &&
-        row.publishedAt?.getTime() === firstPublishedAt,
-      "Archive transition visibility or timestamps are incorrect.",
-    );
-
-    console.log(
-      "   PASS - Archived status sets archivedAt and preserves publishedAt.",
-    );
-
-    console.log("");
-    console.log("6. Return to Draft");
-
-    const draftResponse = await PUT(
-      requestForToken(writerSession.token, {
-        status: "draft",
-      }),
-      contextFor(draft.id),
-    );
-
-    assert(
-      draftResponse.status === 200,
-      "Return-to-Draft transition failed.",
+      publishResponse.status === 400,
+      "Writer direct publishing was not rejected.",
     );
 
     row = await prisma.book.findUnique({
@@ -250,11 +186,74 @@ async function main() {
         row.visibility === "PRIVATE" &&
         row.publishedAt === null &&
         row.archivedAt === null,
-      "Draft transition did not clear publishing timestamps.",
+      "Rejected publishing attempt changed protected state.",
     );
 
     console.log(
-      "   PASS - Draft state clears published/archive timestamps.",
+      "   PASS - Writer metadata updates cannot bypass Admin moderation.",
+    );
+
+    console.log("");
+    console.log("5. Submit for review transition");
+
+    const reviewResponse = await PUT(
+      requestForToken(writerSession.token, {
+        status: "in_review",
+      }),
+      contextFor(draft.id),
+    );
+
+    assert(
+      reviewResponse.status === 200,
+      "Submit-for-review transition failed.",
+    );
+
+    row = await prisma.book.findUnique({
+      where: { id: draft.id },
+    });
+
+    assert(
+      row?.status === "IN_REVIEW" &&
+        row.visibility === "PRIVATE" &&
+        row.submittedAt !== null &&
+        row.publishedAt === null &&
+        row.archivedAt === null,
+      "Review transition visibility or timestamps are incorrect.",
+    );
+
+    console.log(
+      "   PASS - submission enters the private Admin review queue.",
+    );
+
+    console.log("");
+    console.log("6. In-review status protection");
+
+    const archiveResponse = await PUT(
+      requestForToken(writerSession.token, {
+        status: "archived",
+      }),
+      contextFor(draft.id),
+    );
+
+    assert(
+      archiveResponse.status === 400,
+      "Writer archived a book while it was awaiting Admin review.",
+    );
+
+    row = await prisma.book.findUnique({
+      where: { id: draft.id },
+    });
+
+    assert(
+      row?.status === "IN_REVIEW" &&
+        row.visibility === "PRIVATE" &&
+        row.publishedAt === null &&
+        row.archivedAt === null,
+      "Rejected archive changed the in-review book.",
+    );
+
+    console.log(
+      "   PASS - Writers cannot bypass an active Admin review.",
     );
 
     console.log("");

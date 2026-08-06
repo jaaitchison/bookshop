@@ -49,14 +49,14 @@ test("Section 10.1 keeps a Reader cart in PostgreSQL across reloads", async ({ p
 
     const drawer = page.getByRole("complementary");
     await expect(drawer.getByText(book.title)).toBeVisible();
-    await expect(drawer.getByText("$17.25")).toBeVisible();
+    await expect(drawer.getByText("£17.25")).toBeVisible();
     await expect.poll(async () => {
       const item = await prisma.cartItem.findFirst({ where: { cart: { userId: user.id } } });
       return item?.quantity;
     }).toBe(1);
 
     await drawer.getByRole("button", { name: "+", exact: true }).click();
-    await expect(drawer.getByText("$34.50")).toBeVisible();
+    await expect(drawer.getByText("£34.50")).toBeVisible();
     await expect.poll(async () => {
       const item = await prisma.cartItem.findFirst({ where: { cart: { userId: user.id } } });
       return item?.quantity;
@@ -67,7 +67,7 @@ test("Section 10.1 keeps a Reader cart in PostgreSQL across reloads", async ({ p
     await expect(desktopCart).toHaveText(/2/);
     await desktopCart.click();
     await expect(page.getByRole("complementary").getByText(book.title)).toBeVisible();
-    await expect(page.getByRole("complementary").getByText("$34.50")).toBeVisible();
+    await expect(page.getByRole("complementary").getByText("£34.50")).toBeVisible();
 
     await page.getByRole("complementary").getByRole("button", { name: "Remove" }).click();
     await expect(page.getByText("Your cart is empty.")).toBeVisible();
@@ -78,4 +78,3 @@ test("Section 10.1 keeps a Reader cart in PostgreSQL across reloads", async ({ p
     await prisma.$disconnect();
   }
 });
-

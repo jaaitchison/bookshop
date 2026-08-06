@@ -4,11 +4,18 @@ import {
   PaymentVerificationError,
   recordSucceededPaymentIntent,
 } from "@/src/lib/payment-attempt-repository";
+import { EnvironmentValidationError, validateServerEnvironment } from "@/src/lib/environment";
 
 export async function POST(request: Request) {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!stripeSecretKey || !stripeWebhookSecret) {
+  let stripeSecretKey: string;
+  let stripeWebhookSecret: string;
+  try {
+    const environment = validateServerEnvironment(undefined, { requirePayments: true });
+    stripeSecretKey = environment.STRIPE_SECRET_KEY!;
+    stripeWebhookSecret = environment.STRIPE_WEBHOOK_SECRET!;
+    if (!stripeWebhookSecret) throw new EnvironmentValidationError(["STRIPE_WEBHOOK_SECRET is required"]);
+  } catch (error) {
+    if (!(error instanceof EnvironmentValidationError)) throw error;
     return NextResponse.json({ error: "Stripe webhook is not configured." }, { status: 503 });
   }
 
@@ -41,7 +48,10 @@ export async function POST(request: Request) {
       received: true,
       duplicate: result.duplicate,
       paymentAttemptId: result.paymentAttemptId,
-      fulfillmentPending: true,
+      orderId: result.orderId,
+      libraryItemsGranted: result.libraryItemsGranted,
+      confirmationStatus: result.confirmationStatus,
+      fulfillmentPending: false,
     });
   } catch (error) {
     if (error instanceof PaymentVerificationError) {
@@ -51,4 +61,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Stripe webhook processing failed." }, { status: 500 });
   }
 }
-

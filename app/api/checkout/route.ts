@@ -10,6 +10,8 @@ import {
 } from "@/src/lib/payment-attempt-repository";
 import { getRequestDatabaseSession } from "@/src/lib/request-auth";
 import { userHasRole } from "@/src/lib/role-authorization";
+import { EnvironmentValidationError, validateServerEnvironment } from "@/src/lib/environment";
+import { createDigitalContentConsent } from "@/src/lib/legal-policy";
 
 type PaymentGatewayFactory = (secretKey: string) => PaymentIntentGateway;
 
@@ -28,9 +30,11 @@ export function createCheckoutPostHandler(
     return NextResponse.json({ error: "Reader access is required." }, { status: 403 });
   }
 
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-  if (!stripeSecretKey || !stripePublishableKey) {
+  let stripeSecretKey: string;
+  try {
+    stripeSecretKey = validateServerEnvironment(undefined, { requirePayments: true }).STRIPE_SECRET_KEY!;
+  } catch (error) {
+    if (!(error instanceof EnvironmentValidationError)) throw error;
     return NextResponse.json(
       { error: "Secure payments are not configured for this environment.", code: "STRIPE_NOT_CONFIGURED" },
       { status: 503 },
@@ -48,9 +52,13 @@ export function createCheckoutPostHandler(
     const shipping = normalizeCheckoutShipping(
       body && typeof body === "object" ? (body as { shipping?: unknown }).shipping : null,
     );
+    const consent = createDigitalContentConsent(
+      body && typeof body === "object" ? (body as { digitalContentConsent?: unknown }).digitalContentConsent : false,
+    );
     const checkout = await initializeCheckoutPayment(
       session.userId,
       shipping,
+      consent,
       createGateway(stripeSecretKey),
     );
 
@@ -61,6 +69,9 @@ export function createCheckoutPostHandler(
   } catch (error) {
     if (error instanceof CheckoutValidationError) {
       return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
+    }
+    if (error instanceof Error && error.message === "Digital content consent is required before payment.") {
+      return NextResponse.json({ error: error.message, code: "CONSENT_REQUIRED" }, { status: 400 });
     }
     console.error("PaymentIntent initialization failed", error);
     return NextResponse.json({ error: "Secure payment initialization failed." }, { status: 502 });

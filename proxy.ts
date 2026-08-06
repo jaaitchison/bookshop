@@ -5,6 +5,7 @@ import {
   getRequiredRoleForPath,
   isProtectedPath,
 } from "@/src/lib/route-protection";
+import { applyCorsHeaders, isRequestOriginAllowed } from "@/src/lib/cors-policy";
 
 function redirectToAuth(
   request: NextRequest,
@@ -30,6 +31,17 @@ function redirectDenied(
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith("/api/")) {
+    if (!isRequestOriginAllowed(request)) {
+      return NextResponse.json({ error: "Origin is not allowed." }, { status: 403 });
+    }
+    const response = request.method === "OPTIONS"
+      ? new NextResponse(null, { status: 204 })
+      : NextResponse.next();
+    applyCorsHeaders(response.headers, request);
+    return response;
+  }
 
   if (!isProtectedPath(pathname)) {
     return NextResponse.next();
@@ -79,6 +91,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/:path*",
     "/admin/:path*",
     "/studio/:path*",
     "/library/:path*",

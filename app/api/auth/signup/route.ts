@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { createDatabaseSession, DATABASE_AUTH_COOKIE, getDatabaseAuthCookieOptions } from "@/src/lib/database-session";
 import { signupUser, SignupError } from "@/src/lib/signup";
+import { enforceRequestRateLimit } from "@/src/lib/request-rate-limit";
 
 export async function POST(request: Request) {
+  const rateLimited = enforceRequestRateLimit(request, "auth:signup", { limit: 5, windowMs: 60 * 60_000 });
+  if (rateLimited) return rateLimited;
   try {
     const body = (await request.json()) as {
       name?: unknown;

@@ -4,10 +4,11 @@ import {
   createPaymentAttemptForUser,
   markPaymentAttemptFailed,
 } from "@/src/lib/payment-attempt-repository";
+import type { DigitalContentConsent } from "@/src/lib/legal-policy";
 
 interface PaymentIntentRequest {
   amount: number;
-  currency: "usd";
+  currency: "gbp";
   automatic_payment_methods: {
     enabled: true;
   };
@@ -34,15 +35,16 @@ export interface PaymentIntentGateway {
 export async function initializeCheckoutPayment(
   userId: string,
   shipping: CheckoutShipping,
+  consent: DigitalContentConsent,
   gateway: PaymentIntentGateway,
 ): Promise<CheckoutInitialization> {
-  const attempt = await createPaymentAttemptForUser(userId, shipping);
+  const attempt = await createPaymentAttemptForUser(userId, shipping, consent);
 
   try {
     const intent = await gateway.create(
       {
         amount: attempt.amountCents,
-        currency: "usd",
+        currency: "gbp",
         automatic_payment_methods: { enabled: true },
         description: `Bookshop purchase (${attempt.items.length} title${attempt.items.length === 1 ? "" : "s"})`,
         receipt_email: attempt.shippingEmail,
@@ -66,7 +68,7 @@ export async function initializeCheckoutPayment(
       clientSecret: intent.client_secret,
       amount: attempt.amountCents / 100,
       amountCents: attempt.amountCents,
-      currency: "usd",
+      currency: "gbp",
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Stripe payment initialization failed.";
@@ -74,4 +76,3 @@ export async function initializeCheckoutPayment(
     throw error;
   }
 }
-

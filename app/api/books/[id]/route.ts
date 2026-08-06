@@ -62,7 +62,7 @@ export async function PUT(
 
     const status =
       body.status === "draft" ||
-      body.status === "published" ||
+      body.status === "in_review" ||
       body.status === "archived"
         ? body.status
         : undefined;

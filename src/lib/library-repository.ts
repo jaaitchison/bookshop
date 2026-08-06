@@ -26,6 +26,7 @@ export async function getLibraryItemsForUser(userId: string): Promise<ReaderLibr
               format: true,
               originalName: true,
               fileUrl: true,
+              sizeBytes: true,
             },
             orderBy: { fileType: "asc" },
           },

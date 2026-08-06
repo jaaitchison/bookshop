@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCart } from '../../context/CartContext';
+import { formatGbp } from '../../lib/currency';
 
 export const CartDrawer: React.FC = () => {
   const {
@@ -98,7 +99,7 @@ export const CartDrawer: React.FC = () => {
             <div className="mt-6 border-t border-[var(--bookshop-border)] pt-4">
               <div className="flex items-center justify-between text-sm text-[var(--bookshop-muted)]">
                 <span>Subtotal</span>
-                <span className="font-semibold text-[var(--bookshop-text)]">${subtotal.toFixed(2)}</span>
+                <span className="font-semibold text-[var(--bookshop-text)]">{formatGbp(subtotal)}</span>
               </div>
               <div className="mt-4 flex gap-3">
                 <button disabled={isUpdating} onClick={() => void clearCart()} className="bookshop-button-quiet flex-1 px-4 py-3 text-sm disabled:opacity-60">

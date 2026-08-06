@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, "agent/**"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: bookshop
+          POSTGRES_PASSWORD: bookshop
+          POSTGRES_DB: bookshop_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U bookshop -d bookshop_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://bookshop:bookshop@localhost:5432/bookshop_test?schema=public
+      DEV_TEST_USER_PASSWORD: CI-Bookshop-Password-2026
+      APP_ORIGIN: http://localhost:3000
+      STORAGE_DRIVER: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run db:deploy
+      - run: npm run db:seed
+      - run: npm run phase12:test-security
+      - run: npm run lint
+      - run: npm run build
+      - run: docker build -t bookshop:ci .

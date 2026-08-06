@@ -10,7 +10,7 @@ The server reloads the Reader’s persistent cart from PostgreSQL, includes only
 
 Stripe receives only:
 
-- the server-calculated amount and `usd` currency;
+- the server-calculated amount and `gbp` currency;
 - automatic payment-method configuration;
 - a non-personal description and dedicated receipt email;
 - `paymentAttemptId` and `userId` metadata;
@@ -40,7 +40,7 @@ An invalid signature, missing attempt, ownership mismatch, amount mismatch or cu
 
 ## Fulfillment boundary
 
-Section 10.2 deliberately does not create `Order`, `OrderItem` or `LibraryItem` records and does not clear the cart. Those actions belong to Section 10.3 and will consume the already verified `SUCCEEDED` PaymentAttempt snapshot transactionally.
+Section 10.2 established the verified `SUCCEEDED` PaymentAttempt boundary. Section 10.3 now consumes that immutable snapshot transactionally to create the order and library grants while safely reconciling the cart. See `docs/SECTION-10-3-ORDER-FULFILMENT.md`.
 
 ## Required environment
 
@@ -69,4 +69,3 @@ npm run phase9:test
 ```
 
 Implementation follows Stripe’s official PaymentIntent, Payment Element and raw-body webhook-signature guidance.
-

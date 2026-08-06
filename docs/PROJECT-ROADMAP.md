@@ -71,6 +71,8 @@ Convert the current visual shopping cart and checkout components into a secure s
 
 ### 10.3 — Order Fulfilment & Transaction Records
 
+**Status: complete.** See `docs/SECTION-10-3-ORDER-FULFILMENT.md` for the implementation and verification record.
+
 - Create `Order` and `OrderItem` records after verified webhook success.
 - Grant purchased books through `LibraryItem` records.
 - Send confirmation messages through a transactional email service such as Resend or SendGrid.
@@ -83,11 +85,15 @@ Complete post-purchase reader delivery and administrative publishing moderation.
 
 ### 11.1 — Reader Library & PDF/EPUB Viewer (`/library`)
 
+**Status: complete.** See `docs/SECTION-11-1-READER-LIBRARY.md` for the implementation and verification record.
+
 - Query authenticated `LibraryItem` records directly for `/library`.
 - Add `/api/library/download/[id]`, verifying session ownership before streaming manuscripts.
 - Integrate a lightweight browser PDF/EPUB previewer.
 
 ### 11.2 — Admin Publishing Workflow (`/admin`)
+
+**Status: complete.** See `docs/SECTION-11-2-PUBLISHING-MODERATION.md` for the implementation and verification record.
 
 - Add a review dashboard for `IN_REVIEW` manuscripts.
 - Support Approve/Publish, Request Changes with a reason, and Archive actions.
@@ -101,11 +107,15 @@ Prepare the application for public launch, automated infrastructure deployment a
 
 ### 12.1 — Automated Testing & Security Hardening
 
+**Status: complete.** See `docs/SECTION-12-1-SECURITY-HARDENING.md` for the implementation and verification record.
+
 - Add integration coverage for checkout, file authorization and RBAC.
 - Rate-limit authentication and upload routes.
 - Add security headers, CORS policy and environment-variable schema validation, for example with `zod`.
 
 ### 12.2 — Production Deployment Pipeline
+
+**Status: deployment-ready; live provisioning awaits operator provider accounts and production credentials.** See `docs/SECTION-12-2-PRODUCTION-DEPLOYMENT.md`.
 
 - Configure Docker and GitHub Actions CI.
 - Provision PostgreSQL and object storage for media/manuscripts.

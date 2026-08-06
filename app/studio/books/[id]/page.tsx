@@ -25,7 +25,8 @@ type StudioBook = {
   genre: string;
   coverUrl: string;
   price: number;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "in_review" | "changes_requested" | "approved" | "published" | "archived";
+  moderationReason?: string;
 };
 
 type Chapter = {
@@ -1174,7 +1175,7 @@ export default function WriterBookEditorPage() {
             <h1 className="mt-2 text-3xl font-semibold text-[var(--bookshop-text)]">
               {book.title}
             </h1>
-            <p className="mt-2 text-sm text-[var(--bookshop-muted)]">
+            <p data-testid="publishing-status" className="mt-2 text-sm text-[var(--bookshop-muted)]">
               Status: <span className="font-semibold capitalize">{book.status}</span>
             </p>
           </div>
@@ -1271,33 +1272,35 @@ export default function WriterBookEditorPage() {
                 ) : null}
               </div>
               <p className="text-sm text-[var(--bookshop-muted)]">
-                Metadata autosaves after a short pause. Publishing status remains explicit.
+                Metadata autosaves after a short pause. Submit completed work for Admin review.
               </p>
+              {book.status === "changes_requested" && book.moderationReason ? (
+                <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100">
+                  <strong>Admin feedback:</strong> {book.moderationReason}
+                </div>
+              ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => {
+              {book.status === "draft" || book.status === "changes_requested" ? (
+                <button type="button" onClick={() => {
                   if (
                     confirmUnsavedChanges(
-                      "You have unsaved changes. Change publishing status and discard those unsaved edits?",
+                      "You have unsaved changes. Submit for review and discard those unsaved edits?",
                     )
                   ) {
-                    void changeStatus("draft");
-                  }
-                }} className="bookshop-button-secondary px-3 py-2 text-sm">
-                Draft
-              </button>
-              <button type="button" onClick={() => {
-                  if (
-                    confirmUnsavedChanges(
-                      "You have unsaved changes. Change publishing status and discard those unsaved edits?",
-                    )
-                  ) {
-                    void changeStatus("published");
+                    void changeStatus("in_review");
                   }
                 }} className="bookshop-button-primary px-3 py-2 text-sm">
-                Publish
-              </button>
-              <button type="button" onClick={() => {
+                  Submit for review
+                </button>
+              ) : null}
+              {book.status === "in_review" ? (
+                <span className="bookshop-badge bookshop-badge-neutral normal-case tracking-normal">
+                  Awaiting Admin review
+                </span>
+              ) : null}
+              {book.status !== "in_review" && book.status !== "archived" ? (
+                <button type="button" onClick={() => {
                   if (
                     confirmUnsavedChanges(
                       "You have unsaved changes. Change publishing status and discard those unsaved edits?",
@@ -1306,8 +1309,9 @@ export default function WriterBookEditorPage() {
                     void changeStatus("archived");
                   }
                 }} className="bookshop-button-quiet px-3 py-2 text-sm">
-                Archive
-              </button>
+                  Archive
+                </button>
+              ) : null}
             </div>
           </div>
 

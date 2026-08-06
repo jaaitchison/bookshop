@@ -1,10 +1,21 @@
 export interface WriterStats {
   totalBooks: number;
-  totalViews: number;
-  totalSales: number;
+  publishedBooks: number;
+  totalBooksSold: number;
+  totalRevenue: number;
   avgRating: number;
-  viewsGrowth: number;
-  salesGrowth: number;
+}
+
+export interface WriterSalesAnalytics {
+  currency: 'GBP';
+  totalBooksSold: number;
+  totalRevenue: number;
+  books: Array<{
+    bookId: string;
+    title: string;
+    booksSold: number;
+    revenue: number;
+  }>;
 }
 
 export interface WriterBook {
@@ -16,7 +27,8 @@ export interface WriterBook {
   sales: number;
   rating: number;
   reviews: number;
-  status: 'draft' | 'published' | 'archived';
+  status: 'draft' | 'in_review' | 'changes_requested' | 'approved' | 'published' | 'archived';
+  moderationReason?: string;
   cover: string;
 }
 

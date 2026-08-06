@@ -7,6 +7,7 @@ import { useAccount } from '@/src/context/AccountContext';
 import { accountActivity, getPersonalizedNotifications } from '@/src/data/account';
 import type { SocialProvider } from '@/src/types/account';
 import type { ReaderLibraryItem } from '@/src/types/library';
+import { formatGbp } from '@/src/lib/currency';
 
 type GoalOption = {
   id: 'reading' | 'writing' | 'both';
@@ -525,7 +526,7 @@ export default function AccountPage() {
                         </p>
                       ))}
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-[var(--bookshop-text)]">${order.total.toFixed(2)}</p>
+                    <p className="mt-3 text-sm font-semibold text-[var(--bookshop-text)]">{formatGbp(order.total)}</p>
                   </div>
                 ))
               )}
