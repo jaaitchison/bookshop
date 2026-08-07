@@ -10,14 +10,14 @@ interface BookGridProps {
 export const BookGrid: React.FC<BookGridProps> = ({ books, isLoading }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="bg-gray-300 dark:bg-gray-700 rounded-lg mb-4 aspect-[3/4]" />
+          <div key={i} className="animate-pulse rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-3 shadow-sm">
+            <div className="mb-4 aspect-[3/4] rounded-[1.15rem] bg-slate-200" />
             <div className="space-y-2">
-              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4" />
-              <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/2" />
-              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/4" />
+              <div className="h-4 w-3/4 rounded-full bg-slate-200" />
+              <div className="h-3 w-1/2 rounded-full bg-slate-200" />
+              <div className="h-4 w-1/4 rounded-full bg-slate-200" />
             </div>
           </div>
         ))}
@@ -27,16 +27,14 @@ export const BookGrid: React.FC<BookGridProps> = ({ books, isLoading }) => {
 
   if (books.length === 0) {
     return (
-      <div className="text-center py-16">
-        <p className="text-gray-600 dark:text-gray-400 text-lg">
-          No books found. Try adjusting your filters or search query.
-        </p>
+      <div className="rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] py-16 text-center shadow-sm">
+        <p className="text-lg text-slate-600">No books found. Try adjusting your filters or search query.</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
       {books.map((book) => (
         <BookCard key={book.id} book={book} />
       ))}

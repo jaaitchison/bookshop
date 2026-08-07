@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
+import DisplaySection from '@/src/components/layout/DisplaySection';
 
 export const AdminAlert: React.FC<{
   type: 'warning' | 'info' | 'success' | 'error';
@@ -8,30 +9,30 @@ export const AdminAlert: React.FC<{
   message: string;
 }> = ({ type, title, message }) => {
   const colors = {
-    warning: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
-    info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
-    success: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
-    error: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
+    warning: 'bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50',
+    info: 'bg-violet-50 border-violet-200 dark:bg-violet-950/30 dark:border-violet-800/50',
+    success: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800/50',
+    error: 'bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800/50',
   };
 
   const textColors = {
-    warning: 'text-yellow-800 dark:text-yellow-200',
-    info: 'text-blue-800 dark:text-blue-200',
-    success: 'text-green-800 dark:text-green-200',
-    error: 'text-red-800 dark:text-red-200',
+    warning: 'text-amber-800 dark:text-amber-200',
+    info: 'text-violet-800 dark:text-violet-200',
+    success: 'text-emerald-800 dark:text-emerald-200',
+    error: 'text-rose-800 dark:text-rose-200',
   };
 
   const titleColors = {
-    warning: 'text-yellow-900 dark:text-yellow-100',
-    info: 'text-blue-900 dark:text-blue-100',
-    success: 'text-green-900 dark:text-green-100',
-    error: 'text-red-900 dark:text-red-100',
+    warning: 'text-amber-900 dark:text-amber-100',
+    info: 'text-violet-900 dark:text-violet-100',
+    success: 'text-emerald-900 dark:text-emerald-100',
+    error: 'text-rose-900 dark:text-rose-100',
   };
 
   return (
-    <div className={`rounded-lg border p-4 ${colors[type]}`}>
+    <div className={`rounded-[1.5rem] border p-4 ${colors[type]}`}>
       <h3 className={`font-semibold ${titleColors[type]}`}>{title}</h3>
-      <p className={`text-sm mt-1 ${textColors[type]}`}>{message}</p>
+      <p className={`mt-1 text-sm ${textColors[type]}`}>{message}</p>
     </div>
   );
 };
@@ -42,15 +43,9 @@ export const AdminSection: React.FC<{
   children: React.ReactNode;
 }> = ({ title, description, children }) => {
   return (
-    <section className="mb-8">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
-        {description && (
-          <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>
-        )}
-      </div>
-      <div>{children}</div>
-    </section>
+    <DisplaySection title={title} description={description} className="mb-6">
+      {children}
+    </DisplaySection>
   );
 };
 

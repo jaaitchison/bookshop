@@ -1,14 +1,19 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { AccountGoal, AccountProfile, AccountOrder, AccountOrderItem, AccountRole } from '@/src/types/account';
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import type {
+  AccountGoal,
+  AccountOrder,
+  AccountProfile,
+  AccountRole,
+} from "@/src/types/account";
 
-interface StoredAccountUser {
-  id: string;
-  email: string;
-  password: string;
-  profile: AccountProfile;
-}
+const ACCOUNT_API_URL = "/api/account";
+const ACCOUNT_PROFILE_API_URL = "/api/account/profile";
+const AUTH_ME_URL = "/api/auth/me";
+const AUTH_SIGNIN_URL = "/api/auth/signin";
+const AUTH_SIGNUP_URL = "/api/auth/signup";
+const AUTH_SIGNOUT_URL = "/api/auth/signout";
 
 interface AccountContextValue {
   profile: AccountProfile;
@@ -16,50 +21,50 @@ interface AccountContextValue {
   updateProfile: (updates: Partial<AccountProfile>) => void;
   setGoals: (goals: AccountGoal[]) => void;
   completeOnboarding: () => void;
-  toggleWriter: (enabled?: boolean) => void;
-  toggleAdmin: (enabled?: boolean) => void;
   setActiveRole: (role: AccountRole) => void;
   hasRole: (role: AccountRole) => boolean;
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
   authError: string | null;
   clearAuthError: () => void;
-  signIn: (email: string, password: string) => boolean;
-  signUp: (input: { name: string; email: string; password: string; username: string }) => boolean;
-  signOut: () => void;
+  refreshSession: () => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (input: {
+    name: string;
+    email: string;
+    password: string;
+    username: string;
+  }) => Promise<boolean>;
+  signOut: () => Promise<void>;
   orders: AccountOrder[];
-  placeOrder: (input: {
-    items: AccountOrderItem[];
-    total: number;
-    shipping: {
-      name: string;
-      email: string;
-      address: string;
-      city: string;
-      zip: string;
-    };
-  }) => boolean;
+  refreshOrders: () => Promise<boolean>;
 }
 
 const createBaseProfile = (): AccountProfile => ({
-  id: 'demo-user',
-  name: 'Maya Chen',
-  username: 'maya-reads',
-  email: 'maya@example.com',
-  bio: 'Reader, writer, and curator of thoughtful stories.',
-  avatar: 'MC',
-  location: 'Seattle, USA',
-  joined: 'June 2024',
-  goals: ['reading'],
+  id: "",
+  name: "",
+  username: "",
+  email: "",
+  bio: "",
+  avatar: "",
+  location: "",
+  joined: "",
+  goals: ["reading"],
   roles: {
-    reader: true,
+    reader: false,
     writer: false,
     admin: false,
   },
-  activeRole: 'reader',
+  activeRole: "reader",
   onboardingComplete: false,
+  connectedSocials: [],
+  mfaEnabled: false,
+  mfaMethod: "Not enabled",
 });
 
-const normalizeProfile = (value?: Partial<AccountProfile>): AccountProfile => {
+const normalizeProfile = (
+  value?: Partial<AccountProfile>,
+): AccountProfile => {
   const base = createBaseProfile();
   const source = value ?? {};
 
@@ -67,262 +72,335 @@ const normalizeProfile = (value?: Partial<AccountProfile>): AccountProfile => {
     ...base,
     ...source,
     roles: {
-      reader: true,
-      writer: false,
-      admin: false,
+      ...base.roles,
       ...(source.roles ?? {}),
     },
     goals: source.goals ?? base.goals,
+    connectedSocials: source.connectedSocials ?? base.connectedSocials,
+    mfaEnabled: source.mfaEnabled ?? base.mfaEnabled,
+    mfaMethod: source.mfaMethod ?? base.mfaMethod,
   };
 };
 
-const PROFILE_STORAGE_KEY = 'bookshop-account-profile';
-const SESSION_STORAGE_KEY = 'bookshop-auth-session';
-const USERS_STORAGE_KEY = 'bookshop-auth-users';
-const getOrdersStorageKey = (profileId: string) => `bookshop-account-orders-${profileId}`;
 
-const AccountContext = createContext<AccountContextValue | undefined>(undefined);
+const AccountContext = createContext<AccountContextValue | undefined>(
+  undefined,
+);
 
-const readStoredUsers = (): StoredAccountUser[] => {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const stored = window.localStorage.getItem(USERS_STORAGE_KEY);
-    return stored ? (JSON.parse(stored) as StoredAccountUser[]) : [];
-  } catch {
-    return [];
-  }
+type AuthPayload = {
+  profile?: AccountProfile | null;
+  authenticated?: boolean;
+  error?: string;
+  code?: string;
 };
 
-const writeStoredUsers = (users: StoredAccountUser[]) => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-};
-
-export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [profile, setProfile] = useState<AccountProfile>(() => normalizeProfile());
+export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [profile, setProfile] = useState<AccountProfile>(() =>
+    createBaseProfile(),
+  );
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [orders, setOrders] = useState<AccountOrder[]>([]);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+  const applyAuthenticatedProfile = (nextProfile: AccountProfile) => {
+    setProfile(normalizeProfile(nextProfile));
+    setIsAuthenticated(true);
+    setAuthError(null);
+  };
 
-    const storedProfile = window.localStorage.getItem(PROFILE_STORAGE_KEY);
-    const storedSession = window.localStorage.getItem(SESSION_STORAGE_KEY);
+  const clearAuthenticatedState = () => {
+    setProfile(createBaseProfile());
+    setIsAuthenticated(false);
+    setOrders([]);
+  };
 
-    if (storedProfile) {
-      try {
-        const parsed = JSON.parse(storedProfile) as Partial<AccountProfile>;
-        setProfile(normalizeProfile(parsed));
-      } catch {
-        window.localStorage.removeItem(PROFILE_STORAGE_KEY);
-      }
-    }
-
-    if (storedSession) {
-      try {
-        const parsed = JSON.parse(storedSession) as { profile?: Partial<AccountProfile> };
-        if (parsed.profile) {
-          setProfile(normalizeProfile(parsed.profile));
-          setIsAuthenticated(true);
-        }
-      } catch {
-        window.localStorage.removeItem(SESSION_STORAGE_KEY);
-      }
-    }
-
-    if (!readStoredUsers().length) {
-      const demoProfile = normalizeProfile({
-        id: 'demo-user',
-        name: 'Maya Chen',
-        username: 'maya-reads',
-        email: 'maya@example.com',
-        avatar: 'MC',
-        location: 'Seattle, USA',
-        joined: 'June 2024',
-        goals: ['reading'],
-        roles: {
-          reader: true,
-          writer: false,
-          admin: false,
-        },
-        activeRole: 'reader',
-        onboardingComplete: false,
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(AUTH_ME_URL, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
       });
 
-      writeStoredUsers([{ id: demoProfile.id, email: demoProfile.email, password: 'bookshop', profile: demoProfile }]);
-    }
+      if (!response.ok) {
+        clearAuthenticatedState();
+        return false;
+      }
 
-    setHasLoaded(true);
+      const payload = (await response.json()) as AuthPayload;
+
+      if (!payload.authenticated || !payload.profile) {
+        clearAuthenticatedState();
+        return false;
+      }
+
+      applyAuthenticatedProfile(payload.profile);
+      return true;
+    } catch {
+      clearAuthenticatedState();
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+
+    const hydrateAuthentication = async () => {
+      try {
+        const response = await fetch(AUTH_ME_URL, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!active) {
+          return;
+        }
+
+        if (!response.ok) {
+          clearAuthenticatedState();
+          return;
+        }
+
+        const payload = (await response.json()) as AuthPayload;
+
+        if (payload.authenticated && payload.profile) {
+          applyAuthenticatedProfile(payload.profile);
+        } else {
+          clearAuthenticatedState();
+        }
+      } catch {
+        if (active) {
+          clearAuthenticatedState();
+        }
+      } finally {
+        if (active) {
+          setIsAuthLoading(false);
+        }
+      }
+    };
+
+    void hydrateAuthentication();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!hasLoaded || typeof window === 'undefined') {
-      return;
+  const refreshOrders = useCallback(async (): Promise<boolean> => {
+    if (!isAuthenticated || !profile.id) {
+      setOrders([]);
+      return false;
     }
 
-    window.localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-
-    if (isAuthenticated) {
-      const users = readStoredUsers();
-      const updatedUsers = users.filter((entry) => entry.email.toLowerCase() !== profile.email.toLowerCase());
-      updatedUsers.push({
-        id: profile.id,
-        email: profile.email,
-        password: users.find((entry) => entry.email.toLowerCase() === profile.email.toLowerCase())?.password ?? '',
-        profile,
+    try {
+      const response = await fetch(ACCOUNT_API_URL, {
+        method: "GET",
+        credentials: "include",
+        cache: "no-store",
       });
-      writeStoredUsers(updatedUsers);
-      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ profile }));
-    } else {
-      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+
+      if (!response.ok) {
+        setOrders([]);
+        return false;
+      }
+
+      const payload = (await response.json()) as
+        | { orders?: AccountOrder[] }
+        | AccountOrder[];
+
+      const nextOrders = Array.isArray(payload)
+        ? payload
+        : payload.orders;
+
+      if (!Array.isArray(nextOrders)) {
+        setOrders([]);
+        return false;
+      }
+
+      setOrders(nextOrders);
+      return true;
+    } catch {
+      setOrders([]);
+      return false;
     }
-  }, [hasLoaded, isAuthenticated, profile]);
+  }, [isAuthenticated, profile.id]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (!isAuthenticated || !profile.id) {
       return;
     }
 
-    if (!profile.id) {
-      return;
-    }
+    let active = true;
 
-    window.localStorage.setItem(getOrdersStorageKey(profile.id), JSON.stringify(orders));
-  }, [orders, profile.id]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (!profile.id) {
-      return;
-    }
-
-    const storedOrders = window.localStorage.getItem(getOrdersStorageKey(profile.id));
-    if (storedOrders) {
+    const loadOrders = async () => {
       try {
-        const parsed = JSON.parse(storedOrders) as AccountOrder[];
-        if (Array.isArray(parsed)) {
-          setOrders(parsed);
+        const response = await fetch(ACCOUNT_API_URL, {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          if (active) {
+            setOrders([]);
+          }
+          return;
+        }
+
+        const payload = (await response.json()) as
+          | { orders?: AccountOrder[] }
+          | AccountOrder[];
+
+        const nextOrders = Array.isArray(payload)
+          ? payload
+          : payload.orders;
+
+        if (active) {
+          setOrders(Array.isArray(nextOrders) ? nextOrders : []);
         }
       } catch {
-        window.localStorage.removeItem(getOrdersStorageKey(profile.id));
+        if (active) {
+          setOrders([]);
+        }
       }
+    };
+
+    void loadOrders();
+
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, profile.id]);
+  const persistProfileUpdates = async (
+    updates: Partial<AccountProfile>,
+  ) => {
+    try {
+      const response = await fetch(ACCOUNT_PROFILE_API_URL, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      });
+
+      const payload = (await response.json()) as {
+        profile?: AccountProfile;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.profile) {
+        setAuthError(payload.error ?? "Profile update failed.");
+        await refreshSession();
+        return;
+      }
+
+      setProfile(normalizeProfile(payload.profile));
+      setAuthError(null);
+    } catch {
+      setAuthError("Profile update failed.");
+      await refreshSession();
     }
-  }, [profile.id]);
+  };
 
   const updateProfile = (updates: Partial<AccountProfile>) => {
-    setProfile((current) => normalizeProfile({
-      ...current,
-      ...updates,
-      roles: {
-        ...current.roles,
-        ...(updates.roles ?? {}),
-      },
-    }));
+    const safeUpdates: Partial<AccountProfile> = {
+      ...(updates.name !== undefined ? { name: updates.name } : {}),
+      ...(updates.username !== undefined
+        ? { username: updates.username }
+        : {}),
+      ...(updates.bio !== undefined ? { bio: updates.bio } : {}),
+      ...(updates.avatar !== undefined ? { avatar: updates.avatar } : {}),
+      ...(updates.location !== undefined
+        ? { location: updates.location }
+        : {}),
+    };
+
+    setProfile((current) =>
+      normalizeProfile({
+        ...current,
+        ...safeUpdates,
+        id: current.id,
+        email: current.email,
+        roles: current.roles,
+      }),
+    );
+
+    void persistProfileUpdates(safeUpdates);
   };
 
   const setGoals = (goals: AccountGoal[]) => {
-    setProfile((current) => {
-      const writerEnabled = goals.includes('writing') || goals.includes('both');
-      const nextActiveRole = current.activeRole === 'admin'
-        ? 'admin'
-        : writerEnabled
-          ? 'writer'
-          : current.activeRole === 'writer'
-            ? 'reader'
-            : current.activeRole;
-
-      return normalizeProfile({
+    setProfile((current) =>
+      normalizeProfile({
         ...current,
         goals,
-        roles: {
-          ...current.roles,
-          writer: writerEnabled,
-        },
-        activeRole: nextActiveRole,
-      });
-    });
+        roles: current.roles,
+      }),
+    );
+
+    void persistProfileUpdates({ goals });
   };
 
   const completeOnboarding = () => {
-    setProfile((current) => normalizeProfile({
-      ...current,
+    setProfile((current) =>
+      normalizeProfile({
+        ...current,
+        onboardingComplete: true,
+        roles: current.roles,
+      }),
+    );
+
+    void persistProfileUpdates({
       onboardingComplete: true,
-      roles: {
-        ...current.roles,
-        writer: current.goals.includes('writing') || current.goals.includes('both'),
-      },
-      activeRole: current.goals.includes('writing') || current.goals.includes('both')
-        ? 'writer'
-        : 'reader',
-    }));
-  };
-
-  const toggleWriter = (enabled?: boolean) => {
-    setProfile((current) => {
-      const writerEnabled = enabled ?? !current.roles.writer;
-      const nextActiveRole = writerEnabled ? 'writer' : 'reader';
-      return normalizeProfile({
-        ...current,
-        roles: {
-          ...current.roles,
-          writer: writerEnabled,
-        },
-        activeRole: current.roles.admin ? 'admin' : nextActiveRole,
-      });
-    });
-  };
-
-  const toggleAdmin = (enabled?: boolean) => {
-    setProfile((current) => {
-      const adminEnabled = enabled ?? !current.roles.admin;
-      const nextActiveRole = adminEnabled ? 'admin' : current.roles.writer ? 'writer' : 'reader';
-      return normalizeProfile({
-        ...current,
-        roles: {
-          ...current.roles,
-          admin: adminEnabled,
-        },
-        activeRole: nextActiveRole,
-      });
     });
   };
 
   const setActiveRole = (role: AccountRole) => {
+    let permitted = false;
+
     setProfile((current) => {
-      if (role === 'writer' && !current.roles.writer) {
+      if (role === "writer" && !current.roles.writer) {
         return current;
       }
 
-      if (role === 'admin' && !current.roles.admin) {
+      if (role === "admin" && !current.roles.admin) {
         return current;
       }
+
+      if (role === "reader" && !current.roles.reader) {
+        return current;
+      }
+
+      permitted = true;
 
       return normalizeProfile({
         ...current,
         activeRole: role,
+        roles: current.roles,
       });
     });
+
+    if (permitted) {
+      void persistProfileUpdates({
+        activeRole: role,
+      });
+    }
   };
 
   const hasRole = (role: AccountRole) => {
-    if (role === 'reader') {
+    if (!isAuthenticated) {
+      return false;
+    }
+
+    if (role === "reader") {
       return profile.roles.reader;
     }
 
-    if (role === 'writer') {
+    if (role === "writer") {
       return profile.roles.writer;
     }
 
@@ -333,152 +411,127 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setAuthError(null);
   };
 
-  const signIn = (email: string, password: string) => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const users = readStoredUsers();
-    const existingUser = users.find((entry) => entry.email.toLowerCase() === normalizedEmail && entry.password === password);
-
-    if (!existingUser) {
-      setAuthError('We could not find an account with that email and password.');
-      return false;
-    }
-
+  const signIn = async (
+    email: string,
+    password: string,
+  ): Promise<boolean> => {
     setAuthError(null);
-    setProfile(normalizeProfile(existingUser.profile));
-    setIsAuthenticated(true);
-    return true;
+
+    try {
+      const response = await fetch(AUTH_SIGNIN_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const payload = (await response.json()) as AuthPayload;
+
+      if (!response.ok || !payload.profile) {
+        setAuthError(
+          payload.error ??
+            "We could not sign you in with that email and password.",
+        );
+        clearAuthenticatedState();
+        return false;
+      }
+
+      applyAuthenticatedProfile(payload.profile);
+      return true;
+    } catch {
+      setAuthError("Unable to sign you in right now.");
+      clearAuthenticatedState();
+      return false;
+    }
   };
 
-  const signUp = (input: { name: string; email: string; password: string; username: string }) => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    const name = input.name.trim();
-    const email = input.email.trim().toLowerCase();
-    const username = input.username.trim() || `reader-${Math.random().toString(36).slice(2, 6)}`;
-
-    if (!name || !email || !input.password) {
-      setAuthError('Please complete all required fields.');
-      return false;
-    }
-
-    const users = readStoredUsers();
-    if (users.some((entry) => entry.email.toLowerCase() === email)) {
-      setAuthError('That email is already registered for the demo experience.');
-      return false;
-    }
-
-    const avatar = name
-      .split(/\s+/)
-      .map((part) => part[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || 'U';
-
-    const nextProfile = normalizeProfile({
-      id: `user-${Date.now()}`,
-      name,
-      username,
-      email,
-      avatar,
-      joined: new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date()),
-      goals: ['reading'],
-      roles: {
-        reader: true,
-        writer: false,
-        admin: false,
-      },
-      activeRole: 'reader',
-      onboardingComplete: false,
-    });
-
-    const nextUsers = [...users, {
-      id: nextProfile.id,
-      email,
-      password: input.password,
-      profile: nextProfile,
-    }];
-
-    writeStoredUsers(nextUsers);
+  const signUp = async (input: {
+    name: string;
+    email: string;
+    password: string;
+    username: string;
+  }): Promise<boolean> => {
     setAuthError(null);
-    setProfile(nextProfile);
-    setIsAuthenticated(true);
-    return true;
-  };
 
-  const signOut = () => {
-    setAuthError(null);
-    setProfile(normalizeProfile());
-    setIsAuthenticated(false);
-  };
+    try {
+      const response = await fetch(AUTH_SIGNUP_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      });
 
-  const placeOrder = (input: {
-    items: AccountOrderItem[];
-    total: number;
-    shipping: {
-      name: string;
-      email: string;
-      address: string;
-      city: string;
-      zip: string;
-    };
-  }) => {
-    if (!isAuthenticated) {
+      const payload = (await response.json()) as AuthPayload;
+
+      if (!response.ok || !payload.profile) {
+        setAuthError(
+          payload.error ?? "Unable to create your account right now.",
+        );
+        clearAuthenticatedState();
+        return false;
+      }
+
+      applyAuthenticatedProfile(payload.profile);
+      return true;
+    } catch {
+      setAuthError("Unable to create your account right now.");
+      clearAuthenticatedState();
       return false;
     }
-
-    const order: AccountOrder = {
-      id: `order-${Date.now()}`,
-      orderedAt: new Date().toISOString(),
-      total: input.total,
-      status: 'Processing',
-      items: input.items,
-      shippingName: input.shipping.name,
-      shippingEmail: input.shipping.email,
-      shippingAddress: input.shipping.address,
-      shippingCity: input.shipping.city,
-      shippingZip: input.shipping.zip,
-    };
-
-    setOrders((current) => [order, ...current]);
-    return true;
   };
 
-  const value = useMemo(
-    () => ({
-      profile,
-      setProfile,
-      updateProfile,
-      setGoals,
-      completeOnboarding,
-      toggleWriter,
-      toggleAdmin,
-      setActiveRole,
-      hasRole,
-      isAuthenticated,
-      authError,
-      clearAuthError,
-      signIn,
-      signUp,
-      signOut,
-      orders,
-      placeOrder,
-    }),
-    [authError, isAuthenticated, orders, profile]
+  const signOut = async () => {
+    try {
+      await fetch(AUTH_SIGNOUT_URL, {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      clearAuthenticatedState();
+      setAuthError(null);
+    }
+  };
+
+  return (
+    <AccountContext.Provider
+      value={{
+        profile,
+        setProfile,
+        updateProfile,
+        setGoals,
+        completeOnboarding,
+        setActiveRole,
+        hasRole,
+        isAuthenticated,
+        isAuthLoading,
+        authError,
+        clearAuthError,
+        refreshSession,
+        signIn,
+        signUp,
+        signOut,
+        orders,
+        refreshOrders,
+      }}
+    >
+      {children}
+    </AccountContext.Provider>
   );
-
-  return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>;
 };
 
-export const useAccount = () => {
+export function useAccount(): AccountContextValue {
   const context = useContext(AccountContext);
+
   if (!context) {
-    throw new Error('useAccount must be used inside an AccountProvider');
+    throw new Error("useAccount must be used within AccountProvider.");
   }
+
   return context;
-};
+}

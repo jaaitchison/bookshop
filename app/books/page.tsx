@@ -3,31 +3,30 @@
 import React from 'react';
 import { BookFilters } from '@/src/components/book/BookFilters';
 import { BookGrid } from '@/src/components/book/BookGrid';
-import type { FilterOptions } from '@/src/data/books';
-import type { Book } from '@/src/types/book';
+import DisplaySection from '@/src/components/layout/DisplaySection';
+import type { Book, FilterOptions } from '@/src/types/book';
 
 export default function BooksPage() {
   const [filteredBooks, setFilteredBooks] = React.useState<Book[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [genres, setGenres] = React.useState<string[]>([]);
 
   React.useEffect(() => {
-    const loadBooks = async () => {
-      setIsLoading(true);
+    let active = true;
+    const loadGenres = async () => {
       try {
-        const response = await fetch('/api/books');
-        const nextBooks = (await response.json()) as Book[];
-        setFilteredBooks(nextBooks);
+        const response = await fetch('/api/books?facets=genres');
+        const payload = (await response.json()) as { genres?: string[] };
+        if (active && response.ok) setGenres(payload.genres ?? []);
       } catch {
-        setFilteredBooks([]);
-      } finally {
-        setIsLoading(false);
+        if (active) setGenres([]);
       }
     };
-
-    void loadBooks();
+    void loadGenres();
+    return () => { active = false; };
   }, []);
 
-  const handleFiltersChange = async (filters: FilterOptions) => {
+  const handleFiltersChange = React.useCallback(async (filters: FilterOptions) => {
     setIsLoading(true);
 
     const params = new URLSearchParams();
@@ -47,32 +46,30 @@ export default function BooksPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-            Browse Books
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            Explore our collection of {filteredBooks.length} books
-          </p>
-        </div>
+    <main className="bg-[var(--bookshop-bg)]">
+      <div className="mx-auto w-11/12 space-y-8 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
+        <DisplaySection
+          title="Browse and filter books"
+          description={`Explore the catalogue using search, genre, price and rating filters. ${filteredBooks.length} books are currently shown.`}
+        >
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px,1fr]">
+            <aside>
+              <div className="sticky top-24">
+                <BookFilters genres={genres} onFiltersChange={handleFiltersChange} />
+              </div>
+            </aside>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1">
-            <div className="sticky top-24 space-y-6">
-              <BookFilters onFiltersChange={handleFiltersChange} />
+            <div className="min-w-0">
+              <BookGrid books={filteredBooks} isLoading={isLoading} />
             </div>
           </div>
-
-          <div className="lg:col-span-3">
-            <BookGrid books={filteredBooks} isLoading={isLoading} />
-          </div>
-        </div>
+        </DisplaySection>
       </div>
-    </div>
+    </main>
   );
 }
+
+

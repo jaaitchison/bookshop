@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useCart } from '../../context/CartContext';
-import type { Book } from '../../types/book';
+import { useAccount } from '../../context/AccountContext';
+import type { Book, BookChapter, BookReview } from '../../types/book';
+import { formatGbp } from '../../lib/currency';
 
 interface BookDetailProps {
   book: Book;
@@ -12,9 +14,51 @@ interface BookDetailProps {
 }
 
 export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) => {
-  const { addItem } = useCart();
+  const { addItem, isLoading: isCartLoading, isUpdating: isCartUpdating } = useCart();
+  const { isAuthenticated, orders, hasRole } = useAccount();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isUpdatingWishlist, setIsUpdatingWishlist] = useState(false);
+  const [reviews, setReviews] = useState<BookReview[]>([]);
+  const [reviewForm, setReviewForm] = useState({ user: '', rating: 5, comment: '' });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [activeChapterId, setActiveChapterId] = useState<string | null>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  const chapters = useMemo<BookChapter[]>(() => {
+    if (book.manuscriptChapters && book.manuscriptChapters.length > 0) {
+      return book.manuscriptChapters;
+    }
+
+    return [
+      {
+        id: `${book.id}-preview`,
+        title: 'Sample Chapter',
+        content: `This is a free preview of "${book.title}".\n\nThe morning arrived quiet and bright, and everything felt possible. The first pages of this story invite you into the world, introduce the voice, and set the stakes for what is to come.`,
+        isPreview: true,
+      },
+      {
+        id: `${book.id}-chapter-2`,
+        title: 'Chapter 2',
+        content: `Full manuscript content for "${book.title}" unlocks instantly after purchase.\n\nChapter 2 deepens the conflict, reveals character motivations, and expands the world with details unavailable in the public preview.`,
+        isPreview: false,
+      },
+      {
+        id: `${book.id}-chapter-3`,
+        title: 'Chapter 3',
+        content: `Readers with access can continue seamlessly across chapters with progress sync.\n\nThis chapter advances the narrative arc and sets up pivotal decisions.`,
+        isPreview: false,
+      },
+    ];
+  }, [book.id, book.manuscriptChapters, book.title]);
+
+  const purchasedBookIds = useMemo(
+    () => new Set(orders.flatMap((order) => order.items.map((item) => item.id))),
+    [orders],
+  );
+  const canAccessFullManuscript = hasRole('writer') || hasRole('admin') || purchasedBookIds.has(book.id);
+  const readableChapters = canAccessFullManuscript ? chapters : chapters.filter((chapter) => chapter.isPreview);
+  const activeChapter = readableChapters.find((chapter) => chapter.id === activeChapterId) ?? readableChapters[0];
 
   useEffect(() => {
     const loadWishlistState = async () => {
@@ -27,8 +71,90 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
       }
     };
 
+    const loadReviews = async () => {
+      try {
+        const response = await fetch(`/api/books/${book.id}/reviews`);
+        const nextReviews = (await response.json()) as BookReview[];
+        setReviews(nextReviews);
+      } catch {
+        setReviews([]);
+      }
+    };
+
     void loadWishlistState();
+    void loadReviews();
   }, [book.id]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    let active = true;
+
+    const loadReadingProgress = async () => {
+      try {
+        const response = await fetch('/api/reading-progress', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as {
+          items?: Array<{
+            bookId: string;
+            chapterId: string | null;
+            progress: number;
+          }>;
+        };
+
+        const item = (data.items ?? []).find(
+          (candidate) => candidate.bookId === book.id,
+        );
+
+        if (!active || !item) {
+          return;
+        }
+
+        setActiveChapterId(item.chapterId);
+        setScrollProgress(item.progress);
+      } catch {
+        // Leave the default chapter and progress unchanged.
+      }
+    };
+
+    void loadReadingProgress();
+
+    return () => {
+      active = false;
+    };
+  }, [book.id, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !activeChapter) {
+      return;
+    }
+
+    const saveReadingProgress = async () => {
+      await fetch('/api/reading-progress', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          chapterId: activeChapter.id,
+          progress: scrollProgress,
+        }),
+      });
+    };
+
+    void saveReadingProgress();
+  }, [activeChapter, book.id, isAuthenticated, scrollProgress]);
 
   const handleWishlistToggle = async () => {
     const nextValue = !isWishlisted;
@@ -48,113 +174,236 @@ export const BookDetail: React.FC<BookDetailProps> = ({ book, relatedBooks }) =>
     }
   };
 
+  const handleSubmitReview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setReviewError(null);
+    if (!reviewForm.user.trim() || !reviewForm.comment.trim()) {
+      return;
+    }
+
+    setIsSubmittingReview(true);
+
+    try {
+      const response = await fetch(`/api/books/${book.id}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: reviewForm.user,
+          rating: reviewForm.rating,
+          comment: reviewForm.comment,
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          setReviewError('Only purchasers can post reviews for this book.');
+          return;
+        }
+        throw new Error('Failed to submit review');
+      }
+
+      const nextReviews = (await response.json()) as BookReview[];
+      setReviews(nextReviews);
+      setReviewForm({ user: '', rating: 5, comment: '' });
+    } catch {
+      setReviewError('Unable to post review right now.');
+    } finally {
+      setIsSubmittingReview(false);
+    }
+  };
+
+  const averageReviewScore = reviews.length > 0
+    ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1)
+    : book.rating.toFixed(1);
+
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <Link
-          href="/books"
-          className="inline-flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline mb-8"
-        >
-          ← Back to books
+    <div className="min-h-screen bg-[var(--bookshop-bg)]">
+      <div className="mx-auto w-11/12 py-8 sm:w-10/12 lg:w-4/5">
+        <Link href="/books" className="mb-8 inline-flex items-center text-sm font-medium text-violet-700 hover:text-violet-800">
+          ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€šÃ‚Â Back to books
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[320px,1fr] gap-10">
+        <div className="grid gap-6 lg:grid-cols-[300px,1fr]">
           <div className="flex justify-center lg:justify-start">
-            <div className="relative w-full max-w-[320px] aspect-[3/4] overflow-hidden rounded-2xl bg-gray-200 dark:bg-gray-800 shadow-lg">
-              <Image
-                src={book.cover}
-                alt={book.title}
-                fill
-                className="object-cover"
-                priority
-              />
+            <div className="relative aspect-[3/4] w-full max-w-[320px] overflow-hidden rounded-[1.75rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] shadow-sm">
+              <Image src={book.cover} alt={book.title} fill className="object-cover" priority />
             </div>
           </div>
 
-          <div className="space-y-8">
-            <div className="space-y-4">
+          <div className="space-y-6">
+          <div className="space-y-4 rounded-3xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                  {book.genre}
-                </span>
-                {book.new && (
-                  <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                    New release
-                  </span>
-                )}
+                <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-medium text-violet-800">{book.genre}</span>
+                {book.new ? <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">New release</span> : null}
               </div>
 
               <div>
-                <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">{book.title}</h1>
-                <p className="mt-2 text-xl text-gray-600 dark:text-gray-400">by {book.author}</p>
+                <h2 className="text-3xl font-black tracking-tight text-slate-900">{book.title}</h2>
+                <p className="mt-2 text-lg text-slate-600">by {book.author}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
-                <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                  ${book.price.toFixed(2)}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <span className="text-yellow-500">★</span>
-                  <span className="font-semibold text-gray-900 dark:text-gray-100">{book.rating}</span>
+                <div className="text-3xl font-bold text-slate-900">{formatGbp(book.price)}</div>
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <span className="text-amber-500">ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</span>
+                  <span className="font-semibold text-slate-900">{book.rating}</span>
                   <span>({book.reviews.toLocaleString()} reviews)</span>
                 </div>
               </div>
 
-              <p className="text-lg leading-8 text-gray-700 dark:text-gray-300">{book.description}</p>
+              <p className="text-base leading-8 text-slate-700">{book.description}</p>
             </div>
 
             <div className="flex flex-wrap gap-4">
               <button
-                onClick={() => addItem(book)}
-                className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+                onClick={() => void addItem(book)}
+                disabled={isCartLoading || isCartUpdating}
+                className="bookshop-button-primary px-6 py-3 disabled:cursor-wait disabled:opacity-70"
               >
                 Add to cart
               </button>
-              <button
-                onClick={handleWishlistToggle}
-                disabled={isUpdatingWishlist}
-                className={`rounded-lg border px-6 py-3 font-semibold transition ${
-                  isWishlisted
-                    ? 'border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-950/40 dark:text-amber-200'
-                    : 'border-gray-300 text-gray-900 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800'
-                }`}
-              >
+              <button onClick={handleWishlistToggle} disabled={isUpdatingWishlist} className={`rounded-full border px-6 py-3 font-semibold transition ${isWishlisted ? 'border-amber-400 bg-amber-50 text-amber-700' : 'bookshop-button-quiet'}`}>
                 {isUpdatingWishlist ? 'Updating...' : isWishlisted ? 'Saved to wishlist' : 'Add to wishlist'}
               </button>
+              {!canAccessFullManuscript ? (
+                <Link href={`/checkout?bookId=${encodeURIComponent(book.id)}`} className="bookshop-button-quiet px-6 py-3">
+                  Unlock full manuscript
+                </Link>
+              ) : null}
             </div>
 
-            <div className="grid gap-4 rounded-2xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800/60 md:grid-cols-3">
+            <div className="grid gap-4 rounded-3xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-5 shadow-sm md:grid-cols-3">
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Format</p>
-                <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">Paperback</p>
+                <p className="text-sm font-medium text-slate-500">Format</p>
+                <p className="mt-1 font-semibold text-slate-900">Paperback</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Publisher</p>
-                <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">bookshop Press</p>
+                <p className="text-sm font-medium text-slate-500">Publisher</p>
+                <p className="mt-1 font-semibold text-slate-900">bookshop Press</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Shipping</p>
-                <p className="mt-1 font-semibold text-gray-900 dark:text-gray-100">Free over $25</p>
+                <p className="text-sm font-medium text-slate-500">Shipping</p>
+                <p className="mt-1 font-semibold text-slate-900">Free over £25</p>
               </div>
+            </div>
+
+            <div className="rounded-3xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-700">Reader view</p>
+                  <h2 className="text-xl font-semibold text-slate-900">{canAccessFullManuscript ? 'Full manuscript unlocked' : 'Preview chapter access'}</h2>
+                </div>
+                {!canAccessFullManuscript ? (
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">Preview only</span>
+                ) : (
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">Full access</span>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {readableChapters.map((chapter) => (
+                  <button key={chapter.id} type="button" onClick={() => setActiveChapterId(chapter.id)} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${chapter.id === activeChapter?.id ? 'border border-violet-200 bg-violet-50 text-violet-700' : 'border border-violet-200 text-violet-700 hover:bg-violet-50'}`}>
+                    {chapter.title}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-[1.25rem] border border-[var(--bookshop-border)] bg-slate-50 p-4">
+                <h3 className="text-base font-semibold text-slate-900">{activeChapter?.title}</h3>
+                <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700">{activeChapter?.content}</p>
+              </div>
+
+              {canAccessFullManuscript ? (
+                <div className="mt-5">
+                  <div className="flex items-center justify-between text-sm text-slate-600">
+                    <span>Reading progress</span>
+                    <span>{scrollProgress}%</span>
+                  </div>
+                  <input type="range" min={0} max={100} value={scrollProgress} onChange={(event) => setScrollProgress(Number(event.target.value))} className="mt-2 w-full" aria-label="Reading progress" />
+                </div>
+              ) : (
+                <div className="mt-5 rounded-[1.25rem] border border-dashed border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                  Purchase this book to unlock all chapters, synced progress, and full reader access in your library.
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="mt-16">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">You may also like</h2>
+        <div className="mt-14 rounded-3xl border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-700">Reader voices</p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">Reviews from your community</h2>
+            </div>
+            <div className="rounded-full bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700">
+              {reviews.length} review{reviews.length === 1 ? '' : 's'} ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ {averageReviewScore}/5 avg
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {relatedBooks.map((relatedBook) => (
-              <Link key={relatedBook.id} href={`/books/${relatedBook.id}`} className="group">
-                <div className="overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
-                  <div className="relative aspect-[3/4]">
-                    <Image src={relatedBook.cover} alt={relatedBook.title} fill className="object-cover transition group-hover:scale-105" />
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-4">
+              {reviews.length === 0 ? (
+                <div className="rounded-[1.5rem] border border-dashed border-[var(--bookshop-border)] p-6 text-sm text-slate-600">
+                  No reviews yet. Be the first to share what you thought about this book.
+                </div>
+              ) : (
+                reviews.map((review) => (
+                  <div key={review.id} className="rounded-[1.5rem] border border-[var(--bookshop-border)] bg-white p-5 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-semibold text-slate-900">{review.user}</p>
+                      <div className="text-sm font-semibold text-amber-600">{'ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦'.repeat(review.rating)}</div>
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-slate-700">{review.comment}</p>
+                    <p className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">{new Date(review.createdAt).toLocaleDateString()}</p>
                   </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={handleSubmitReview} className="rounded-[1.5rem] border border-[var(--bookshop-border)] bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-slate-900">Write a review</h3>
+              <p className="mt-2 text-sm text-slate-600">Share a quick note so future readers know what to expect.</p>
+
+              <label className="mt-6 block text-sm font-medium text-slate-700">
+                Your name
+                <input value={reviewForm.user} onChange={(event) => setReviewForm((current) => ({ ...current, user: event.target.value }))} className="mt-2 w-full rounded-2xl border border-[var(--bookshop-border)] bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-400" placeholder="Maya" />
+              </label>
+
+              <label className="mt-4 block text-sm font-medium text-slate-700">
+                Rating
+                <select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: Number(event.target.value) }))} className="mt-2 w-full rounded-2xl border border-[var(--bookshop-border)] bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-400">
+                  {[5, 4, 3, 2, 1].map((value) => (
+                    <option key={value} value={value}>{value} star{value === 1 ? '' : 's'}</option>
+                  ))}
+                </select>
+              </label>
+
+              {reviewError ? <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{reviewError}</p> : null}
+
+              <label className="mt-4 block text-sm font-medium text-slate-700">
+                Comment
+                <textarea value={reviewForm.comment} onChange={(event) => setReviewForm((current) => ({ ...current, comment: event.target.value }))} rows={4} className="mt-2 w-full rounded-2xl border border-[var(--bookshop-border)] bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-violet-400" placeholder="What stood out to you?" />
+              </label>
+
+              <button type="submit" disabled={isSubmittingReview} className="bookshop-button-primary mt-6 px-5 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-70">
+                {isSubmittingReview ? 'Posting review...' : 'Post review'}
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div className="mt-14">
+          <h2 className="mb-6 text-2xl font-bold text-slate-900">You may also like</h2>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {relatedBooks.map((relatedBook) => (
+              <Link key={relatedBook.id} href={`/books/${relatedBook.id}`} className="group rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-3 shadow-sm transition hover:-translate-y-1">
+                <div className="relative aspect-[3/4] overflow-hidden rounded-[1.15rem]">
+                  <Image src={relatedBook.cover} alt={relatedBook.title} fill className="object-cover transition duration-300 group-hover:scale-105" />
                 </div>
                 <div className="mt-4">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">{relatedBook.title}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{relatedBook.author}</p>
+                  <h3 className="font-semibold text-slate-900">{relatedBook.title}</h3>
+                  <p className="text-sm text-slate-600">{relatedBook.author}</p>
                 </div>
               </Link>
             ))}

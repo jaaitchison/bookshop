@@ -1,97 +1,241 @@
 'use client';
 
-import React from 'react';
-import { getWriterStats, getWriterBooks, getRecentActivities } from '@/src/data/studio';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useAccount } from '@/src/context/AccountContext';
+import { getRecentActivities } from '@/src/data/studio';
 import WriterStatsPanel from '@/src/components/studio/WriterStatsPanel';
+import WriterSalesBreakdown from '@/src/components/studio/WriterSalesBreakdown';
 import WriterBooksList from '@/src/components/studio/WriterBooksList';
 import WriterActivityFeed from '@/src/components/studio/WriterActivityFeed';
+import DisplaySection from '@/src/components/layout/DisplaySection';
+import type { WriterBook, WriterSalesAnalytics } from '@/src/types/studio';
+type WriterStudioApiBook = {
+  id: string;
+  title: string;
+  genre: string;
+  coverUrl: string;
+  rating: number;
+  reviews: number;
+  status: WriterBook['status'];
+  moderationReason: string;
+};
+
+const STATUS_LABELS: Record<WriterBook['status'], string> = {
+  draft: 'Draft in progress',
+  in_review: 'Awaiting Admin review',
+  changes_requested: 'Changes requested',
+  approved: 'Approved',
+  published: 'Published',
+  archived: 'Archived',
+};
+
+const EMPTY_SALES: WriterSalesAnalytics = {
+  currency: 'GBP',
+  totalBooksSold: 0,
+  totalRevenue: 0,
+  books: [],
+};
 
 export default function WriterStudioPage() {
-  const stats = getWriterStats();
-  const books = getWriterBooks();
+  const { isAuthenticated, hasRole } = useAccount();
+  const [books, setBooks] = useState<WriterBook[]>([]);
+  const [sales, setSales] = useState<WriterSalesAnalytics>(EMPTY_SALES);
   const activities = getRecentActivities();
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                Writer Studio
-              </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
-                Manage your books, track sales, and engage with readers
+  useEffect(() => {
+    if (!isAuthenticated || !hasRole('writer')) {
+      return;
+    }
+
+    const loadBooks = async () => {
+      try {
+        const [booksResponse, salesResponse] = await Promise.all([
+          fetch('/api/studio/books', {
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+          fetch('/api/studio/sales', {
+            credentials: 'include',
+            cache: 'no-store',
+          }),
+        ]);
+
+        if (!booksResponse.ok || !salesResponse.ok) {
+          throw new Error('Unable to load Writer Studio data.');
+        }
+
+        const data = (await booksResponse.json()) as {
+          books?: WriterStudioApiBook[];
+        };
+        const salesData = (await salesResponse.json()) as {
+          sales?: WriterSalesAnalytics;
+        };
+        const nextSales = salesData.sales ?? EMPTY_SALES;
+        const salesByBook = new Map(nextSales.books.map((book) => [book.bookId, book.booksSold]));
+
+        const normalizedBooks = (data.books ?? []).map((book) => ({
+          id: book.id,
+          title: book.title,
+          genre: book.genre,
+          publishedDate: STATUS_LABELS[book.status],
+          views: 0,
+          sales: salesByBook.get(book.id) ?? 0,
+          rating: book.rating,
+          reviews: book.reviews,
+          status: book.status,
+          cover: book.coverUrl,
+          moderationReason: book.moderationReason,
+        }));
+
+        setBooks(normalizedBooks);
+        setSales(nextSales);
+      } catch {
+        setBooks([]);
+        setSales(EMPTY_SALES);
+      }
+    };
+
+    void loadBooks();
+  }, [hasRole, isAuthenticated]);
+
+  const stats = useMemo(() => {
+    const avgRating = books.length > 0
+      ? books.reduce((sum, book) => sum + book.rating, 0) / books.length
+      : 0;
+
+    return {
+      totalBooks: books.length,
+      publishedBooks: sales.books.length,
+      totalBooksSold: sales.totalBooksSold,
+      totalRevenue: sales.totalRevenue,
+      avgRating,
+    };
+  }, [books, sales]);
+
+  const handleStatusChange = async (bookId: string, status: WriterBook['status']) => {
+    try {
+      const response = await fetch(`/api/books/${bookId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to update book status.');
+      }
+
+      const updatedBook = (await response.json()) as WriterStudioApiBook;
+      setBooks((currentBooks) => currentBooks.map((book) => (book.id === updatedBook.id ? {
+        ...book,
+        status: updatedBook.status ?? 'draft',
+        publishedDate: STATUS_LABELS[updatedBook.status ?? 'draft'],
+        moderationReason: updatedBook.moderationReason ?? book.moderationReason,
+      } : book)));
+    } catch {
+      setBooks((currentBooks) => currentBooks);
+    }
+  };
+
+  if (!isAuthenticated || !hasRole('writer')) {
+    return (
+      <main className="bg-[var(--bookshop-bg)]">
+        <div className="mx-auto w-11/12 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
+          <DisplaySection
+            title="Creator access required"
+            description="Back of House is available to accounts with Writer access."
+          >
+            <div className="py-4 text-center">
+              <p className="mx-auto max-w-2xl text-[var(--bookshop-muted)]">
+                Enable creator mode in your account dashboard to access publishing tools and manage your books.
               </p>
-            </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
-              + Publish New Book
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Stats Panel */}
-        <div className="mb-12">
-          <WriterStatsPanel stats={stats} />
-        </div>
-
-        {/* Layout: Books List and Activity Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Books List - 2/3 width */}
-          <div className="lg:col-span-2">
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  My Books
-                </h2>
-                <div className="flex gap-3">
-                  <select className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm">
-                    <option>All Books</option>
-                    <option>Published</option>
-                    <option>Drafts</option>
-                    <option>Archived</option>
-                  </select>
-                </div>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <Link href="/account" className="bookshop-button-primary px-5 py-2.5 text-sm">
+                  Go to account dashboard
+                </Link>
+                <Link href="/books" className="bookshop-button-quiet px-5 py-2.5 text-sm">
+                  Continue browsing books
+                </Link>
               </div>
             </div>
-            <WriterBooksList books={books} />
-          </div>
+          </DisplaySection>
+        </div>
+      </main>
+    );
+  }
 
-          {/* Activity Feed - 1/3 width */}
-          <div className="lg:col-span-1">
+  return (
+    <main className="bg-[var(--bookshop-bg)]">
+      <div className="mx-auto w-11/12 space-y-8 py-8 pb-12 sm:w-10/12 sm:pb-16 lg:w-4/5">
+        <DisplaySection
+          title="Publishing overview"
+          description="A live summary of your published catalogue and completed sales."
+        >
+          <WriterStatsPanel stats={stats} />
+        </DisplaySection>
+
+        <DisplaySection
+          title="Sales by published book"
+          description="Completed, non-refunded order items for books owned by your Writer account."
+        >
+          <WriterSalesBreakdown sales={sales} />
+        </DisplaySection>
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+          <DisplaySection
+            title="My books"
+            description="Develop your catalogue, submit completed books for Admin review and respond to feedback."
+          >
+            <div className="mb-5 flex justify-end">
+              <select className="bookshop-input max-w-48">
+                <option>All books</option>
+                <option>Published</option>
+                <option>Drafts</option>
+                <option>In review</option>
+                <option>Changes requested</option>
+                <option>Archived</option>
+              </select>
+            </div>
+            <WriterBooksList books={books} onStatusChange={handleStatusChange} />
+          </DisplaySection>
+
+          <DisplaySection
+            title="Recent activity"
+            description="Latest publishing, sales and reader activity."
+          >
             <WriterActivityFeed activities={activities} />
-          </div>
+          </DisplaySection>
         </div>
 
-        {/* Quick Start Section */}
-        <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
-              <div className="text-2xl mb-2">📝</div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">Write Book</p>
+        <DisplaySection
+          title="Quick actions"
+          description="Common Back of House tasks."
+        >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Link
+              href="/studio/new"
+              className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]"
+            >
+              <div className="mb-2 text-2xl" aria-hidden="true">+</div>
+              <p className="font-medium text-[var(--bookshop-text)]">Write book</p>
+            </Link>
+            <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
+              <div className="mb-2 text-2xl">Ã°Å¸â€œÅ </div>
+              <p className="font-medium text-[var(--bookshop-text)]">View analytics</p>
             </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
-              <div className="text-2xl mb-2">📊</div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">View Analytics</p>
+            <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
+              <div className="mb-2 text-2xl">Ã°Å¸â€™Â¬</div>
+              <p className="font-medium text-[var(--bookshop-text)]">Reader reviews</p>
             </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
-              <div className="text-2xl mb-2">💬</div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">Reader Reviews</p>
-            </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
-              <div className="text-2xl mb-2">⚙️</div>
-              <p className="font-medium text-gray-900 dark:text-gray-100">Settings</p>
+            <button className="bookshop-subcard p-4 text-center transition hover:bg-[var(--bookshop-accent-soft)]">
+              <div className="mb-2 text-2xl">Ã¢Å¡â„¢Ã¯Â¸Â</div>
+              <p className="font-medium text-[var(--bookshop-text)]">Settings</p>
             </button>
           </div>
-        </div>
+        </DisplaySection>
       </div>
-    </div>
+    </main>
   );
 }
+
+

@@ -3,48 +3,60 @@ import Link from 'next/link';
 
 export const Hero: React.FC = () => {
   return (
-    <section className="relative py-20 sm:py-32 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800 -z-10" />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
-              Discover Your Next <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Great Read</span>
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              Explore thousands of books across all genres. Find bestsellers, hidden gems, and everything in between.
+    <section className="py-8">
+      <div className="mx-auto w-11/12 sm:w-10/12 lg:w-4/5">
+        <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-8 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+          <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+            Independent publishing
+          </p>
+
+          <h2 className="mt-4 max-w-4xl text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+            Discover books, stories, and a place for authors to publish with clarity.
+          </h2>
+
+          <p className="mt-4 max-w-4xl text-base leading-7 text-slate-600 dark:text-slate-300">
+            Bookshop brings readers and writers together in one calm, modern space Ã¢â‚¬â€ from discovery and previewing to checkout and a personal library.
+          </p>
+
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link href="/books" className="bookshop-button-primary px-5 py-3 text-sm">
+              Browse the collection
+            </Link>
+            <Link href="/studio" className="bookshop-button-quiet px-5 py-3 text-sm">
+              Open the writer studio
+            </Link>
+          </div>
+
+          <div className="mt-7 flex flex-wrap gap-x-10 gap-y-4 border-t border-slate-200 pt-6 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">
+            <div>
+              <span className="block text-2xl font-bold text-slate-900 dark:text-white">50k+</span>
+              <span>Books</span>
+            </div>
+            <div>
+              <span className="block text-2xl font-bold text-slate-900 dark:text-white">100k+</span>
+              <span>Readers</span>
+            </div>
+            <div>
+              <span className="block text-2xl font-bold text-slate-900 dark:text-white">5k+</span>
+              <span>Authors</span>
+            </div>
+          </div>
+
+          <div className="mt-7 border-t border-slate-200 pt-6 dark:border-slate-700">
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">
+              What readers can expect
             </p>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/books"
-              className="inline-flex items-center justify-center px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-            >
-              Browse Books
-            </Link>
-            <Link
-              href="/studio"
-              className="inline-flex items-center justify-center px-8 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 font-semibold rounded-lg transition-colors"
-            >
-              Become a Writer
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 sm:gap-8 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <div>
-              <div className="text-3xl font-bold text-blue-600">50K+</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Books</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-blue-600">100K+</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Readers</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold text-blue-600">5K+</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Authors</div>
-            </div>
+            <ul className="mt-4 space-y-3 text-sm text-slate-700 dark:text-slate-200">
+              <li className="border-b border-slate-200 pb-3 dark:border-slate-700">
+                Free previews, instant unlocks, and a focused reading view.
+              </li>
+              <li className="border-b border-slate-200 pb-3 dark:border-slate-700">
+                A simple purchase journey that feels clear and trustworthy.
+              </li>
+              <li>
+                A personal library that keeps your books neatly organised.
+              </li>
+            </ul>
           </div>
         </div>
       </div>

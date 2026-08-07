@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from '@/src/context/AccountContext';
-import { accountActivity, accountLibrary, accountPublishedBooks, getPersonalizedNotifications } from '@/src/data/account';
-import { mockBooks } from '@/src/data/books';
+import { accountActivity, getPersonalizedNotifications } from '@/src/data/account';
+import type { SocialProvider } from '@/src/types/account';
+import type { ReaderLibraryItem } from '@/src/types/library';
+import { formatGbp } from '@/src/lib/currency';
 
 type GoalOption = {
   id: 'reading' | 'writing' | 'both';
@@ -31,18 +33,20 @@ const goalOptions: GoalOption[] = [
   },
 ];
 
+const socialProviders: SocialProvider[] = ['Google', 'Microsoft', 'Apple'];
+
 export default function AccountPage() {
   const {
     profile,
     setGoals,
     completeOnboarding,
-    toggleWriter,
-    toggleAdmin,
     setActiveRole,
     hasRole,
     isAuthenticated,
     orders,
   } = useAccount();
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [libraryItems, setLibraryItems] = useState<ReaderLibraryItem[]>([]);
 
   const toggleGoal = (goal: 'reading' | 'writing' | 'both') => {
     const nextGoals = profile.goals.includes(goal)
@@ -52,7 +56,41 @@ export default function AccountPage() {
     setGoals(nextGoals);
   };
 
-  const notifications = useMemo(() => getPersonalizedNotifications(profile, orders), [orders, profile]);
+
+
+  useEffect(() => {
+    const loadWishlist = async () => {
+      try {
+        const response = await fetch('/api/wishlist');
+        const data = await response.json() as { items?: string[] };
+        setWishlistCount((data.items ?? []).length);
+      } catch {
+        setWishlistCount(0);
+      }
+    };
+
+    void loadWishlist();
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let active = true;
+    const loadLibraryCount = async () => {
+      try {
+        const response = await fetch('/api/library', { credentials: 'include', cache: 'no-store' });
+        const payload = (await response.json()) as { items?: ReaderLibraryItem[] };
+        if (active) setLibraryItems(response.ok ? (payload.items ?? []) : []);
+      } catch {
+        if (active) setLibraryItems([]);
+      }
+    };
+    void loadLibraryCount();
+    return () => { active = false; };
+  }, [isAuthenticated]);
+
+  const resolvedOrders = orders;
+
+  const notifications = useMemo(() => getPersonalizedNotifications(profile, resolvedOrders), [profile, resolvedOrders]);
   const readinessHighlights = useMemo(() => {
     const items: string[] = [];
 
@@ -68,8 +106,8 @@ export default function AccountPage() {
       items.push('Admin shortcuts are enabled for moderation and platform oversight.');
     }
 
-    if (orders.length > 0) {
-      items.push(`Your account now carries ${orders.length} saved order${orders.length === 1 ? '' : 's'} for quick reference.`);
+    if (resolvedOrders.length > 0) {
+      items.push(`Your account now carries ${resolvedOrders.length} saved order${resolvedOrders.length === 1 ? '' : 's'} for quick reference.`);
     }
 
     if (items.length === 0) {
@@ -77,22 +115,33 @@ export default function AccountPage() {
     }
 
     return items;
-  }, [orders, profile.onboardingComplete, profile.roles.admin, profile.roles.writer]);
+  }, [profile.onboardingComplete, profile.roles.admin, profile.roles.writer, resolvedOrders.length]);
+  const verificationBadgeClass = hasRole('writer')
+    ? 'bookshop-badge bookshop-badge-warning'
+    : hasRole('admin')
+      ? 'bookshop-badge bookshop-badge-danger'
+      : 'bookshop-badge bookshop-badge-accent';
+  const onboardingBadgeClass = profile.onboardingComplete
+    ? 'bookshop-badge bookshop-badge-success'
+    : 'bookshop-badge bookshop-badge-warning';
+  const securityBadgeClass = profile.mfaEnabled
+    ? 'bookshop-badge bookshop-badge-success'
+    : 'bookshop-badge bookshop-badge-warning';
 
   if (!isAuthenticated) {
     return (
-      <main className="min-h-screen bg-gray-50 px-4 py-16 dark:bg-gray-950 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-gray-200 bg-white p-10 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">Secure access</p>
-          <h1 className="mt-4 text-3xl font-semibold text-gray-900 dark:text-white">Sign in to unlock your account hub</h1>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
+      <main className="min-h-screen bg-[var(--bookshop-bg)] py-8">
+        <div className="mx-auto w-11/12 rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-8 text-center shadow-sm sm:w-10/12 lg:w-4/5 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-accent)]">Secure access</p>
+          <h2 className="mt-4 text-3xl font-semibold text-[var(--bookshop-text)]">Sign in to unlock your account hub</h2>
+          <p className="mt-4 text-[var(--bookshop-muted)]">
             Your unified dashboard, library, and creator tools are available after authentication so your activity stays connected to one profile.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link href="/auth" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+            <Link href="/auth" className="bookshop-button-primary px-5 py-2.5 text-sm">
               Sign in or create an account
             </Link>
-            <Link href="/books" className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
+            <Link href="/books" className="bookshop-button-quiet px-5 py-2.5 text-sm">
               Continue browsing books
             </Link>
           </div>
@@ -102,37 +151,39 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
-        <section className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-8 shadow-sm">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+    <main className="min-h-screen bg-[var(--bookshop-bg)] py-8">
+      <div className="mx-auto flex w-11/12 flex-col gap-8 sm:w-10/12 lg:w-4/5">
+        <section className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-8 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-xl font-semibold text-white">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--bookshop-accent)] text-xl font-semibold text-[var(--bookshop-accent-soft)]">
                 {profile.avatar}
               </div>
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-400">
-                  Unified account
-                </p>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{profile.name}</h1>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                  @{profile.username} • {profile.location} • Joined {profile.joined}
-                </p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-accent)]">
+                    Unified account
+                  </p>
+                  <span className="bookshop-badge bookshop-badge-accent">Current view {profile.activeRole}</span>
+                </div>
+                <h2 className="text-3xl font-bold text-[var(--bookshop-text)]">{profile.name}</h2>
+                <p className="mt-1 text-sm text-[var(--bookshop-muted)]">@{profile.username} | {profile.location} | Joined {profile.joined}</p>
               </div>
             </div>
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-              <p className="font-semibold">Current view</p>
-              <p className="mt-1 text-base font-medium capitalize">{profile.activeRole}</p>
+            <div className="bookshop-subcard min-w-[12rem] px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">Profile status</p>
+              <p className="mt-2 text-base font-semibold text-[var(--bookshop-text)] capitalize">{profile.activeRole}</p>
+              <p className="mt-1 text-sm text-[var(--bookshop-muted)]">Your dashboard follows this role across reading, publishing, and admin tools.</p>
             </div>
           </div>
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-950/60">
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
+          <div className="bookshop-subcard mt-6 p-4">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
               Account readiness
             </p>
-            <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <ul className="mt-3 space-y-2 text-sm text-[var(--bookshop-muted)]">
               {readinessHighlights.map((item) => (
                 <li key={item} className="flex gap-2">
-                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500" />
+                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--bookshop-accent)]" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -140,18 +191,18 @@ export default function AccountPage() {
           </div>
         </section>
 
-        <section className="grid gap-8 xl:grid-cols-[1.3fr_0.9fr]">
+        <section className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
           <div className="space-y-6">
-            <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
                     Verification status
                   </p>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">
                     {hasRole('writer') ? 'Verified creator profile' : hasRole('admin') ? 'Trusted admin profile' : 'Reader profile'}
                   </h2>
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  <p className="mt-2 text-sm text-[var(--bookshop-muted)]">
                     {hasRole('writer')
                       ? 'Your creator identity is marked as verified and ready for publishing features.'
                       : hasRole('admin')
@@ -159,44 +210,38 @@ export default function AccountPage() {
                         : 'You are currently operating in reader mode with access to browsing and purchases.'}
                   </p>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                  hasRole('writer')
-                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200'
-                    : hasRole('admin')
-                      ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-200'
-                      : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200'
-                }`}>
+                <span className={verificationBadgeClass}>
                   {hasRole('writer') ? 'Verified writer' : hasRole('admin') ? 'Admin access' : 'Reader ready'}
                 </span>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full border border-gray-200 px-3 py-1 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
+                <span className="bookshop-pill px-3 py-1 text-sm text-[var(--bookshop-text)]">
                   Unified account
                 </span>
                 {hasRole('writer') ? (
-                  <span className="rounded-full border border-amber-200 px-3 py-1 text-sm text-amber-700 dark:border-amber-900 dark:text-amber-200">
+                  <span className="bookshop-badge bookshop-badge-warning normal-case tracking-normal">
                     Studio tools enabled
                   </span>
                 ) : null}
                 {hasRole('admin') ? (
-                  <span className="rounded-full border border-red-200 px-3 py-1 text-sm text-red-700 dark:border-red-900 dark:text-red-200">
+                  <span className="bookshop-badge bookshop-badge-danger normal-case tracking-normal">
                     Moderation access
                   </span>
                 ) : null}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-              <div className="flex items-center justify-between">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
                     Onboarding
                   </p>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">
                     How will you use Bookshop?
                   </h2>
                 </div>
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200">
+                <span className={onboardingBadgeClass}>
                   {profile.onboardingComplete ? 'Ready' : 'In progress'}
                 </span>
               </div>
@@ -208,157 +253,220 @@ export default function AccountPage() {
                       key={option.id}
                       type="button"
                       onClick={() => toggleGoal(option.id)}
-                      className={`rounded-2xl border p-4 text-left transition ${
+                      className={`rounded-xl border p-4 text-left transition ${
                         selected
-                          ? 'border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/40'
-                          : 'border-gray-200 bg-white hover:border-gray-300 dark:border-gray-800 dark:bg-gray-900'
+                          ? 'border-[var(--bookshop-accent)] bg-[var(--bookshop-accent-soft)]'
+                          : 'border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] hover:border-[var(--bookshop-accent)]'
                       }`}
                     >
-                      <p className="font-semibold text-gray-900 dark:text-white">{option.label}</p>
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{option.description}</p>
+                      <p className="font-semibold text-[var(--bookshop-text)]">{option.label}</p>
+                      <p className="mt-2 text-sm text-[var(--bookshop-muted)]">{option.description}</p>
                     </button>
                   );
                 })}
               </div>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <button
                   type="button"
                   onClick={completeOnboarding}
-                  className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  className="bookshop-button-primary px-5 py-2.5 text-sm"
                 >
                   Save onboarding profile
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggleWriter(true)}
-                  className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                >
-                  Enable creator mode
                 </button>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-              <div className="flex items-center justify-between">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-gray-500 dark:text-gray-400">
-                    Role-based experience
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
+                    Security & sign-in
                   </p>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Switch context instantly</h2>
+                  <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Social login and MFA readiness</h2>
+                </div>
+                <span className={securityBadgeClass}>
+                  {profile.mfaEnabled ? 'MFA enabled' : 'MFA pending'}
+                </span>
+              </div>
+              <div className="mt-6 space-y-4">
+                <div className="bookshop-subcard p-4">
+                  <p className="text-sm font-semibold text-[var(--bookshop-text)]">Connected social providers</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    {socialProviders.map((provider) => {
+                      const connected = profile.connectedSocials.includes(provider);
+                      return (
+                        <button
+                          key={provider}
+                          type="button"
+                          className={`rounded-xl border px-3 py-3 text-left text-sm font-medium transition ${connected ? 'border-[var(--bookshop-accent)] bg-[var(--bookshop-accent-soft)] text-[var(--bookshop-accent)]' : 'border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] text-[var(--bookshop-text)] hover:border-[var(--bookshop-accent)]'}`}
+                        >
+                          <p>{provider}</p>
+                          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">{connected ? 'Connected by verified OAuth' : 'Available soon'}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-3 text-sm text-[var(--bookshop-muted)]">
+                    Bookshop is preparing a full OAuth rollout for Google, Microsoft, and Apple sign-ins with a seamless handoff back to your account profile.
+                  </p>
+                </div>
+                <div className="bookshop-subcard p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--bookshop-text)]">Multi-factor authentication</p>
+                      <p className="mt-1 text-sm text-[var(--bookshop-muted)]">Current method: {profile.mfaMethod}</p>
+                    </div>                    <span className="bookshop-badge bookshop-badge-neutral">
+                      Configuration coming later
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-[var(--bookshop-muted)]">
+                    MFA status is read from the server. Enabling or disabling MFA will only be available once the real verification and recovery flow is implemented.
+                  </p>
                 </div>
               </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[var(--bookshop-muted)]">
+                    Role-based experience
+                  </p>
+                  <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Switch context instantly</h2>
+                </div>
+                <span className="bookshop-badge bookshop-badge-neutral">One profile</span>
+              </div>
               <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Reader</p>
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Browse, buy, and revisit your library.</p>
+                <div className="bookshop-subcard p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-[var(--bookshop-text)]">Reader</p>
+                    <span className="bookshop-badge bookshop-badge-accent normal-case tracking-normal">Browse</span>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--bookshop-muted)]">Browse, buy, and revisit your library.</p>
                   <button
                     type="button"
                     onClick={() => setActiveRole('reader')}
-                    className="mt-4 rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200"
+                    className="bookshop-button-secondary mt-4 px-4 py-2 text-sm"
                   >
                     Open reader view
                   </button>
                 </div>
-                <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Writer</p>
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Publish books and manage sales from one place.</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toggleWriter(true);
-                      setActiveRole('writer');
-                    }}
-                    className="mt-4 rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600"
-                  >
-                    {hasRole('writer') ? 'Open creator view' : 'Enable writer mode'}
-                  </button>
+                <div className="bookshop-subcard p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-[var(--bookshop-text)]">Writer</p>
+                    <span className="bookshop-badge bookshop-badge-warning normal-case tracking-normal">Create</span>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--bookshop-muted)]">Publish books and manage sales from one place.</p>
+                  {hasRole('writer') ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveRole('writer')}
+                      className="bookshop-button-primary mt-4 px-4 py-2 text-sm"
+                    >
+                      Open creator view
+                    </button>
+                  ) : (
+                    <p className="mt-4 text-sm text-[var(--bookshop-muted)]">
+                      Writer access must be assigned by an administrator.
+                    </p>
+                  )}
                 </div>
-                <div className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Admin</p>
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Moderate reviews and guide platform operations.</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      toggleAdmin(true);
-                      setActiveRole('admin');
-                    }}
-                    className="mt-4 rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
-                  >
-                    {hasRole('admin') ? 'Open admin view' : 'Enable admin access'}
-                  </button>
+                <div className="bookshop-subcard p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-[var(--bookshop-text)]">Admin</p>
+                    <span className="bookshop-badge bookshop-badge-danger normal-case tracking-normal">Manage</span>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--bookshop-muted)]">Moderate reviews and guide platform operations.</p>
+                  {hasRole('admin') ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveRole('admin')}
+                      className="bookshop-button-primary mt-4 px-4 py-2 text-sm"
+                    >
+                      Open admin view
+                    </button>
+                  ) : (
+                    <p className="mt-4 text-sm text-[var(--bookshop-muted)]">
+                      Administrator access must be assigned by an administrator.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Notifications</h2>
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Notifications</h2>
+                <span className="rounded-full bg-[var(--bookshop-surface-muted)] px-3 py-1 text-sm text-[var(--bookshop-muted)]">
                   {notifications.filter((notification) => notification.unread).length} unread
                 </span>
               </div>
               <div className="mt-6 space-y-3">
                 {notifications.map((notification) => (
-                  <div key={notification.id} className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
+                  <div key={notification.id} className="bookshop-subcard p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{notification.title}</p>
-                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{notification.detail}</p>
+                        <p className="text-sm font-semibold text-[var(--bookshop-text)]">{notification.title}</p>
+                        <p className="mt-1 text-sm text-[var(--bookshop-muted)]">{notification.detail}</p>
                       </div>
                       {notification.unread ? (
-                        <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-blue-700 dark:bg-blue-950/40 dark:text-blue-200">
+                        <span className="bookshop-badge bookshop-badge-accent">
                           New
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-3 text-xs uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400">
-                      {notification.category} • {notification.timestamp}
+                    <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[var(--bookshop-muted)]">
+                      {notification.category} Â· {notification.timestamp}
                     </p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Quick links</h2>
-                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Quick links</h2>
+                <span className="rounded-full bg-[var(--bookshop-surface-muted)] px-3 py-1 text-sm text-[var(--bookshop-muted)]">
                   Unified dashboard
                 </span>
               </div>
               <div className="mt-6 space-y-3">
-                <Link href="/library" className="flex items-center justify-between rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
-                  <span className="font-medium text-gray-900 dark:text-white">My library</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{accountLibrary.length} saved items</span>
+                <Link href="/library" className="bookshop-subcard flex items-center justify-between p-4 transition hover:border-[var(--bookshop-accent)] hover:bg-[var(--bookshop-accent-soft)]">
+                  <span className="font-medium text-[var(--bookshop-text)]">My library</span>
+                  <span className="text-sm text-[var(--bookshop-muted)]">{libraryItems.length} owned item{libraryItems.length === 1 ? '' : 's'}</span>
                 </Link>
-                <Link href="/books" className="flex items-center justify-between rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
-                  <span className="font-medium text-gray-900 dark:text-white">Explore books</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Search & filter</span>
+                <Link href="/books" className="bookshop-subcard flex items-center justify-between p-4 transition hover:border-[var(--bookshop-accent)] hover:bg-[var(--bookshop-accent-soft)]">
+                  <span className="font-medium text-[var(--bookshop-text)]">Explore books</span>
+                  <span className="text-sm text-[var(--bookshop-muted)]">Search & filter</span>
+                </Link>
+                <Link href="/books" className="bookshop-subcard flex items-center justify-between p-4 transition hover:border-[var(--bookshop-accent)] hover:bg-[var(--bookshop-accent-soft)]">
+                  <span className="font-medium text-[var(--bookshop-text)]">Saved wishlist</span>
+                  <span className="text-sm text-[var(--bookshop-muted)]">{wishlistCount} book{wishlistCount === 1 ? '' : 's'}</span>
                 </Link>
                 {hasRole('writer') ? (
-                  <Link href="/studio" className="flex items-center justify-between rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
-                    <span className="font-medium text-gray-900 dark:text-white">Creator Studio</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Manage releases</span>
+                  <Link href="/studio" className="bookshop-subcard flex items-center justify-between p-4 transition hover:border-[var(--bookshop-accent)] hover:bg-[var(--bookshop-accent-soft)]">
+                    <span className="font-medium text-[var(--bookshop-text)]">Creator Studio</span>
+                    <span className="text-sm text-[var(--bookshop-muted)]">Manage releases</span>
                   </Link>
                 ) : null}
                 {hasRole('admin') ? (
-                  <Link href="/admin" className="flex items-center justify-between rounded-2xl border border-gray-200 p-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800">
-                    <span className="font-medium text-gray-900 dark:text-white">Admin console</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Moderation tools</span>
+                  <Link href="/admin" className="bookshop-subcard flex items-center justify-between p-4 transition hover:border-[var(--bookshop-accent)] hover:bg-[var(--bookshop-accent-soft)]">
+                    <span className="font-medium text-[var(--bookshop-text)]">Admin console</span>
+                    <span className="text-sm text-[var(--bookshop-muted)]">Moderation tools</span>
                   </Link>
                 ) : null}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent activity</h2>
+            <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+              <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Recent activity</h2>
               <div className="mt-4 space-y-3">
                 {accountActivity.map((item) => (
-                  <div key={item.title} className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{item.title}</p>
-                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{item.detail}</p>
+                  <div key={item.title} className="bookshop-subcard p-4">
+                    <p className="text-sm font-semibold text-[var(--bookshop-text)]">{item.title}</p>
+                    <p className="mt-1 text-sm text-[var(--bookshop-muted)]">{item.detail}</p>
                   </div>
                 ))}
               </div>
@@ -367,56 +475,58 @@ export default function AccountPage() {
         </section>
 
         <section className="grid gap-8 lg:grid-cols-2">
-          <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Your library</h2>
-              <span className="text-sm text-gray-500 dark:text-gray-400">Reader view</span>
+              <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Your library</h2>
+              <span className="text-sm text-[var(--bookshop-muted)]">Reader view</span>
             </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {accountLibrary.map((book) => (
-                <div key={book.id} className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
+              {libraryItems.length === 0 ? (
+                <p className="text-sm text-[var(--bookshop-muted)]">No owned books yet.</p>
+              ) : libraryItems.slice(0, 4).map((item) => (
+                <div key={item.id} className="bookshop-subcard p-4">
                   <div className="relative mb-3 h-32 overflow-hidden rounded-xl">
-                    <Image src={mockBooks.find((item) => item.id === book.id)?.cover ?? '/logo.jpg'} alt={book.title} fill className="object-cover" />
+                    <Image src={item.book.cover} alt={item.book.title} fill className="object-cover" />
                   </div>
-                  <p className="font-semibold text-gray-900 dark:text-white">{book.title}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{book.author}</p>
-                  <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">{book.status}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{book.progress}</p>
+                  <p className="font-semibold text-[var(--bookshop-text)]">{item.book.title}</p>
+                  <p className="text-sm text-[var(--bookshop-muted)]">{item.book.author}</p>
+                  <p className="mt-2 text-sm text-[var(--bookshop-accent)]">Owned</p>
+                  {item.progress !== null ? <p className="text-sm text-[var(--bookshop-muted)]">{item.progress}% complete</p> : null}
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="rounded-3xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 shadow-sm">
+          <div className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-10 py-7 shadow-sm dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Order history</h2>
-              <span className="text-sm text-gray-500 dark:text-gray-400">Signed-in purchases</span>
+              <h2 className="text-xl font-semibold text-[var(--bookshop-text)]">Order history</h2>
+              <span className="text-sm text-[var(--bookshop-muted)]">Signed-in purchases</span>
             </div>
             <div className="mt-6 space-y-4">
-              {orders.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-gray-200 p-4 text-sm text-gray-600 dark:border-gray-800 dark:text-gray-400">
+              {resolvedOrders.length === 0 ? (
+                <div className="rounded-[1.25rem] border border-dashed border-[var(--bookshop-border)] p-4 text-sm text-[var(--bookshop-muted)]">
                   No orders yet. Complete a purchase from the checkout page to see it here.
                 </div>
               ) : (
-                orders.map((order) => (
-                  <div key={order.id} className="rounded-2xl border border-gray-200 p-4 dark:border-gray-800">
+                resolvedOrders.map((order) => (
+                  <div key={order.id} className="bookshop-subcard p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-gray-900 dark:text-white">{order.id}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(order.orderedAt).toLocaleDateString()}</p>
+                        <p className="font-semibold text-[var(--bookshop-text)]">{order.id}</p>
+                        <p className="text-sm text-[var(--bookshop-muted)]">{new Date(order.orderedAt).toLocaleDateString()}</p>
                       </div>
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-blue-700 dark:bg-blue-950/40 dark:text-blue-200">
+                      <span className="bookshop-badge bookshop-badge-accent">
                         {order.status}
                       </span>
                     </div>
-                    <div className="mt-3 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="mt-3 space-y-1 text-sm text-[var(--bookshop-muted)]">
                       {order.items.slice(0, 2).map((item) => (
                         <p key={`${order.id}-${item.id}`}>
-                          {item.title} × {item.quantity}
+                          {item.title} ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â {item.quantity}
                         </p>
                       ))}
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-gray-900 dark:text-white">${order.total.toFixed(2)}</p>
+                    <p className="mt-3 text-sm font-semibold text-[var(--bookshop-text)]">{formatGbp(order.total)}</p>
                   </div>
                 ))
               )}
@@ -427,3 +537,4 @@ export default function AccountPage() {
     </main>
   );
 }
+

@@ -1,236 +1,252 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAccount } from '../../src/context/AccountContext';
-import { useCart } from '../../src/context/CartContext';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { useAccount } from '@/src/context/AccountContext';
+import { useCart } from '@/src/context/CartContext';
+import { StripePaymentForm } from '@/src/components/checkout/StripePaymentForm';
+import type { CheckoutInitialization } from '@/src/types/checkout';
+import { formatGbp } from '@/src/lib/currency';
+
+const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 
 const initialFormValues = {
   fullName: '',
   email: '',
   address: '',
   city: '',
-  zip: '',
-  cardNumber: '',
-  cardExpiry: '',
-  cardCvc: '',
+  postcode: '',
 };
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clearCart } = useCart();
-  const { isAuthenticated, profile, placeOrder } = useAccount();
+  const { items, subtotal, clearCart, isLoading: isCartLoading, isUpdating: isCartUpdating } = useCart();
+  const { isAuthenticated } = useAccount();
   const [formValues, setFormValues] = useState(initialFormValues);
-  const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
+  const [checkout, setCheckout] = useState<CheckoutInitialization | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [digitalConsent, setDigitalConsent] = useState(false);
 
-  const shippingTotal = useMemo(() => (subtotal > 0 ? 0 : 0), [subtotal]);
-  const total = subtotal + shippingTotal;
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const preparePayment = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (!isAuthenticated) {
-      setError('Please sign in before placing an order.');
-      router.push('/auth');
+      router.push('/auth?redirect=/checkout');
       return;
     }
-
-    if (items.length === 0) {
+    if (!items.length) {
       setError('Your cart is empty. Add a book before checking out.');
       return;
     }
-
-    const orderPlaced = placeOrder({
-      items: items.map((item) => ({
-        id: item.book.id,
-        title: item.book.title,
-        author: item.book.author,
-        price: item.book.price,
-        quantity: item.quantity,
-      })),
-      total,
-      shipping: {
-        name: formValues.fullName,
-        email: formValues.email || profile.email,
-        address: formValues.address,
-        city: formValues.city,
-        zip: formValues.zip,
-      },
-    });
-
-    if (!orderPlaced) {
-      setError('We could not place your order right now.');
+    if (!stripePromise) {
+      setError('Secure payments are not configured for this environment.');
       return;
     }
 
-    clearCart();
-    setSubmittedOrderId(`ORD-${Date.now().toString().slice(-6)}`);
-    setFormValues(initialFormValues);
+    setIsPreparing(true);
     setError(null);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shipping: {
+            name: formValues.fullName,
+            email: formValues.email,
+            address: formValues.address,
+            city: formValues.city,
+            postcode: formValues.postcode,
+          },
+          digitalContentConsent: digitalConsent,
+        }),
+      });
+      const payload = await response.json() as {
+        checkout?: CheckoutInitialization;
+        error?: string;
+      };
+      if (!response.ok || !payload.checkout) {
+        throw new Error(payload.error ?? 'Secure payment initialization failed.');
+      }
+      setCheckout(payload.checkout);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'Secure payment initialization failed.');
+    } finally {
+      setIsPreparing(false);
+    }
   };
 
-  if (submittedOrderId) {
-    return (
-      <div className="min-h-screen bg-gray-50 px-4 py-24 dark:bg-gray-950">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-gray-200 bg-white p-10 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-green-600 dark:text-green-400">Order confirmed</p>
-          <h1 className="mt-4 text-3xl font-semibold text-gray-900 dark:text-white">Thanks for your purchase, {profile.name.split(' ')[0]}.</h1>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Your order <span className="font-semibold text-gray-900 dark:text-white">{submittedOrderId}</span> is now in our processing queue and will appear in your account history.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/account" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
-              View account history
-            </Link>
-            <Link href="/books" className="rounded-full border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
-              Continue shopping
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-24 dark:bg-gray-950">
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.2fr,0.8fr]">
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400">
-            Checkout
+    <div className="min-h-screen bg-[var(--bookshop-bg)] py-8">
+      <div className="bookshop-shell grid gap-6 lg:grid-cols-[1.15fr,0.85fr]">
+        <section className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm sm:px-10 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-violet-700 dark:text-violet-300">
+            Secure checkout
           </p>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900 dark:text-gray-100">
-            Secure your order
-          </h1>
-          <p className="mt-3 text-lg text-gray-600 dark:text-gray-400">
-            Enter your shipping details and payment information to complete your purchase.
+          <h2 className="mt-4 text-3xl font-bold text-[var(--bookshop-text)]">
+            Confirm delivery and payment
+          </h2>
+          <p className="mt-3 text-lg text-[var(--bookshop-muted)]">
+            Your books and prices are checked against the live catalogue before Stripe prepares payment.
           </p>
 
-          <div className="mt-8 space-y-6">
+          <form onSubmit={preparePayment} className="mt-8 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Shipping details</h2>
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="text-lg font-semibold text-[var(--bookshop-text)]">Billing details</h3>
+                {checkout ? (
+                  <button
+                    type="button"
+                    onClick={() => setCheckout(null)}
+                    className="text-sm font-semibold text-violet-700 hover:underline dark:text-violet-300"
+                  >
+                    Change details
+                  </button>
+                ) : null}
+              </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <input
                   required
+                  disabled={Boolean(checkout)}
                   value={formValues.fullName}
                   onChange={(event) => setFormValues((current) => ({ ...current, fullName: event.target.value }))}
-                  className="rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800"
+                  className="bookshop-input disabled:opacity-70"
                   placeholder="Full name"
+                  aria-label="Full name"
                 />
                 <input
                   required
+                  disabled={Boolean(checkout)}
                   type="email"
                   value={formValues.email}
                   onChange={(event) => setFormValues((current) => ({ ...current, email: event.target.value }))}
-                  className="rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800"
+                  className="bookshop-input disabled:opacity-70"
                   placeholder="Email address"
+                  aria-label="Email address"
                 />
                 <input
                   required
+                  disabled={Boolean(checkout)}
                   value={formValues.address}
                   onChange={(event) => setFormValues((current) => ({ ...current, address: event.target.value }))}
-                  className="rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800 md:col-span-2"
+                  className="bookshop-input md:col-span-2 disabled:opacity-70"
                   placeholder="Street address"
+                  aria-label="Street address"
                 />
                 <input
                   required
+                  disabled={Boolean(checkout)}
                   value={formValues.city}
                   onChange={(event) => setFormValues((current) => ({ ...current, city: event.target.value }))}
-                  className="rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800"
+                  className="bookshop-input disabled:opacity-70"
                   placeholder="City"
+                  aria-label="City"
                 />
                 <input
                   required
-                  value={formValues.zip}
-                  onChange={(event) => setFormValues((current) => ({ ...current, zip: event.target.value }))}
-                  className="rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800"
-                  placeholder="ZIP code"
+                  disabled={Boolean(checkout)}
+                  value={formValues.postcode}
+                  onChange={(event) => setFormValues((current) => ({ ...current, postcode: event.target.value }))}
+                  className="bookshop-input disabled:opacity-70"
+                  placeholder="Postcode"
+                  aria-label="Postcode"
                 />
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Payment</h2>
-              <div className="mt-4 space-y-4">
-                <input
-                  required
-                  value={formValues.cardNumber}
-                  onChange={(event) => setFormValues((current) => ({ ...current, cardNumber: event.target.value }))}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800"
-                  placeholder="Card number"
-                />
-                <div className="grid gap-4 md:grid-cols-2">
-                  <input
-                    required
-                    value={formValues.cardExpiry}
-                    onChange={(event) => setFormValues((current) => ({ ...current, cardExpiry: event.target.value }))}
-                    className="rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800"
-                    placeholder="MM / YY"
-                  />
-                  <input
-                    required
-                    value={formValues.cardCvc}
-                    onChange={(event) => setFormValues((current) => ({ ...current, cardCvc: event.target.value }))}
-                    className="rounded-lg border border-gray-300 px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-800"
-                    placeholder="CVC"
-                  />
-                </div>
               </div>
             </div>
 
             {error ? (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+              <div role="alert" className="rounded-[1.25rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200">
                 {error}
               </div>
             ) : null}
 
-            <div className="flex flex-wrap gap-3">
-              <button type="submit" className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">
-                Place order
-              </button>
-              <Link href="/books" className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">
-                Continue shopping
-              </Link>
-            </div>
-          </div>
-        </form>
+            {!checkout ? (
+              <label className="flex items-start gap-3 rounded-[1.25rem] border border-[var(--bookshop-border)] p-4 text-sm leading-6 text-[var(--bookshop-muted)]">
+                <input type="checkbox" required checked={digitalConsent} onChange={(event) => setDigitalConsent(event.target.checked)} className="mt-1" />
+                <span>I agree to the <Link href="/terms" target="_blank">terms</Link> and <Link href="/refunds" target="_blank">refund policy</Link>, and request immediate supply of the digital books after payment.</span>
+              </label>
+            ) : null}
 
-        <aside className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Order summary</h2>
+            {!checkout ? (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={isPreparing || isCartLoading || isCartUpdating || items.length === 0 || !digitalConsent}
+                  className="bookshop-button-primary px-6 py-3 disabled:cursor-wait disabled:opacity-70"
+                >
+                  {isPreparing ? 'Checking cart and prices...' : 'Continue to Stripe payment'}
+                </button>
+                <Link href="/books" className="bookshop-button-quiet px-6 py-3">
+                  Continue shopping
+                </Link>
+              </div>
+            ) : null}
+          </form>
+
+          {checkout && stripePromise ? (
+            <div className="mt-8 border-t border-[var(--bookshop-border)] pt-7">
+              <div className="rounded-[1.25rem] bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+                Server-verified payment amount: <strong>{formatGbp(checkout.amount)}</strong>
+              </div>
+              <Elements
+                key={checkout.clientSecret}
+                stripe={stripePromise}
+                options={{
+                  clientSecret: checkout.clientSecret,
+                  appearance: { theme: 'stripe', variables: { borderRadius: '12px' } },
+                }}
+              >
+                <StripePaymentForm
+                  paymentIntentId={checkout.paymentIntentId}
+                  amount={checkout.amount}
+                  currency={checkout.currency}
+                />
+              </Elements>
+            </div>
+          ) : null}
+        </section>
+
+        <aside className="rounded-3xl border border-slate-200 border-l-8 border-l-emerald-600 bg-white px-8 py-7 shadow-sm sm:px-10 dark:border-slate-700 dark:border-l-emerald-500 dark:bg-slate-900">
+          <h2 className="text-lg font-semibold text-[var(--bookshop-text)]">Order summary</h2>
           <div className="mt-6 space-y-4">
-            {items.length === 0 ? (
-              <p className="text-sm text-gray-600 dark:text-gray-400">Your cart is empty. Add books to continue.</p>
+            {isCartLoading ? (
+              <p className="text-sm text-[var(--bookshop-muted)]">Loading your saved cart...</p>
+            ) : items.length === 0 ? (
+              <p className="text-sm text-[var(--bookshop-muted)]">Your cart is empty. Add books to continue.</p>
             ) : (
               items.map((item) => (
-                <div key={item.book.id} className="flex items-center justify-between text-sm text-gray-700 dark:text-gray-300">
-                  <span>
-                    {item.book.title} × {item.quantity}
-                  </span>
-                  <span>${(item.book.price * item.quantity).toFixed(2)}</span>
+                <div key={item.book.id} className="bookshop-subcard flex items-center justify-between gap-4 p-4 text-sm text-[var(--bookshop-text)]">
+                  <span>{item.book.title} × {item.quantity}</span>
+                  <span>{formatGbp(item.lineTotal)}</span>
                 </div>
               ))
             )}
           </div>
 
-          <div className="mt-8 space-y-3 border-t border-gray-200 pt-6 text-sm text-gray-700 dark:border-gray-800 dark:text-gray-300">
+          <div className="mt-8 space-y-3 border-t border-[var(--bookshop-border)] pt-6 text-sm text-[var(--bookshop-muted)]">
             <div className="flex items-center justify-between">
-              <span>Subtotal</span>
-              <span>${subtotal.toFixed(2)}</span>
+              <span>Server cart subtotal</span>
+              <span>{formatGbp(subtotal)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Shipping</span>
+              <span>Delivery</span>
               <span>Free</span>
             </div>
-            <div className="flex items-center justify-between text-base font-semibold text-gray-900 dark:text-gray-100">
-              <span>Total</span>
-              <span>${total.toFixed(2)}</span>
+            <div className="flex items-center justify-between text-base font-semibold text-[var(--bookshop-text)]">
+              <span>Displayed total</span>
+              <span>{formatGbp(subtotal)}</span>
             </div>
           </div>
 
           <button
-            onClick={clearCart}
-            className="mt-8 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+            type="button"
+            disabled={Boolean(checkout) || isCartUpdating || items.length === 0}
+            onClick={() => void clearCart()}
+            className="mt-8 text-sm font-medium text-violet-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-violet-300"
           >
             Clear cart
           </button>

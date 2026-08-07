@@ -1,14 +1,14 @@
 'use client';
 
 import React from 'react';
-import { GENRES } from '../../data/books';
-import type { FilterOptions } from '../../data/books';
+import type { FilterOptions } from '../../types/book';
 
 interface BookFiltersProps {
+  genres: string[];
   onFiltersChange: (filters: FilterOptions) => void;
 }
 
-export const BookFilters: React.FC<BookFiltersProps> = ({ onFiltersChange }) => {
+export const BookFilters: React.FC<BookFiltersProps> = ({ genres, onFiltersChange }) => {
   const [search, setSearch] = React.useState('');
   const [genre, setGenre] = React.useState('all');
   const [minPrice, setMinPrice] = React.useState('');
@@ -42,45 +42,37 @@ export const BookFilters: React.FC<BookFiltersProps> = ({ onFiltersChange }) => 
   };
 
   return (
-    <aside className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Search & Filter
-        </h3>
-        <button
-          onClick={handleReset}
-          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
-        >
-          Reset Filters
+    <aside className="space-y-6 rounded-[1.5rem] border border-[var(--bookshop-border)] bg-[var(--bookshop-surface)] p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900">Search & filter</h3>
+          <p className="mt-1 text-sm text-slate-600">Choose a mood, price, and format that feels right.</p>
+        </div>
+        <button onClick={handleReset} className="text-sm font-semibold text-violet-700 transition hover:text-violet-800">
+          Reset
         </button>
       </div>
 
-      {/* Search */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-          Search
-        </label>
+        <label className="mb-2 block text-sm font-medium text-slate-700">Search</label>
         <input
           type="text"
           placeholder="Title or author..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full rounded-2xl border border-[var(--bookshop-border)] bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-400"
         />
       </div>
 
-      {/* Genre */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-          Genre
-        </label>
+        <label className="mb-2 block text-sm font-medium text-slate-700">Genre</label>
         <select
           value={genre}
           onChange={(e) => setGenre(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full rounded-2xl border border-[var(--bookshop-border)] bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-400"
         >
           <option value="all">All Genres</option>
-          {GENRES.map((g) => (
+          {genres.map((g) => (
             <option key={g} value={g}>
               {g}
             </option>
@@ -88,11 +80,8 @@ export const BookFilters: React.FC<BookFiltersProps> = ({ onFiltersChange }) => 
         </select>
       </div>
 
-      {/* Price Range */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-          Price Range
-        </label>
+        <label className="mb-2 block text-sm font-medium text-slate-700">Price range</label>
         <div className="flex gap-2">
           <input
             type="number"
@@ -101,7 +90,7 @@ export const BookFilters: React.FC<BookFiltersProps> = ({ onFiltersChange }) => 
             step="0.01"
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
-            className="w-1/2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="w-1/2 rounded-2xl border border-[var(--bookshop-border)] bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-400"
           />
           <input
             type="number"
@@ -110,20 +99,17 @@ export const BookFilters: React.FC<BookFiltersProps> = ({ onFiltersChange }) => 
             step="0.01"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
-            className="w-1/2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            className="w-1/2 rounded-2xl border border-[var(--bookshop-border)] bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-400"
           />
         </div>
       </div>
 
-      {/* Rating */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-          Min Rating
-        </label>
+        <label className="mb-2 block text-sm font-medium text-slate-700">Min rating</label>
         <select
           value={minRating}
           onChange={(e) => setMinRating(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full rounded-2xl border border-[var(--bookshop-border)] bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-400"
         >
           <option value="">Any Rating</option>
           <option value="3">3+ Stars</option>
@@ -134,15 +120,12 @@ export const BookFilters: React.FC<BookFiltersProps> = ({ onFiltersChange }) => 
         </select>
       </div>
 
-      {/* Sort */}
       <div>
-        <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-          Sort By
-        </label>
+        <label className="mb-2 block text-sm font-medium text-slate-700">Sort by</label>
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as 'featured' | 'price-asc' | 'price-desc' | 'rating' | 'reviews')}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="w-full rounded-2xl border border-[var(--bookshop-border)] bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-400"
         >
           <option value="featured">Featured</option>
           <option value="price-asc">Price: Low to High</option>

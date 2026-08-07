@@ -1,92 +1,463 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import type { FilterOptions } from '@/src/data/books';
-import { mockBooks as seedBooks } from '@/src/data/books';
-import type { Book } from '@/src/types/book';
+import type { Book, BookChapter, FilterOptions } from "@/src/types/book";
+import { BookStatus, BookVisibility } from "@/src/generated/prisma/client";
+import { coverUrlOrFallback } from "@/src/lib/cover-storage";
+import { getPrismaClient } from "@/src/lib/prisma";
 
-const catalogFile = path.join(process.cwd(), 'data', 'catalog.json');
+function requirePrisma() {
+  const prisma = getPrismaClient();
 
-async function readCatalogFile(): Promise<Book[]> {
-  try {
-    const content = await fs.readFile(catalogFile, 'utf8');
-    const parsed = JSON.parse(content) as Book[];
-    return Array.isArray(parsed) ? parsed : seedBooks;
-  } catch {
-    await fs.mkdir(path.dirname(catalogFile), { recursive: true });
-    await fs.writeFile(catalogFile, JSON.stringify(seedBooks, null, 2), 'utf8');
-    return seedBooks;
+  if (!prisma) {
+    throw new Error(
+      "PostgreSQL is required for catalogue operations.",
+    );
+  }
+
+  return prisma;
+}
+
+function normalizeBook(book: Book): Book {
+  return {
+    ...book,
+    featured: book.featured ?? false,
+    new: book.new ?? false,
+    status: book.status ?? "published",
+    rating: book.rating ?? 0,
+    reviews: book.reviews ?? 0,
+    price: Number(book.price ?? 0),
+    manuscriptChapters: book.manuscriptChapters ?? [],
+  };
+}
+
+function toBookStatus(status?: Book["status"]): BookStatus {
+  switch (status) {
+    case "draft":
+      return BookStatus.DRAFT;
+    case "archived":
+      return BookStatus.ARCHIVED;
+    case "published":
+    default:
+      return BookStatus.PUBLISHED;
   }
 }
 
-async function writeCatalogFile(books: Book[]) {
-  await fs.mkdir(path.dirname(catalogFile), { recursive: true });
-  await fs.writeFile(catalogFile, JSON.stringify(books, null, 2), 'utf8');
+function fromBookStatus(
+  status: BookStatus,
+): NonNullable<Book["status"]> {
+  switch (status) {
+    case BookStatus.DRAFT:
+    case BookStatus.IN_REVIEW:
+    case BookStatus.CHANGES_REQUESTED:
+    case BookStatus.APPROVED:
+      return "draft";
+    case BookStatus.ARCHIVED:
+      return "archived";
+    case BookStatus.PUBLISHED:
+      return "published";
+  }
+}
+
+const publicCatalogueWhere = {
+  status: BookStatus.PUBLISHED,
+  visibility: BookVisibility.PUBLIC,
+} as const;
+
+type DatabaseBook = {
+  id: string;
+  slug: string;
+  title: string;
+  authorDisplayName: string;
+  coverUrl: string;
+  price: { toString(): string };
+  ratingAverage: { toString(): string };
+  reviewCount: number;
+  description: string;
+  genre: string;
+  featured: boolean;
+  newRelease: boolean;
+  status: BookStatus;
+  chapters?: Array<{
+    id: string;
+    title: string;
+    content: string;
+    chapterNo: number;
+    isPreview: boolean;
+  }>;
+};
+
+function mapDatabaseBook(book: DatabaseBook): Book {
+  const chapters: BookChapter[] = (book.chapters ?? [])
+    .slice()
+    .sort((a, b) => a.chapterNo - b.chapterNo)
+    .map((chapter) => ({
+      id: chapter.id,
+      title: chapter.title,
+      content: chapter.content,
+      isPreview: chapter.isPreview,
+    }));
+
+  return normalizeBook({
+    id: book.slug || book.id,
+    title: book.title,
+    author: book.authorDisplayName,
+    cover: coverUrlOrFallback(book.coverUrl),
+    price: Number(book.price.toString()),
+    rating: Number(book.ratingAverage.toString()),
+    reviews: book.reviewCount,
+    description: book.description,
+    genre: book.genre,
+    featured: book.featured,
+    new: book.newRelease,
+    status: fromBookStatus(book.status),
+    manuscriptChapters: chapters,
+  });
 }
 
 export async function getCatalogBooks(): Promise<Book[]> {
-  return readCatalogFile();
+  const prisma = requirePrisma();
+
+  const books = await prisma.book.findMany({
+    where: publicCatalogueWhere,
+    include: {
+      chapters: {
+        where: { isPreview: true },
+        orderBy: {
+          chapterNo: "asc",
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "asc",
+    },
+  });
+
+  return books.map(mapDatabaseBook);
+}
+
+export async function getAllCatalogBooksForManagement(): Promise<Book[]> {
+  const books = await requirePrisma().book.findMany({
+    include: {
+      chapters: { orderBy: { chapterNo: "asc" } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return books.map(mapDatabaseBook);
+}
+
+export async function getCatalogGenres(): Promise<string[]> {
+  const rows = await requirePrisma().book.findMany({
+    where: publicCatalogueWhere,
+    distinct: ["genre"],
+    select: { genre: true },
+    orderBy: { genre: "asc" },
+  });
+
+  return rows.map(({ genre }) => genre);
 }
 
 export async function getFeaturedBooks(): Promise<Book[]> {
   const books = await getCatalogBooks();
-  return books.filter((book) => book.featured).slice(0, 6);
+
+  return books
+    .filter(
+      (book) =>
+        book.featured &&
+        (book.status ?? "published") === "published",
+    )
+    .slice(0, 6);
 }
 
 export async function getNewBooks(): Promise<Book[]> {
   const books = await getCatalogBooks();
-  return books.filter((book) => book.new);
+
+  return books.filter(
+    (book) =>
+      book.new &&
+      (book.status ?? "published") === "published",
+  );
 }
 
-export async function getBookById(id: string): Promise<Book | undefined> {
-  const books = await getCatalogBooks();
-  return books.find((book) => book.id === id);
+export async function getBookById(
+  id: string,
+): Promise<Book | undefined> {
+  const prisma = requirePrisma();
+
+  const book = await prisma.book.findFirst({
+    where: {
+      ...publicCatalogueWhere,
+      OR: [
+        { id },
+        { slug: id },
+      ],
+    },
+    include: {
+      chapters: {
+        where: { isPreview: true },
+        orderBy: {
+          chapterNo: "asc",
+        },
+      },
+    },
+  });
+
+  return book ? mapDatabaseBook(book) : undefined;
 }
 
-export async function filterCatalogBooks(options: FilterOptions): Promise<Book[]> {
-  let results = [...(await getCatalogBooks())];
+export async function filterCatalogBooks(
+  options: FilterOptions,
+): Promise<Book[]> {
+  let results = (await getCatalogBooks()).filter(
+    (book) =>
+      (book.status ?? "published") === "published",
+  );
 
   if (options.search) {
     const query = options.search.toLowerCase();
-    results = results.filter((book) => book.title.toLowerCase().includes(query) || book.author.toLowerCase().includes(query));
+
+    results = results.filter(
+      (book) =>
+        book.title.toLowerCase().includes(query) ||
+        book.author.toLowerCase().includes(query),
+    );
   }
 
-  if (options.genre && options.genre !== 'all') {
-    results = results.filter((book) => book.genre === options.genre);
+  if (options.genre && options.genre !== "all") {
+    results = results.filter(
+      (book) => book.genre === options.genre,
+    );
   }
 
   if (options.minPrice !== undefined) {
-    results = results.filter((book) => book.price >= options.minPrice!);
+    results = results.filter(
+      (book) => book.price >= options.minPrice!,
+    );
   }
 
   if (options.maxPrice !== undefined) {
-    results = results.filter((book) => book.price <= options.maxPrice!);
+    results = results.filter(
+      (book) => book.price <= options.maxPrice!,
+    );
   }
 
   if (options.minRating !== undefined) {
-    results = results.filter((book) => book.rating >= options.minRating!);
+    results = results.filter(
+      (book) => book.rating >= options.minRating!,
+    );
   }
 
   switch (options.sortBy) {
-    case 'price-asc':
+    case "price-asc":
       results.sort((a, b) => a.price - b.price);
       break;
-    case 'price-desc':
+    case "price-desc":
       results.sort((a, b) => b.price - a.price);
       break;
-    case 'rating':
+    case "rating":
       results.sort((a, b) => b.rating - a.rating);
       break;
-    case 'reviews':
+    case "reviews":
       results.sort((a, b) => b.reviews - a.reviews);
       break;
-    case 'featured':
+    case "featured":
     default:
-      results.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+      results.sort(
+        (a, b) =>
+          Number(b.featured) - Number(a.featured),
+      );
   }
 
   return results;
 }
 
-export async function seedCatalogBooks(books: Book[]) {
-  await writeCatalogFile(books);
+export async function createCatalogBook(
+  input: Partial<Book>,
+): Promise<Book> {
+  const prisma = requirePrisma();
+
+  const newBook = normalizeBook({
+    id: input.id ?? `book-${Date.now()}`,
+    title: input.title ?? "Untitled Book",
+    author: input.author ?? "Unknown Author",
+    cover: input.cover ?? "",
+    price: Number(input.price ?? 0),
+    rating: Number(input.rating ?? 0),
+    reviews: Number(input.reviews ?? 0),
+    description: input.description ?? "",
+    genre: input.genre ?? "Fiction",
+    featured: input.featured ?? false,
+    new: input.new ?? false,
+    status: input.status ?? "draft",
+    manuscriptChapters: input.manuscriptChapters ?? [],
+  });
+
+  const created = await prisma.book.create({
+    data: {
+      id: newBook.id,
+      slug: newBook.id,
+      title: newBook.title,
+      authorDisplayName: newBook.author,
+      coverUrl: newBook.cover,
+      price: newBook.price,
+      ratingAverage: newBook.rating,
+      reviewCount: newBook.reviews,
+      description: newBook.description,
+      genre: newBook.genre,
+      featured: newBook.featured ?? false,
+      newRelease: newBook.new ?? false,
+      status: toBookStatus(newBook.status),
+      visibility: newBook.status === "published" ? BookVisibility.PUBLIC : BookVisibility.PRIVATE,
+      chapters: newBook.manuscriptChapters?.length
+        ? {
+            create: newBook.manuscriptChapters.map(
+              (chapter, index) => ({
+                id: chapter.id,
+                title: chapter.title,
+                content: chapter.content,
+                chapterNo: index + 1,
+                isPreview: chapter.isPreview,
+              }),
+            ),
+          }
+        : undefined,
+    },
+    include: {
+      chapters: {
+        orderBy: {
+          chapterNo: "asc",
+        },
+      },
+    },
+  });
+
+  return mapDatabaseBook(created);
+}
+
+export async function updateCatalogBook(
+  id: string,
+  updates: Partial<Book>,
+): Promise<Book | undefined> {
+  const prisma = requirePrisma();
+
+  const existing = await prisma.book.findFirst({
+    where: {
+      OR: [
+        { id },
+        { slug: id },
+      ],
+    },
+    include: {
+      chapters: {
+        orderBy: {
+          chapterNo: "asc",
+        },
+      },
+    },
+  });
+
+  if (!existing) {
+    return undefined;
+  }
+
+  const current = mapDatabaseBook(existing);
+
+  const next = normalizeBook({
+    ...current,
+    ...updates,
+    id: current.id,
+    price: Number(updates.price ?? current.price),
+    rating: Number(updates.rating ?? current.rating),
+    reviews: Number(updates.reviews ?? current.reviews),
+    manuscriptChapters: current.manuscriptChapters,
+  });
+
+  const updated = await prisma.book.update({
+    where: {
+      id: existing.id,
+    },
+    data: {
+      title: next.title,
+      authorDisplayName: next.author,
+      coverUrl: next.cover,
+      price: next.price,
+      ratingAverage: next.rating,
+      reviewCount: next.reviews,
+      description: next.description,
+      genre: next.genre,
+      featured: next.featured ?? false,
+      newRelease: next.new ?? false,
+      status: toBookStatus(next.status),
+      visibility: next.status === "published" ? BookVisibility.PUBLIC : BookVisibility.PRIVATE,
+    },
+    include: {
+      chapters: {
+        orderBy: {
+          chapterNo: "asc",
+        },
+      },
+    },
+  });
+
+  return mapDatabaseBook(updated);
+}
+
+export async function deleteCatalogBook(
+  id: string,
+): Promise<boolean> {
+  const prisma = requirePrisma();
+
+  const deleted = await prisma.book.deleteMany({
+    where: {
+      OR: [
+        { id },
+        { slug: id },
+      ],
+    },
+  });
+
+  return deleted.count > 0;
+}
+
+export async function seedCatalogBooks(
+  books: Book[],
+): Promise<void> {
+  const prisma = requirePrisma();
+  const normalizedBooks = books.map(normalizeBook);
+
+  for (const book of normalizedBooks) {
+    await prisma.book.upsert({
+      where: {
+        slug: book.id,
+      },
+      update: {
+        title: book.title,
+        authorDisplayName: book.author,
+        coverUrl: book.cover,
+        price: book.price,
+        ratingAverage: book.rating,
+        reviewCount: book.reviews,
+        description: book.description,
+        genre: book.genre,
+        featured: book.featured ?? false,
+        newRelease: book.new ?? false,
+        status: toBookStatus(book.status),
+        visibility: book.status === "published" ? BookVisibility.PUBLIC : BookVisibility.PRIVATE,
+      },
+      create: {
+        id: book.id,
+        slug: book.id,
+        title: book.title,
+        authorDisplayName: book.author,
+        coverUrl: book.cover,
+        price: book.price,
+        ratingAverage: book.rating,
+        reviewCount: book.reviews,
+        description: book.description,
+        genre: book.genre,
+        featured: book.featured ?? false,
+        newRelease: book.new ?? false,
+        status: toBookStatus(book.status),
+        visibility: book.status === "published" ? BookVisibility.PUBLIC : BookVisibility.PRIVATE,
+      },
+    });
+  }
 }

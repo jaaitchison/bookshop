@@ -1,89 +1,93 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import type { WriterBook } from '@/src/types/studio';
 
 interface WriterBooksListProps {
   books: WriterBook[];
+  onStatusChange?: (bookId: string, status: WriterBook['status']) => void | Promise<void>;
 }
 
-export default function WriterBooksList({ books }: WriterBooksListProps) {
+export default function WriterBooksList({ books, onStatusChange }: WriterBooksListProps) {
   const getStatusBadge = (status: WriterBook['status']) => {
     const statusConfig = {
-      published: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-      draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-      archived: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+      published: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200',
+      draft: 'bg-amber-100 text-amber-800 dark:bg-amber-950/30 dark:text-amber-200',
+      in_review: 'bg-sky-100 text-sky-800 dark:bg-sky-950/30 dark:text-sky-200',
+      changes_requested: 'bg-rose-100 text-rose-800 dark:bg-rose-950/30 dark:text-rose-200',
+      approved: 'bg-violet-100 text-violet-800 dark:bg-violet-950/30 dark:text-violet-200',
+      archived: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
     };
     return statusConfig[status];
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div className="bookshop-card overflow-hidden rounded-[1.5rem]">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+          <thead className="border-b border-[var(--bookshop-border)] bg-[var(--bookshop-surface-muted)]">
             <tr>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Title
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Genre
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Views
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
+                Books sold
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Sales
-              </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Rating
               </th>
-              <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-left text-sm font-semibold text-[var(--bookshop-text)]">
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
+              <th className="px-6 py-3 text-right text-sm font-semibold text-[var(--bookshop-text)]">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-[var(--bookshop-border)]">
             {books.map((book) => (
               <tr
                 key={book.id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                className="transition-colors hover:bg-[var(--bookshop-surface-muted)]"
               >
                 <td className="px-6 py-4">
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                    <p className="font-medium text-[var(--bookshop-text)]">
                       {book.title}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-[var(--bookshop-muted)]">
                       {book.publishedDate}
                     </p>
+                    {book.status === 'changes_requested' && book.moderationReason ? (
+                      <p className="mt-2 max-w-md text-sm font-medium text-rose-700 dark:text-rose-300">
+                        Admin feedback: {book.moderationReason}
+                      </p>
+                    ) : null}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                <td className="px-6 py-4 text-sm text-[var(--bookshop-muted)]">
                   {book.genre}
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {book.views.toLocaleString()}
-                </td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {book.sales.toLocaleString()}
+                <td className="px-6 py-4 text-sm font-medium text-[var(--bookshop-text)]">
+                  {book.sales.toLocaleString('en-GB')}
                 </td>
                 <td className="px-6 py-4 text-sm">
                   {book.rating > 0 ? (
                     <div className="flex items-center gap-1">
-                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                      <span className="font-medium text-[var(--bookshop-text)]">
                         {book.rating.toFixed(1)}
                       </span>
                       <span className="text-amber-400">⭐</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-[var(--bookshop-muted)]">
                         ({book.reviews})
                       </span>
                     </div>
                   ) : (
-                    <span className="text-gray-500 dark:text-gray-400">No ratings</span>
+                    <span className="text-[var(--bookshop-muted)]">No ratings</span>
                   )}
                 </td>
                 <td className="px-6 py-4">
@@ -92,16 +96,37 @@ export default function WriterBooksList({ books }: WriterBooksListProps) {
                       book.status
                     )}`}
                   >
-                    {book.status.charAt(0).toUpperCase() + book.status.slice(1)}
+                    {book.status.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase())}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline mr-4">
-                    Edit
-                  </button>
-                  <button className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
-                    View Stats
-                  </button>
+                  <div className="flex flex-wrap justify-end gap-2 text-sm">
+                    <Link
+                      href={`/studio/books/${book.id}`}
+                      className="font-medium text-violet-700 hover:underline dark:text-violet-300"
+                    >
+                      Edit
+                    </Link>
+                    {book.status === 'draft' || book.status === 'changes_requested' ? (
+                      <button
+                        className="text-violet-700 hover:underline dark:text-violet-300"
+                        onClick={() => onStatusChange?.(book.id, 'in_review')}
+                      >
+                        Submit for review
+                      </button>
+                    ) : null}
+                    {book.status === 'in_review' ? (
+                      <span className="font-medium text-sky-700 dark:text-sky-300">Awaiting Admin</span>
+                    ) : null}
+                    {book.status !== 'in_review' && book.status !== 'archived' ? (
+                      <button
+                        className="text-[var(--bookshop-muted)] hover:underline"
+                        onClick={() => onStatusChange?.(book.id, 'archived')}
+                      >
+                        Archive
+                      </button>
+                    ) : null}
+                  </div>
                 </td>
               </tr>
             ))}
