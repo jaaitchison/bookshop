@@ -178,7 +178,6 @@ export const TopHeader: React.FC = () => {
             ))}
             <HeaderNavLink href="/studio" label="Studio" enabled={hasRole("writer")} pathname={pathname} tone="amber" />
             <HeaderNavLink href="/admin" label="Admin" enabled={hasRole("admin")} pathname={pathname} tone="red" />
-            <span className="bookshop-nav-separator" aria-hidden="true" />
             <button type="button" onClick={openCart} className="bookshop-nav-link" data-tone="purple">
               Cart{count > 0 ? ` (${count})` : ""}
             </button>
