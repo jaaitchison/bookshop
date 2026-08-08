@@ -338,6 +338,16 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return false;
     }
 
+    if (!email?.trim() || !password?.trim()) {
+      setAuthError('Email and password are required.');
+      return false;
+    }
+
+    if (password.length < 6) {
+      setAuthError('Password must be at least 6 characters.');
+      return false;
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
     const users = readStoredUsers();
     const existingUser = users.find((entry) => entry.email.toLowerCase() === normalizedEmail && entry.password === password);
@@ -364,6 +374,17 @@ export const AccountProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     if (!name || !email || !input.password) {
       setAuthError('Please complete all required fields.');
+      return false;
+    }
+
+    if (input.password.length < 6) {
+      setAuthError('Password must be at least 6 characters.');
+      return false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setAuthError('Please enter a valid email address.');
       return false;
     }
 

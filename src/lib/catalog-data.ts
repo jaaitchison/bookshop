@@ -11,7 +11,8 @@ async function readCatalogFile(): Promise<Book[]> {
     const content = await fs.readFile(catalogFile, 'utf8');
     const parsed = JSON.parse(content) as Book[];
     return Array.isArray(parsed) ? parsed : seedBooks;
-  } catch {
+  } catch (error) {
+    console.error('Failed to read catalog file, initializing with seed data:', error);
     await fs.mkdir(path.dirname(catalogFile), { recursive: true });
     await fs.writeFile(catalogFile, JSON.stringify(seedBooks, null, 2), 'utf8');
     return seedBooks;

@@ -192,11 +192,14 @@ export const TopHeader: React.FC = () => {
   const pathname = usePathname() || '/';
   const { count, openCart } = useCart();
   const { hasRole } = useAccount();
-  const zone: 'admin' | 'studio' | 'public' = pathname.startsWith('/admin')
-    ? 'admin'
-    : pathname.startsWith('/studio') || pathname.startsWith('/writer')
-    ? 'studio'
-    : 'public';
+  
+  const getZone = (path: string): 'admin' | 'studio' | 'public' => {
+    if (path.startsWith('/admin')) return 'admin';
+    if (path.startsWith('/studio') || path.startsWith('/writer')) return 'studio';
+    return 'public';
+  };
+  
+  const zone = getZone(pathname);
 
   const breadcrumb = pathname === '/' ? 'Showcase' : pathname.split('/').filter(Boolean).join(' > ');
 

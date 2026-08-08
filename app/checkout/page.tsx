@@ -25,7 +25,7 @@ export default function CheckoutPage() {
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const shippingTotal = useMemo(() => (subtotal > 0 ? 0 : 0), [subtotal]);
+  const shippingTotal = useMemo(() => (subtotal > 25 ? 0 : 5.99), [subtotal]);
   const total = subtotal + shippingTotal;
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -42,6 +42,13 @@ export default function CheckoutPage() {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailToValidate = formValues.email || profile.email;
+    if (!emailRegex.test(emailToValidate)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     const orderPlaced = placeOrder({
       items: items.map((item) => ({
         id: item.book.id,
@@ -53,7 +60,7 @@ export default function CheckoutPage() {
       total,
       shipping: {
         name: formValues.fullName,
-        email: formValues.email || profile.email,
+        email: emailToValidate,
         address: formValues.address,
         city: formValues.city,
         zip: formValues.zip,
@@ -186,7 +193,11 @@ export default function CheckoutPage() {
             ) : null}
 
             <div className="flex flex-wrap gap-3">
-              <button type="submit" className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700">
+              <button 
+                type="submit" 
+                disabled={items.length === 0}
+                className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 Place order
               </button>
               <Link href="/books" className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-100 dark:hover:bg-gray-800">

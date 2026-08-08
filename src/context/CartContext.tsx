@@ -100,7 +100,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       openCart,
       closeCart,
     }),
-    [items, count, subtotal, isOpen]
+    [items, count, subtotal, isOpen, addItem, removeItem, updateQuantity, clearCart, openCart, closeCart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

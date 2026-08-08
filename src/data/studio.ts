@@ -22,7 +22,7 @@ export const getWriterBooks = (): WriterBook[] => [
     rating: 4.8,
     reviews: 342,
     status: 'published',
-    cover: '/api/placeholder/200/300',
+    cover: 'https://images.unsplash.com/photo-1532012197267-da84d127e765?w=200&h=300&fit=crop',
   },
   {
     id: '2',
@@ -34,7 +34,7 @@ export const getWriterBooks = (): WriterBook[] => [
     rating: 4.5,
     reviews: 218,
     status: 'published',
-    cover: '/api/placeholder/200/300',
+    cover: 'https://images.unsplash.com/photo-1507842217343-583f20270319?w=200&h=300&fit=crop',
   },
   {
     id: '3',
@@ -46,7 +46,7 @@ export const getWriterBooks = (): WriterBook[] => [
     rating: 4.7,
     reviews: 195,
     status: 'published',
-    cover: '/api/placeholder/200/300',
+    cover: 'https://images.unsplash.com/photo-1495446815901-a7297e3ffe02?w=200&h=300&fit=crop',
   },
   {
     id: '4',
@@ -58,7 +58,7 @@ export const getWriterBooks = (): WriterBook[] => [
     rating: 0,
     reviews: 0,
     status: 'draft',
-    cover: '/api/placeholder/200/300',
+    cover: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=200&h=300&fit=crop',
   },
   {
     id: '5',
@@ -70,7 +70,7 @@ export const getWriterBooks = (): WriterBook[] => [
     rating: 4.4,
     reviews: 156,
     status: 'published',
-    cover: '/api/placeholder/200/300',
+    cover: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=200&h=300&fit=crop',
   },
   {
     id: '6',
@@ -82,7 +82,7 @@ export const getWriterBooks = (): WriterBook[] => [
     rating: 4.3,
     reviews: 68,
     status: 'published',
-    cover: '/api/placeholder/200/300',
+    cover: 'https://images.unsplash.com/photo-1495446815901-a7297e3ffe02?w=200&h=300&fit=crop',
   },
 ];
 
