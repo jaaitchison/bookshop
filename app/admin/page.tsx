@@ -10,6 +10,29 @@ export default function AdminPage() {
   const stats = getAdminStats();
   const activities = getRecentActivity();
 
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'add-book':
+        console.log('Opening book creation form');
+        alert('Book creation form would open here');
+        break;
+      case 'manage-users':
+        console.log('Opening user management');
+        alert('User management interface would open here');
+        break;
+      case 'view-orders':
+        console.log('Opening orders list');
+        alert('Orders list would open here');
+        break;
+      case 'generate-report':
+        console.log('Generating report');
+        alert('Report generation started');
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -51,16 +74,28 @@ export default function AdminPage() {
           <div>
             <AdminSection title="Quick Actions">
               <div className="space-y-3">
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                <button 
+                  onClick={() => handleQuickAction('add-book')}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
                   Add New Book
                 </button>
-                <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                <button 
+                  onClick={() => handleQuickAction('manage-users')}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
                   Manage Users
                 </button>
-                <button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                <button 
+                  onClick={() => handleQuickAction('view-orders')}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
                   View Orders
                 </button>
-                <button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                <button 
+                  onClick={() => handleQuickAction('generate-report')}
+                  className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
                   Generate Report
                 </button>
               </div>

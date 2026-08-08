@@ -1,15 +1,50 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { getWriterStats, getWriterBooks, getRecentActivities } from '@/src/data/studio';
 import WriterStatsPanel from '@/src/components/studio/WriterStatsPanel';
 import WriterBooksList from '@/src/components/studio/WriterBooksList';
 import WriterActivityFeed from '@/src/components/studio/WriterActivityFeed';
 
 export default function WriterStudioPage() {
+  const [filterStatus, setFilterStatus] = useState('all');
   const stats = getWriterStats();
   const books = getWriterBooks();
   const activities = getRecentActivities();
+
+  const handlePublishBook = () => {
+    // Navigate to book creation form
+    console.log('Navigating to book creation...');
+    // In a full implementation, would navigate to /studio/new or show modal
+    alert('Book creation form would open here');
+  };
+
+  const handleFilterChange = (status: string) => {
+    setFilterStatus(status);
+    console.log('Filtering books by status:', status);
+  };
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'write':
+        handlePublishBook();
+        break;
+      case 'analytics':
+        console.log('Opening analytics dashboard');
+        alert('Analytics dashboard would open here');
+        break;
+      case 'reviews':
+        console.log('Opening reader reviews');
+        alert('Reader reviews section would open here');
+        break;
+      case 'settings':
+        console.log('Opening studio settings');
+        alert('Studio settings would open here');
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -25,7 +60,10 @@ export default function WriterStudioPage() {
                 Manage your books, track sales, and engage with readers
               </p>
             </div>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors">
+            <button 
+              onClick={handlePublishBook}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+            >
               + Publish New Book
             </button>
           </div>
@@ -49,11 +87,15 @@ export default function WriterStudioPage() {
                   My Books
                 </h2>
                 <div className="flex gap-3">
-                  <select className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm">
-                    <option>All Books</option>
-                    <option>Published</option>
-                    <option>Drafts</option>
-                    <option>Archived</option>
+                  <select 
+                    value={filterStatus}
+                    onChange={(e) => handleFilterChange(e.target.value)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+                  >
+                    <option value="all">All Books</option>
+                    <option value="published">Published</option>
+                    <option value="draft">Drafts</option>
+                    <option value="archived">Archived</option>
                   </select>
                 </div>
               </div>
@@ -73,19 +115,31 @@ export default function WriterStudioPage() {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
+            <button 
+              onClick={() => handleQuickAction('write')}
+              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center"
+            >
               <div className="text-2xl mb-2">📝</div>
               <p className="font-medium text-gray-900 dark:text-gray-100">Write Book</p>
             </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
+            <button 
+              onClick={() => handleQuickAction('analytics')}
+              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center"
+            >
               <div className="text-2xl mb-2">📊</div>
               <p className="font-medium text-gray-900 dark:text-gray-100">View Analytics</p>
             </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
+            <button 
+              onClick={() => handleQuickAction('reviews')}
+              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center"
+            >
               <div className="text-2xl mb-2">💬</div>
               <p className="font-medium text-gray-900 dark:text-gray-100">Reader Reviews</p>
             </button>
-            <button className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center">
+            <button 
+              onClick={() => handleQuickAction('settings')}
+              className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-center"
+            >
               <div className="text-2xl mb-2">⚙️</div>
               <p className="font-medium text-gray-900 dark:text-gray-100">Settings</p>
             </button>

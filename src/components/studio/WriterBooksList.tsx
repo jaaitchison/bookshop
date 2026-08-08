@@ -17,6 +17,16 @@ export default function WriterBooksList({ books }: WriterBooksListProps) {
     return statusConfig[status];
   };
 
+  const handleEdit = (bookId: string) => {
+    console.log('Editing book:', bookId);
+    alert(`Edit form would open for book ${bookId}`);
+  };
+
+  const handleViewStats = (bookId: string) => {
+    console.log('Viewing stats for book:', bookId);
+    alert(`Stats dashboard would open for book ${bookId}`);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="overflow-x-auto">
@@ -96,10 +106,16 @@ export default function WriterBooksList({ books }: WriterBooksListProps) {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-right">
-                  <button className="text-sm text-blue-600 dark:text-blue-400 hover:underline mr-4">
+                  <button 
+                    onClick={() => handleEdit(book.id)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline mr-4"
+                  >
                     Edit
                   </button>
-                  <button className="text-sm text-gray-600 dark:text-gray-400 hover:underline">
+                  <button 
+                    onClick={() => handleViewStats(book.id)}
+                    className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
+                  >
                     View Stats
                   </button>
                 </td>
